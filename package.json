@@ -1,0 +1,21 @@
+{
+  "name": "com.miramocha.univrmxt",
+  "version": "0.1.0",
+  "displayName": "UniVRMXT",
+  "description": "Optional Extended VRM extensions for Unity (VFX, materials override).",
+  "unity": "2022.3",
+  "keywords": [
+    "vrm",
+    "vrmxt",
+    "extended-vrm",
+    "vfx",
+    "materials"
+  ],
+  "author": {
+    "name": "Mira Luna"
+  },
+  "dependencies": {
+    "com.vrmc.gltf": "0.131.1",
+    "com.vrmc.vrm": "0.131.1"
+  }
+}
