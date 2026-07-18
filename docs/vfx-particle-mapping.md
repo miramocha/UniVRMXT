@@ -83,8 +83,8 @@ Dual path:
 
 | Host | What to use in scenes |
 |------|------------------------|
-| **Extended-UniVRM** (import hooks) | Raw **`.vrm`** — VFX attached during ScriptedImporter |
-| **Stock UniVRM** | Sibling **`*.vrmxt.prefab`** (postprocessor fallback) |
+| **Extended-UniVRM** + Project Settings/VRM10 → Enable VRM Import Extensions | Raw **`.vrm`** — VFX attached during ScriptedImporter |
+| **Stock UniVRM**, or Extended with import extensions **disabled** | Sibling **`*.vrmxt.prefab`** (postprocessor fallback) |
 
-Reimport after updating UniVRMXT / Extended-UniVRM. Details:
+Reimport `.vrm` after changing UniVRMXT, Extended-UniVRM, or the Project Settings toggle. Details:
 [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
