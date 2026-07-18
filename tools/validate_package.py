@@ -44,6 +44,7 @@ def check_package_json() -> None:
 
     deps = data.get("dependencies", {})
     for dep, version in {
+        "com.unity.nuget.newtonsoft-json": "3.2.1",
         "com.vrmc.gltf": "0.131.1",
         "com.vrmc.vrm": "0.131.1",
     }.items():
@@ -111,13 +112,30 @@ def check_meta_files() -> None:
     for folder in sorted(folders, key=lambda p: str(p)):
         if folder == ROOT or ".git" in folder.parts:
             continue
-        folder_meta = folder / ".meta"
+        # Unity expects sibling FolderName.meta next to the folder.
+        folder_meta = folder.parent / f"{folder.name}.meta"
         if not folder_meta.is_file():
             folder_meta_missing.append(folder)
 
     if folder_meta_missing:
         lines = "\n".join(f"  - {path.relative_to(ROOT)}" for path in folder_meta_missing)
         fail(f"missing folder .meta files:\n{lines}")
+
+    # Ensure folder meta GUIDs are unique among all metas we care about.
+    for folder in folders:
+        if folder == ROOT or ".git" in folder.parts:
+            continue
+        folder_meta = folder.parent / f"{folder.name}.meta"
+        if not folder_meta.is_file():
+            continue
+        guid = parse_meta_guid(folder_meta)
+        previous = guids.get(guid)
+        if previous is not None and previous != folder_meta:
+            fail(
+                "duplicate GUID "
+                f"{guid} used by {previous.relative_to(ROOT)} and {folder_meta.relative_to(ROOT)}"
+            )
+        guids[guid] = folder_meta
 
 
 def main() -> None:

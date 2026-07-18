@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace UniVRMXT.Format
 {
@@ -30,8 +31,12 @@ namespace UniVRMXT.Format
 
             try
             {
-                using var document = JsonDocument.Parse(json);
-                return TryParse(document.RootElement, out result);
+                var root = JToken.Parse(json);
+                return TryParse(root, out result);
+            }
+            catch (JsonReaderException)
+            {
+                return false;
             }
             catch (JsonException)
             {
@@ -39,7 +44,7 @@ namespace UniVRMXT.Format
             }
         }
 
-        public static bool TryParse(JsonElement root, out VrmxtVfxExtension result)
+        public static bool TryParse(JToken root, out VrmxtVfxExtension result)
         {
             result = null;
 
@@ -53,16 +58,16 @@ namespace UniVRMXT.Format
                 return false;
             }
 
-            if (!extension.TryGetProperty("emitters", out var emittersElement) ||
-                emittersElement.ValueKind != JsonValueKind.Array)
+            if (!TryGetProperty(extension, "emitters", out var emittersToken) ||
+                emittersToken.Type != JTokenType.Array)
             {
                 return false;
             }
 
             var emitters = new List<VrmxtVfxEmitter>();
-            foreach (var emitterElement in emittersElement.EnumerateArray())
+            foreach (var emitterToken in (JArray)emittersToken)
             {
-                if (TryParseEmitter(emitterElement, out var emitter))
+                if (TryParseEmitter(emitterToken, out var emitter))
                 {
                     emitters.Add(emitter);
                 }
@@ -72,74 +77,87 @@ namespace UniVRMXT.Format
             return true;
         }
 
-        private static bool TryGetExtensionObject(JsonElement root, out JsonElement extension)
+        private static bool TryGetExtensionObject(JToken root, out JObject extension)
         {
-            extension = default;
-
-            if (root.ValueKind == JsonValueKind.Object &&
-                root.TryGetProperty(ExtensionName, out extension))
+            extension = null;
+            if (root is not JObject rootObject)
             {
-                return extension.ValueKind == JsonValueKind.Object;
+                return false;
             }
 
-            if (root.TryGetProperty("extensions", out var extensions) &&
-                extensions.ValueKind == JsonValueKind.Object &&
-                extensions.TryGetProperty(ExtensionName, out extension))
+            if (TryGetProperty(rootObject, ExtensionName, out var direct) &&
+                direct is JObject directObject)
             {
-                return extension.ValueKind == JsonValueKind.Object;
+                extension = directObject;
+                return true;
+            }
+
+            if (TryGetProperty(rootObject, "extensions", out var extensionsToken) &&
+                extensionsToken is JObject extensions &&
+                TryGetProperty(extensions, ExtensionName, out var nested) &&
+                nested is JObject nestedObject)
+            {
+                extension = nestedObject;
+                return true;
+            }
+
+            // Bare extension object (already extracted from glTF extensions map).
+            if (TryGetProperty(rootObject, "specVersion", out _))
+            {
+                extension = rootObject;
+                return true;
             }
 
             return false;
         }
 
-        private static bool TryReadSpecVersion(JsonElement extension, out string specVersion)
+        private static bool TryReadSpecVersion(JObject extension, out string specVersion)
         {
             specVersion = null;
-            if (!extension.TryGetProperty("specVersion", out var versionElement) ||
-                versionElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(extension, "specVersion", out var versionToken) ||
+                versionToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            specVersion = versionElement.GetString();
+            specVersion = versionToken.Value<string>();
             return string.Equals(specVersion, SpecVersionValue, StringComparison.Ordinal);
         }
 
-        private static bool TryParseEmitter(JsonElement emitterElement, out VrmxtVfxEmitter emitter)
+        private static bool TryParseEmitter(JToken emitterToken, out VrmxtVfxEmitter emitter)
         {
             emitter = null;
 
-            if (emitterElement.ValueKind != JsonValueKind.Object)
+            if (emitterToken is not JObject emitterObject)
             {
                 return false;
             }
 
-            if (!emitterElement.TryGetProperty("type", out var typeElement) ||
-                typeElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(emitterObject, "type", out var typeToken) ||
+                typeToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            var type = typeElement.GetString();
+            var type = typeToken.Value<string>();
             if (!string.Equals(type, "particle", StringComparison.Ordinal))
             {
                 return false;
             }
 
-            if (!emitterElement.TryGetProperty("node", out var nodeElement) ||
-                nodeElement.ValueKind != JsonValueKind.Number ||
-                !nodeElement.TryGetInt32(out var node) ||
+            if (!TryGetProperty(emitterObject, "node", out var nodeToken) ||
+                !TryGetInt32(nodeToken, out var node) ||
                 node < 0)
             {
                 return false;
             }
 
-            if (!TryReadFloatArray(emitterElement, "localPosition", 3, DefaultLocalPosition, out var localPosition))
+            if (!TryReadFloatArray(emitterObject, "localPosition", 3, DefaultLocalPosition, out var localPosition))
             {
                 return false;
             }
 
-            if (!TryReadFloatArray(emitterElement, "localRotation", 4, DefaultLocalRotation, out var localRotation))
+            if (!TryReadFloatArray(emitterObject, "localRotation", 4, DefaultLocalRotation, out var localRotation))
             {
                 return false;
             }
@@ -149,38 +167,36 @@ namespace UniVRMXT.Format
                 return false;
             }
 
-            if (!emitterElement.TryGetProperty("particle", out var particleElement) ||
-                particleElement.ValueKind != JsonValueKind.Object)
+            if (!TryGetProperty(emitterObject, "particle", out var particleToken) ||
+                particleToken is not JObject particleObject)
             {
                 return false;
             }
 
-            if (!TryParseParticle(particleElement, out var particle))
+            if (!TryParseParticle(particleObject, out var particle))
             {
                 return false;
             }
 
             string name = null;
-            if (emitterElement.TryGetProperty("name", out var nameElement) &&
-                nameElement.ValueKind == JsonValueKind.String)
+            if (TryGetProperty(emitterObject, "name", out var nameToken) &&
+                nameToken.Type == JTokenType.String)
             {
-                name = nameElement.GetString();
+                name = nameToken.Value<string>();
             }
 
             emitter = new VrmxtVfxEmitter(name, type, node, localPosition, localRotation, particle);
             return true;
         }
 
-        private static bool TryParseParticle(JsonElement particleElement, out VrmxtVfxParticle particle)
+        private static bool TryParseParticle(JObject particleObject, out VrmxtVfxParticle particle)
         {
             particle = null;
 
             int? texture = null;
-            if (particleElement.TryGetProperty("texture", out var textureElement))
+            if (TryGetProperty(particleObject, "texture", out var textureToken))
             {
-                if (textureElement.ValueKind != JsonValueKind.Number ||
-                    !textureElement.TryGetInt32(out var textureIndex) ||
-                    textureIndex < 0)
+                if (!TryGetInt32(textureToken, out var textureIndex) || textureIndex < 0)
                 {
                     return false;
                 }
@@ -188,32 +204,32 @@ namespace UniVRMXT.Format
                 texture = textureIndex;
             }
 
-            if (!TryReadNonNegativeFloat(particleElement, "emissionRate", DefaultEmissionRate, out var emissionRate))
+            if (!TryReadNonNegativeFloat(particleObject, "emissionRate", DefaultEmissionRate, out var emissionRate))
             {
                 return false;
             }
 
-            if (!TryReadPositiveInt(particleElement, "maxParticles", DefaultMaxParticles, out var maxParticles))
+            if (!TryReadPositiveInt(particleObject, "maxParticles", DefaultMaxParticles, out var maxParticles))
             {
                 return false;
             }
 
-            if (!TryReadNonNegativeFloat(particleElement, "lifetime", DefaultLifetime, out var lifetime))
+            if (!TryReadNonNegativeFloat(particleObject, "lifetime", DefaultLifetime, out var lifetime))
             {
                 return false;
             }
 
-            if (!TryReadNonNegativeFloat(particleElement, "startSize", DefaultStartSize, out var startSize))
+            if (!TryReadNonNegativeFloat(particleObject, "startSize", DefaultStartSize, out var startSize))
             {
                 return false;
             }
 
-            if (!TryReadNonNegativeFloat(particleElement, "startSpeed", DefaultStartSpeed, out var startSpeed))
+            if (!TryReadNonNegativeFloat(particleObject, "startSpeed", DefaultStartSpeed, out var startSpeed))
             {
                 return false;
             }
 
-            if (!TryReadFloatArray(particleElement, "startColor", 4, DefaultStartColor, out var startColor))
+            if (!TryReadFloatArray(particleObject, "startColor", 4, DefaultStartColor, out var startColor))
             {
                 return false;
             }
@@ -230,7 +246,7 @@ namespace UniVRMXT.Format
         }
 
         private static bool TryReadFloatArray(
-            JsonElement parent,
+            JObject parent,
             string propertyName,
             int length,
             float[] defaults,
@@ -238,25 +254,20 @@ namespace UniVRMXT.Format
         {
             values = (float[])defaults.Clone();
 
-            if (!parent.TryGetProperty(propertyName, out var element))
+            if (!TryGetProperty(parent, propertyName, out var token))
             {
                 return true;
             }
 
-            if (element.ValueKind != JsonValueKind.Array)
+            if (token.Type != JTokenType.Array)
             {
                 return false;
             }
 
             var items = new List<float>();
-            foreach (var item in element.EnumerateArray())
+            foreach (var item in (JArray)token)
             {
-                if (item.ValueKind != JsonValueKind.Number || !item.TryGetDouble(out var number))
-                {
-                    return false;
-                }
-
-                if (!IsFinite(number))
+                if (!TryGetDouble(item, out var number) || !IsFinite(number))
                 {
                     return false;
                 }
@@ -274,23 +285,18 @@ namespace UniVRMXT.Format
         }
 
         private static bool TryReadNonNegativeFloat(
-            JsonElement parent,
+            JObject parent,
             string propertyName,
             float defaultValue,
             out float value)
         {
             value = defaultValue;
-            if (!parent.TryGetProperty(propertyName, out var element))
+            if (!TryGetProperty(parent, propertyName, out var token))
             {
                 return true;
             }
 
-            if (element.ValueKind != JsonValueKind.Number || !element.TryGetDouble(out var number))
-            {
-                return false;
-            }
-
-            if (!IsFinite(number) || number < 0d)
+            if (!TryGetDouble(token, out var number) || !IsFinite(number) || number < 0d)
             {
                 return false;
             }
@@ -300,28 +306,59 @@ namespace UniVRMXT.Format
         }
 
         private static bool TryReadPositiveInt(
-            JsonElement parent,
+            JObject parent,
             string propertyName,
             int defaultValue,
             out int value)
         {
             value = defaultValue;
-            if (!parent.TryGetProperty(propertyName, out var element))
+            if (!TryGetProperty(parent, propertyName, out var token))
             {
                 return true;
             }
 
-            if (element.ValueKind != JsonValueKind.Number || !element.TryGetInt32(out var number))
-            {
-                return false;
-            }
-
-            if (number < 1)
+            if (!TryGetInt32(token, out var number) || number < 1)
             {
                 return false;
             }
 
             value = number;
+            return true;
+        }
+
+        private static bool TryGetProperty(JObject parent, string propertyName, out JToken token)
+        {
+            return parent.TryGetValue(propertyName, StringComparison.Ordinal, out token);
+        }
+
+        private static bool TryGetInt32(JToken token, out int value)
+        {
+            value = 0;
+            if (token == null || (token.Type != JTokenType.Integer && token.Type != JTokenType.Float))
+            {
+                return false;
+            }
+
+            var number = token.Value<double>();
+            if (!IsFinite(number) || number != Math.Truncate(number) ||
+                number < int.MinValue || number > int.MaxValue)
+            {
+                return false;
+            }
+
+            value = (int)number;
+            return true;
+        }
+
+        private static bool TryGetDouble(JToken token, out double value)
+        {
+            value = 0d;
+            if (token == null || (token.Type != JTokenType.Integer && token.Type != JTokenType.Float))
+            {
+                return false;
+            }
+
+            value = token.Value<double>();
             return true;
         }
 

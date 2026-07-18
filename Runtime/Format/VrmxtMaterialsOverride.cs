@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace UniVRMXT.Format
 {
@@ -25,8 +26,12 @@ namespace UniVRMXT.Format
 
             try
             {
-                using var document = JsonDocument.Parse(json);
-                return TryParse(document.RootElement, out result);
+                var root = JToken.Parse(json);
+                return TryParse(root, out result);
+            }
+            catch (JsonReaderException)
+            {
+                return false;
             }
             catch (JsonException)
             {
@@ -34,7 +39,7 @@ namespace UniVRMXT.Format
             }
         }
 
-        public static bool TryParse(JsonElement root, out VrmxtMaterialsOverrideExtension result)
+        public static bool TryParse(JToken root, out VrmxtMaterialsOverrideExtension result)
         {
             result = null;
 
@@ -48,9 +53,9 @@ namespace UniVRMXT.Format
                 return false;
             }
 
-            if (!extension.TryGetProperty("overrides", out var overridesElement) ||
-                overridesElement.ValueKind != JsonValueKind.Array ||
-                overridesElement.GetArrayLength() == 0)
+            if (!TryGetProperty(extension, "overrides", out var overridesToken) ||
+                overridesToken.Type != JTokenType.Array ||
+                !((JArray)overridesToken).HasValues)
             {
                 return false;
             }
@@ -58,9 +63,9 @@ namespace UniVRMXT.Format
             var overrides = new List<VrmxtMaterialEngineOverride>();
             var engines = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var overrideElement in overridesElement.EnumerateArray())
+            foreach (var overrideToken in (JArray)overridesToken)
             {
-                if (!TryParseOverride(overrideElement, out var engineOverride))
+                if (!TryParseOverride(overrideToken, out var engineOverride))
                 {
                     return false;
                 }
@@ -104,82 +109,96 @@ namespace UniVRMXT.Format
             return false;
         }
 
-        private static bool TryGetExtensionObject(JsonElement root, out JsonElement extension)
+        private static bool TryGetExtensionObject(JToken root, out JObject extension)
         {
-            extension = default;
-
-            if (root.ValueKind == JsonValueKind.Object &&
-                root.TryGetProperty(ExtensionName, out extension))
+            extension = null;
+            if (root is not JObject rootObject)
             {
-                return extension.ValueKind == JsonValueKind.Object;
+                return false;
             }
 
-            if (root.TryGetProperty("extensions", out var extensions) &&
-                extensions.ValueKind == JsonValueKind.Object &&
-                extensions.TryGetProperty(ExtensionName, out extension))
+            if (TryGetProperty(rootObject, ExtensionName, out var direct) &&
+                direct is JObject directObject)
             {
-                return extension.ValueKind == JsonValueKind.Object;
+                extension = directObject;
+                return true;
+            }
+
+            if (TryGetProperty(rootObject, "extensions", out var extensionsToken) &&
+                extensionsToken is JObject extensions &&
+                TryGetProperty(extensions, ExtensionName, out var nested) &&
+                nested is JObject nestedObject)
+            {
+                extension = nestedObject;
+                return true;
+            }
+
+            // Bare extension object (already extracted from a material extensions map).
+            if (TryGetProperty(rootObject, "specVersion", out _))
+            {
+                extension = rootObject;
+                return true;
             }
 
             return false;
         }
 
-        private static bool TryReadSpecVersion(JsonElement extension, out string specVersion)
+        private static bool TryReadSpecVersion(JObject extension, out string specVersion)
         {
             specVersion = null;
-            if (!extension.TryGetProperty("specVersion", out var versionElement) ||
-                versionElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(extension, "specVersion", out var versionToken) ||
+                versionToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            specVersion = versionElement.GetString();
+            specVersion = versionToken.Value<string>();
             return string.Equals(specVersion, SpecVersionValue, StringComparison.Ordinal);
         }
 
-        private static bool TryParseOverride(JsonElement overrideElement, out VrmxtMaterialEngineOverride engineOverride)
+        private static bool TryParseOverride(JToken overrideToken, out VrmxtMaterialEngineOverride engineOverride)
         {
             engineOverride = null;
 
-            if (overrideElement.ValueKind != JsonValueKind.Object)
+            if (overrideToken is not JObject overrideObject)
             {
                 return false;
             }
 
-            if (!overrideElement.TryGetProperty("engine", out var engineElement) ||
-                engineElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(overrideObject, "engine", out var engineToken) ||
+                engineToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            var engine = engineElement.GetString();
+            var engine = engineToken.Value<string>();
             if (string.IsNullOrEmpty(engine))
             {
                 return false;
             }
 
-            if (!overrideElement.TryGetProperty("material", out var materialElement) ||
-                materialElement.ValueKind != JsonValueKind.Object)
+            if (!TryGetProperty(overrideObject, "material", out var materialToken) ||
+                materialToken is not JObject materialObject)
             {
                 return false;
             }
 
-            if (!TryParseMaterial(engine, materialElement, out var material))
+            if (!TryParseMaterial(engine, materialObject, out var material))
             {
                 return false;
             }
 
             var bindings = new List<VrmxtMaterialBinding>();
-            if (overrideElement.TryGetProperty("bindings", out var bindingsElement))
+            if (TryGetProperty(overrideObject, "bindings", out var bindingsToken))
             {
-                if (bindingsElement.ValueKind != JsonValueKind.Array)
+                if (bindingsToken.Type != JTokenType.Array)
                 {
                     return false;
                 }
 
-                foreach (var bindingElement in bindingsElement.EnumerateArray())
+                foreach (var bindingToken in (JArray)bindingsToken)
                 {
-                    if (!TryParseBinding(bindingElement, out var binding))
+                    if (!TryParseBinding(bindingToken, out var binding))
                     {
                         return false;
                     }
@@ -192,21 +211,21 @@ namespace UniVRMXT.Format
             return true;
         }
 
-        private static bool TryParseMaterial(string engine, JsonElement materialElement, out IVrmxtMaterialDefinition material)
+        private static bool TryParseMaterial(string engine, JObject materialObject, out IVrmxtMaterialDefinition material)
         {
             material = null;
 
-            if (!materialElement.TryGetProperty("kind", out var kindElement) ||
-                kindElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(materialObject, "kind", out var kindToken) ||
+                kindToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            var kind = kindElement.GetString();
+            var kind = kindToken.Value<string>();
             MaterialProvider provider = null;
-            if (materialElement.TryGetProperty("provider", out var providerElement))
+            if (TryGetProperty(materialObject, "provider", out var providerToken))
             {
-                if (!TryParseProvider(providerElement, out provider))
+                if (!TryParseProvider(providerToken, out provider))
                 {
                     return false;
                 }
@@ -219,23 +238,23 @@ namespace UniVRMXT.Format
                     return false;
                 }
 
-                if (!materialElement.TryGetProperty("name", out var nameElement) ||
-                    nameElement.ValueKind != JsonValueKind.String)
+                if (!TryGetProperty(materialObject, "name", out var nameToken) ||
+                    nameToken.Type != JTokenType.String)
                 {
                     return false;
                 }
 
-                var shaderName = nameElement.GetString();
+                var shaderName = nameToken.Value<string>();
                 if (string.IsNullOrEmpty(shaderName))
                 {
                     return false;
                 }
 
                 string variant = null;
-                if (materialElement.TryGetProperty("variant", out var variantElement) &&
-                    variantElement.ValueKind == JsonValueKind.String)
+                if (TryGetProperty(materialObject, "variant", out var variantToken) &&
+                    variantToken.Type == JTokenType.String)
                 {
-                    variant = variantElement.GetString();
+                    variant = variantToken.Value<string>();
                 }
 
                 material = new UnityMaterialOverride(kind, shaderName, variant, provider);
@@ -249,21 +268,21 @@ namespace UniVRMXT.Format
                     return false;
                 }
 
-                if (!materialElement.TryGetProperty("variants", out var variantsElement) ||
-                    variantsElement.ValueKind != JsonValueKind.Object)
+                if (!TryGetProperty(materialObject, "variants", out var variantsToken) ||
+                    variantsToken is not JObject variantsObject)
                 {
                     return false;
                 }
 
                 var variants = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var property in variantsElement.EnumerateObject())
+                foreach (var property in variantsObject.Properties())
                 {
-                    if (property.Value.ValueKind != JsonValueKind.String)
+                    if (property.Value.Type != JTokenType.String)
                     {
                         return false;
                     }
 
-                    var path = property.Value.GetString();
+                    var path = property.Value.Value<string>();
                     if (string.IsNullOrEmpty(path))
                     {
                         return false;
@@ -285,66 +304,66 @@ namespace UniVRMXT.Format
             return true;
         }
 
-        private static bool TryParseProvider(JsonElement providerElement, out MaterialProvider provider)
+        private static bool TryParseProvider(JToken providerToken, out MaterialProvider provider)
         {
             provider = null;
-            if (providerElement.ValueKind != JsonValueKind.Object)
+            if (providerToken is not JObject providerObject)
             {
                 return false;
             }
 
-            if (!providerElement.TryGetProperty("id", out var idElement) ||
-                idElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(providerObject, "id", out var idToken) ||
+                idToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            var id = idElement.GetString();
+            var id = idToken.Value<string>();
             if (string.IsNullOrEmpty(id))
             {
                 return false;
             }
 
             string version = null;
-            if (providerElement.TryGetProperty("version", out var versionElement) &&
-                versionElement.ValueKind == JsonValueKind.String)
+            if (TryGetProperty(providerObject, "version", out var versionToken) &&
+                versionToken.Type == JTokenType.String)
             {
-                version = versionElement.GetString();
+                version = versionToken.Value<string>();
             }
 
             provider = new MaterialProvider(id, version);
             return true;
         }
 
-        private static bool TryParseBinding(JsonElement bindingElement, out VrmxtMaterialBinding binding)
+        private static bool TryParseBinding(JToken bindingToken, out VrmxtMaterialBinding binding)
         {
             binding = null;
-            if (bindingElement.ValueKind != JsonValueKind.Object)
+            if (bindingToken is not JObject bindingObject)
             {
                 return false;
             }
 
-            if (!bindingElement.TryGetProperty("source", out var sourceElement) ||
-                sourceElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(bindingObject, "source", out var sourceToken) ||
+                sourceToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            if (!bindingElement.TryGetProperty("target", out var targetElement) ||
-                targetElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(bindingObject, "target", out var targetToken) ||
+                targetToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            if (!bindingElement.TryGetProperty("targetType", out var targetTypeElement) ||
-                targetTypeElement.ValueKind != JsonValueKind.String)
+            if (!TryGetProperty(bindingObject, "targetType", out var targetTypeToken) ||
+                targetTypeToken.Type != JTokenType.String)
             {
                 return false;
             }
 
-            var source = sourceElement.GetString();
-            var target = targetElement.GetString();
-            var targetType = targetTypeElement.GetString();
+            var source = sourceToken.Value<string>();
+            var target = targetToken.Value<string>();
+            var targetType = targetTypeToken.Value<string>();
             if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(target) || string.IsNullOrEmpty(targetType))
             {
                 return false;
@@ -357,6 +376,11 @@ namespace UniVRMXT.Format
 
             binding = new VrmxtMaterialBinding(source, target, targetType);
             return true;
+        }
+
+        private static bool TryGetProperty(JObject parent, string propertyName, out JToken token)
+        {
+            return parent.TryGetValue(propertyName, StringComparison.Ordinal, out token);
         }
 
         private static bool IsKnownTargetType(string targetType)
