@@ -124,5 +124,46 @@ namespace UniVRMXT.Tests.Format
             Assert.AreEqual(1, extension.Emitters.Count);
             Assert.AreEqual(1, extension.Emitters[0].Node);
         }
+
+        [Test]
+        public void ToJson_RoundTripsMinimalEmitter()
+        {
+            Assert.IsTrue(VrmxtVfx.TryParse(ValidExtensionJson, out var parsed));
+            var json = VrmxtVfx.ToJson(parsed);
+            Assert.IsTrue(VrmxtVfx.TryParse(json, out var again));
+            Assert.AreEqual(1, again.Emitters.Count);
+            Assert.AreEqual("HandSpark", again.Emitters[0].Name);
+            Assert.AreEqual(2, again.Emitters[0].Node);
+            Assert.AreEqual(20f, again.Emitters[0].Particle.EmissionRate);
+            Assert.AreEqual(32, again.Emitters[0].Particle.MaxParticles);
+        }
+
+        [Test]
+        public void ToJson_IncludesTextureAndNonDefaultFields()
+        {
+            var extension = new VrmxtVfxExtension(new[]
+            {
+                new VrmxtVfxEmitter(
+                    "Spark",
+                    "particle",
+                    3,
+                    new[] { 0.1f, 0.2f, 0.3f },
+                    VrmxtVfx.DefaultLocalRotation,
+                    new VrmxtVfxParticle(
+                        5,
+                        VrmxtVfx.DefaultEmissionRate,
+                        VrmxtVfx.DefaultMaxParticles,
+                        VrmxtVfx.DefaultLifetime,
+                        VrmxtVfx.DefaultStartSize,
+                        VrmxtVfx.DefaultStartSpeed,
+                        new[] { 1f, 0f, 0f, 0.5f })),
+            });
+
+            var json = VrmxtVfx.ToJson(extension);
+            Assert.IsTrue(VrmxtVfx.TryParse(json, out var parsed));
+            Assert.AreEqual(5, parsed.Emitters[0].Particle.Texture);
+            Assert.AreEqual(0.1f, parsed.Emitters[0].LocalPosition[0], 1e-5f);
+            Assert.AreEqual(0.5f, parsed.Emitters[0].Particle.StartColor[3], 1e-5f);
+        }
     }
 }

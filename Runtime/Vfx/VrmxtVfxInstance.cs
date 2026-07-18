@@ -42,8 +42,122 @@ namespace UniVRMXT.Vfx
         public void BuildParticleSystems(Func<int, Texture> resolveTexture = null)
         {
             ClearParticleSystems();
+            BindTexturesFromResolver(emitters, resolveTexture);
             particleSystems.AddRange(
                 VrmxtVfxParticleSystemMapper.CreateAll(emitters, resolveTexture));
+        }
+
+        /// <summary>
+        /// Store resolved Unity textures on emitters so export can re-embed them even after
+        /// preview <see cref="ParticleSystem"/> children are cleared.
+        /// </summary>
+        public static void BindTexturesFromResolver(
+            IReadOnlyList<VrmxtVfxResolvedEmitter> emitters,
+            Func<int, Texture> resolveTexture)
+        {
+            if (emitters == null || resolveTexture == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < emitters.Count; i++)
+            {
+                var emitter = emitters[i];
+                if (emitter?.Particle == null || !emitter.Particle.HasTexture)
+                {
+                    continue;
+                }
+
+                if (emitter.Particle.Texture != null)
+                {
+                    continue;
+                }
+
+                var texture = resolveTexture(emitter.Particle.TextureIndex);
+                if (texture != null)
+                {
+                    emitter.Particle.Texture = texture;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copy albedo from live owned particle materials onto
+        /// <see cref="VrmxtVfxParticleData.Texture"/> (import persist / pre-export).
+        /// </summary>
+        public void SyncTexturesFromParticleMaterials()
+        {
+            for (var i = 0; i < emitters.Count; i++)
+            {
+                var emitter = emitters[i];
+                if (emitter?.Particle == null)
+                {
+                    continue;
+                }
+
+                if (emitter.Particle.Texture != null)
+                {
+                    continue;
+                }
+
+                var particleSystem = FindParticleSystemChild(emitter);
+                if (particleSystem == null)
+                {
+                    continue;
+                }
+
+                var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
+                var texture = VrmxtVfxParticleSystemMapper.ReadAssignedTexture(
+                    renderer != null ? renderer.sharedMaterial : null);
+                if (texture == null)
+                {
+                    continue;
+                }
+
+                emitter.Particle.Texture = texture;
+                emitter.Particle.HasTexture = true;
+            }
+        }
+
+        private ParticleSystem FindParticleSystemChild(VrmxtVfxResolvedEmitter emitter)
+        {
+            if (emitter.NodeTransform == null)
+            {
+                return null;
+            }
+
+            var expectedName = VrmxtVfxParticleSystemMapper.BuildObjectName(emitter);
+            for (var i = 0; i < emitter.NodeTransform.childCount; i++)
+            {
+                var child = emitter.NodeTransform.GetChild(i);
+                if (child == null || child.name != expectedName)
+                {
+                    continue;
+                }
+
+                var particleSystem = child.GetComponent<ParticleSystem>();
+                if (particleSystem != null)
+                {
+                    return particleSystem;
+                }
+            }
+
+            for (var i = 0; i < particleSystems.Count; i++)
+            {
+                var particleSystem = particleSystems[i];
+                if (particleSystem == null)
+                {
+                    continue;
+                }
+
+                if (particleSystem.transform.parent == emitter.NodeTransform &&
+                    particleSystem.gameObject.name == expectedName)
+                {
+                    return particleSystem;
+                }
+            }
+
+            return null;
         }
 
         public void ClearParticleSystems()

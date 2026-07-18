@@ -13,10 +13,19 @@ JSON omits a property (`VrmxtVfx.Default*`).
 | `lifetime` | `main.startLifetime` | Seconds |
 | `startSize` | `main.startSize` | Meters (billboard size) |
 | `startSpeed` | `velocityOverLifetime.y` (local) | `main.startSpeed` forced to `0`; velocity along emitter local **+Y** |
-| `startColor` | `main.startColor` | Linear RGBA |
+| `startColor` | `main.startColor` | Linear RGBA; export reads live PS value back |
 | `texture` | Owned particle material `_MainTex` + `_BaseMap` | Index into glTF `textures[]` via caller `resolveTexture` |
 | (billboard) | `renderer.renderMode = Billboard`, `alignment = View` | Camera-facing when supported |
 | `localPosition` / `localRotation` | Child transform under node | Parent = resolved `Nodes[node]` |
+
+## Export sync
+
+Before writing `VRMXT_vfx`, `VrmxtVfxExporter.CaptureAndClearParticleSystems` calls
+`VrmxtVfxParticleSystemMapper.ReadFromParticleSystem` so Unity inspector edits on the
+preview `ParticleSystem` (color, rate, lifetime, size, speed, local TR) fold into portable
+emitter data. Albedo is taken from `VrmxtVfxParticleData.Texture` (set on import bind /
+material sync) so export still embeds textures after preview systems are cleared.
+Editing only `VrmxtVfxInstance` fields also works when no PS child exists.
 
 ## Texture / material policy (BIRP + URP)
 
@@ -25,10 +34,13 @@ JSON omits a property (`VrmxtVfx.Default*`).
    - BIRP → `Particles/Standard Unlit`, then legacy particle / Mobile / Alpha Blended names
    - If `Shader.Find` fails (common during ScriptedImporter): clone the default
      `ParticleSystem` material (`Default-Particle`), then `Sprites/Default` / unlit fallbacks
-2. When `texture` resolves, set both `_MainTex` (BIRP) and `_BaseMap` (URP) when the shader exposes them.
-3. When `texture` is omitted, out of range, or unresolved (`null`), leave albedo default and tint with `startColor` (solid-tint fallback).
-4. HDRP is best-effort only (no dedicated particle shader pick yet).
-5. **Import persistence:** decode textures, `AddObjectToAsset` them **first**, re-bind onto
+2. Owned materials are forced to **Transparent + Alpha blend** (`ConfigureTransparentAlphaBlending`).
+   URP Particles/Unlit defaults to Opaque when created from script, which ignores texture alpha.
+   PNG alpha from GLB `LoadImage` is fine; missing transparency was a material surface setting.
+3. When `texture` resolves, set both `_MainTex` (BIRP) and `_BaseMap` (URP) when the shader exposes them.
+4. When `texture` is omitted, out of range, or unresolved (`null`), leave albedo default and tint with `startColor` (solid-tint fallback).
+5. HDRP is best-effort only (no dedicated particle shader pick yet).
+6. **Import persistence:** decode textures, `AddObjectToAsset` them **first**, re-bind onto
    owned particle materials, then `AddObjectToAsset` the materials (or embed in the companion
    prefab). Adding materials before textures drops texture slots on serialize (empty albedo).
 

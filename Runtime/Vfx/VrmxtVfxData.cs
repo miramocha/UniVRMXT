@@ -41,6 +41,13 @@ namespace UniVRMXT.Vfx
     {
         public bool HasTexture;
         public int TextureIndex;
+
+        /// <summary>
+        /// Optional Unity texture for re-export. Set when building ParticleSystems or
+        /// when import persists albedo onto the owned material.
+        /// </summary>
+        public Texture Texture;
+
         public float EmissionRate = VrmxtVfx.DefaultEmissionRate;
         public int MaxParticles = VrmxtVfx.DefaultMaxParticles;
         public float Lifetime = VrmxtVfx.DefaultLifetime;

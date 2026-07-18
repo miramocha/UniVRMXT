@@ -14,6 +14,15 @@ namespace UniVRMXT.Vfx
         public const string EmitterObjectNamePrefix = "VRMXT_vfx_";
         public const string OwnedMaterialNamePrefix = "VRMXT_vfx_Particle";
 
+        private static readonly int SurfaceId = Shader.PropertyToID("_Surface");
+        private static readonly int BlendId = Shader.PropertyToID("_Blend");
+        private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
+        private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
+        private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
+        private static readonly int ModeId = Shader.PropertyToID("_Mode");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+
         private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
         private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
 
@@ -48,6 +57,12 @@ namespace UniVRMXT.Vfx
 
             var particleSystem = go.AddComponent<ParticleSystem>();
             Apply(particleSystem, emitter.Particle, texture);
+            if (texture != null && emitter.Particle != null)
+            {
+                emitter.Particle.Texture = texture;
+                emitter.Particle.HasTexture = true;
+            }
+
             return particleSystem;
         }
 
@@ -123,6 +138,87 @@ namespace UniVRMXT.Vfx
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.alignment = ParticleSystemRenderSpace.View;
             ApplyMaterial(renderer, texture);
+        }
+
+        /// <summary>
+        /// Copy live <see cref="ParticleSystem"/> preview values back into portable
+        /// <paramref name="emitter"/> fields (for Unity inspector edits before export).
+        /// </summary>
+        public static void ReadFromParticleSystem(
+            ParticleSystem particleSystem,
+            VrmxtVfxResolvedEmitter emitter)
+        {
+            if (particleSystem == null || emitter == null)
+            {
+                return;
+            }
+
+            emitter.Particle ??= new VrmxtVfxParticleData();
+            ReadInto(particleSystem, emitter.Particle);
+
+            var transform = particleSystem.transform;
+            emitter.LocalPosition = transform.localPosition;
+            emitter.LocalRotation = transform.localRotation;
+        }
+
+        /// <summary>
+        /// Reverse of <see cref="Apply"/> for portable particle scalars.
+        /// </summary>
+        public static void ReadInto(ParticleSystem particleSystem, VrmxtVfxParticleData particle)
+        {
+            if (particleSystem == null)
+            {
+                throw new ArgumentNullException(nameof(particleSystem));
+            }
+
+            if (particle == null)
+            {
+                throw new ArgumentNullException(nameof(particle));
+            }
+
+            var main = particleSystem.main;
+            particle.MaxParticles = Mathf.Max(1, main.maxParticles);
+            particle.Lifetime = ReadCurveConstant(main.startLifetime);
+            particle.StartSize = ReadCurveConstant(main.startSize);
+            particle.StartColor = ReadStartColor(main.startColor);
+
+            var emission = particleSystem.emission;
+            particle.EmissionRate = ReadCurveConstant(emission.rateOverTime);
+
+            var velocity = particleSystem.velocityOverLifetime;
+            particle.StartSpeed = ReadCurveConstant(velocity.y);
+        }
+
+        public static Color ReadStartColor(ParticleSystem.MinMaxGradient gradient)
+        {
+            switch (gradient.mode)
+            {
+                case ParticleSystemGradientMode.Color:
+                    return gradient.color;
+                case ParticleSystemGradientMode.TwoColors:
+                    return Color.Lerp(gradient.colorMin, gradient.colorMax, 0.5f);
+                case ParticleSystemGradientMode.Gradient:
+                case ParticleSystemGradientMode.TwoGradients:
+                    return gradient.Evaluate(0f);
+                default:
+                    return gradient.color;
+            }
+        }
+
+        public static float ReadCurveConstant(ParticleSystem.MinMaxCurve curve)
+        {
+            switch (curve.mode)
+            {
+                case ParticleSystemCurveMode.Constant:
+                    return curve.constant;
+                case ParticleSystemCurveMode.TwoConstants:
+                    return (curve.constantMin + curve.constantMax) * 0.5f;
+                case ParticleSystemCurveMode.Curve:
+                case ParticleSystemCurveMode.TwoCurves:
+                    return curve.Evaluate(0f);
+                default:
+                    return curve.constant;
+            }
         }
 
         public static string BuildObjectName(VrmxtVfxResolvedEmitter emitter)
@@ -244,6 +340,71 @@ namespace UniVRMXT.Vfx
             return material.mainTexture;
         }
 
+        /// <summary>
+        /// Configure blend state so texture / particle alpha is visible.
+        /// URP <c>Particles/Unlit</c> defaults to Opaque when created from script.
+        /// Texture decode already keeps PNG alpha; this is a material issue, not import.
+        /// </summary>
+        public static void ConfigureTransparentAlphaBlending(Material material)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            // URP Lit/Particles Unlit surface type: 0 Opaque, 1 Transparent.
+            if (material.HasProperty(SurfaceId))
+            {
+                material.SetFloat(SurfaceId, 1f);
+            }
+
+            // URP blend: 0 Alpha, 1 Premultiply, 2 Additive, 3 Multiply.
+            if (material.HasProperty(BlendId))
+            {
+                material.SetFloat(BlendId, 0f);
+            }
+
+            // Built-in Particles/Standard Unlit rendering mode: 0 Opaque … 2 Fade, 3 Transparent.
+            if (material.HasProperty(ModeId))
+            {
+                material.SetFloat(ModeId, 2f);
+            }
+
+            if (material.HasProperty(SrcBlendId))
+            {
+                material.SetFloat(SrcBlendId, (float)BlendMode.SrcAlpha);
+            }
+
+            if (material.HasProperty(DstBlendId))
+            {
+                material.SetFloat(DstBlendId, (float)BlendMode.OneMinusSrcAlpha);
+            }
+
+            if (material.HasProperty(ZWriteId))
+            {
+                material.SetFloat(ZWriteId, 0f);
+            }
+
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            material.EnableKeyword("_ALPHABLEND_ON");
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+
+            // Keep material tint white so ParticleSystem.startColor × texture alpha drives look.
+            if (material.HasProperty(BaseColorId))
+            {
+                material.SetColor(BaseColorId, Color.white);
+            }
+
+            if (material.HasProperty(ColorId))
+            {
+                material.SetColor(ColorId, Color.white);
+            }
+        }
+
         private static void ApplyMaterial(ParticleSystemRenderer renderer, Texture texture)
         {
             if (renderer == null)
@@ -270,27 +431,37 @@ namespace UniVRMXT.Vfx
 
         private static Material CreateOwnedParticleMaterial(ParticleSystemRenderer renderer)
         {
+            Material material = null;
             var shader = ResolveParticleShader();
             if (IsUsableShader(shader))
             {
-                return new Material(shader) { name = OwnedMaterialNamePrefix };
+                material = new Material(shader) { name = OwnedMaterialNamePrefix };
             }
-
-            // ScriptedImporter / early boot: Shader.Find often fails. Clone Unity's default
-            // ParticleSystem material (usually Default-Particle) instead of leaving shader null.
-            var defaultMaterial = renderer != null ? renderer.sharedMaterial : null;
-            if (IsUsableMaterial(defaultMaterial))
+            else
             {
-                return new Material(defaultMaterial) { name = OwnedMaterialNamePrefix };
+                // ScriptedImporter / early boot: Shader.Find often fails. Clone Unity's default
+                // ParticleSystem material (usually Default-Particle) instead of leaving shader null.
+                var defaultMaterial = renderer != null ? renderer.sharedMaterial : null;
+                if (IsUsableMaterial(defaultMaterial))
+                {
+                    material = new Material(defaultMaterial) { name = OwnedMaterialNamePrefix };
+                }
+                else
+                {
+                    var builtinParticle = TryGetBuiltinParticleMaterial();
+                    if (IsUsableMaterial(builtinParticle))
+                    {
+                        material = new Material(builtinParticle) { name = OwnedMaterialNamePrefix };
+                    }
+                }
             }
 
-            var builtinParticle = TryGetBuiltinParticleMaterial();
-            if (IsUsableMaterial(builtinParticle))
+            if (material != null)
             {
-                return new Material(builtinParticle) { name = OwnedMaterialNamePrefix };
+                ConfigureTransparentAlphaBlending(material);
             }
 
-            return null;
+            return material;
         }
 
         private static Material TryGetBuiltinParticleMaterial()

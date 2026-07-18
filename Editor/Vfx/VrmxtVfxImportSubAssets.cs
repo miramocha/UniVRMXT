@@ -48,6 +48,9 @@ namespace UniVRMXT.Editor.Vfx
                 VrmxtVfxParticleSystemMapper.ApplyTextureToMaterial(pair.Key, pair.Value);
             }
 
+            var instance = root.GetComponentInChildren<VrmxtVfxInstance>(true);
+            instance?.SyncTexturesFromParticleMaterials();
+
             var matIndex = 0;
             foreach (var pair in materialTextures)
             {
@@ -121,6 +124,9 @@ namespace UniVRMXT.Editor.Vfx
 
                 EditorUtility.SetDirty(material);
             }
+
+            var instance = editableRoot.GetComponentInChildren<VrmxtVfxInstance>(true);
+            instance?.SyncTexturesFromParticleMaterials();
 
             // Hierarchy last — materials/textures are already assets, so refs survive.
             PrefabUtility.SaveAsPrefabAsset(editableRoot, prefabPath);
