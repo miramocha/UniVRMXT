@@ -150,6 +150,7 @@ def main() -> None:
         ROOT / "docs" / "installation.md",
         ROOT / "docs" / "architecture.md",
         ROOT / "docs" / "vfx-particle-mapping.md",
+        ROOT / "docs" / "univrm-upstream-hooks.md",
     ]
     for asset in extra_files:
         if asset.exists():

@@ -93,7 +93,12 @@ namespace UniVRMXT.Tests.Vfx
                 var renderer = ps.GetComponent<ParticleSystemRenderer>();
                 Assert.AreEqual(ParticleSystemRenderMode.Billboard, renderer.renderMode);
                 Assert.AreEqual(ParticleSystemRenderSpace.View, renderer.alignment);
-                Assert.AreSame(texture, renderer.sharedMaterial.mainTexture);
+                Assert.IsTrue(
+                    VrmxtVfxParticleSystemMapper.IsOwnedParticleMaterial(renderer.sharedMaterial));
+                Assert.AreSame(
+                    texture,
+                    VrmxtVfxParticleSystemMapper.ReadAssignedTexture(renderer.sharedMaterial));
+                AssertTextureSlots(renderer.sharedMaterial, texture);
             }
             finally
             {
@@ -120,12 +125,34 @@ namespace UniVRMXT.Tests.Vfx
 
                 var ps = VrmxtVfxParticleSystemMapper.Create(emitters[0], texture: null);
                 var renderer = ps.GetComponent<ParticleSystemRenderer>();
-                Assert.IsNotNull(renderer.sharedMaterial);
+                Assert.IsTrue(
+                    VrmxtVfxParticleSystemMapper.IsOwnedParticleMaterial(renderer.sharedMaterial));
+                Assert.IsNotNull(VrmxtVfxParticleSystemMapper.ResolveParticleShader());
                 Assert.AreEqual(new Color(1f, 0.85f, 0.4f, 1f), ps.main.startColor.color);
             }
             finally
             {
                 Object.DestroyImmediate(node.gameObject);
+            }
+        }
+
+        [Test]
+        public void ApplyTextureToMaterial_SetsMainTexAndBaseMapSlots()
+        {
+            var shader = Shader.Find("Sprites/Default");
+            Assume.That(shader, Is.Not.Null);
+
+            var material = new Material(shader);
+            var texture = new Texture2D(2, 2);
+            try
+            {
+                VrmxtVfxParticleSystemMapper.ApplyTextureToMaterial(material, texture);
+                AssertTextureSlots(material, texture);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(texture);
             }
         }
 
@@ -176,10 +203,12 @@ namespace UniVRMXT.Tests.Vfx
                         out var instance));
 
                 Assert.AreEqual(1, instance.ParticleSystems.Count);
-                Assert.AreSame(texture, instance.ParticleSystems[0]
+                var material = instance.ParticleSystems[0]
                     .GetComponent<ParticleSystemRenderer>()
-                    .sharedMaterial
-                    .mainTexture);
+                    .sharedMaterial;
+                Assert.AreSame(
+                    texture,
+                    VrmxtVfxParticleSystemMapper.ReadAssignedTexture(material));
             }
             finally
             {
@@ -190,6 +219,24 @@ namespace UniVRMXT.Tests.Vfx
                     Object.DestroyImmediate(texture);
                 }
             }
+        }
+
+        private static void AssertTextureSlots(Material material, Texture texture)
+        {
+            Assert.IsNotNull(material);
+            if (material.HasProperty("_MainTex"))
+            {
+                Assert.AreSame(texture, material.GetTexture("_MainTex"));
+            }
+
+            if (material.HasProperty("_BaseMap"))
+            {
+                Assert.AreSame(texture, material.GetTexture("_BaseMap"));
+            }
+
+            Assert.AreSame(
+                texture,
+                VrmxtVfxParticleSystemMapper.ReadAssignedTexture(material));
         }
     }
 }

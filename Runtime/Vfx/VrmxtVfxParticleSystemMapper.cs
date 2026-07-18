@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace UniVRMXT.Vfx
 {
@@ -11,13 +12,17 @@ namespace UniVRMXT.Vfx
     public static class VrmxtVfxParticleSystemMapper
     {
         public const string EmitterObjectNamePrefix = "VRMXT_vfx_";
+        public const string OwnedMaterialNamePrefix = "VRMXT_vfx_Particle";
+
+        private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
 
         /// <summary>
         /// Create a child under <see cref="VrmxtVfxResolvedEmitter.NodeTransform"/> with
         /// emitter local TR, then configure a <see cref="ParticleSystem"/>.
         /// </summary>
         /// <param name="texture">
-        /// Optional glTF texture. When null, keep the default particle material and tint with
+        /// Optional glTF texture. When null, use the pipeline particle material tinted by
         /// <see cref="VrmxtVfxParticleData.StartColor"/>.
         /// </param>
         public static ParticleSystem Create(
@@ -117,7 +122,7 @@ namespace UniVRMXT.Vfx
             var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.alignment = ParticleSystemRenderSpace.View;
-            ApplyTexture(renderer, texture);
+            ApplyMaterial(renderer, texture);
         }
 
         public static string BuildObjectName(VrmxtVfxResolvedEmitter emitter)
@@ -135,6 +140,139 @@ namespace UniVRMXT.Vfx
             return EmitterObjectNamePrefix + emitter.Node;
         }
 
+        public static bool IsOwnedParticleMaterial(Material material)
+        {
+            return material != null &&
+                   material.name.StartsWith(OwnedMaterialNamePrefix, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Pick an unlit particle shader for the active pipeline (BIRP or URP).
+        /// No hard URP package reference — uses <see cref="Shader.Find"/> + type name check.
+        /// </summary>
+        public static Shader ResolveParticleShader()
+        {
+            if (IsUniversalRenderPipeline())
+            {
+                var urp = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                if (urp != null)
+                {
+                    return urp;
+                }
+            }
+
+            var builtin = Shader.Find("Particles/Standard Unlit");
+            if (builtin != null)
+            {
+                return builtin;
+            }
+
+            // URP present but GraphicsSettings not yet reporting (tests / odd boot order).
+            var urpFallback = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (urpFallback != null)
+            {
+                return urpFallback;
+            }
+
+            return Shader.Find("Sprites/Default");
+        }
+
+        /// <summary>
+        /// Assign texture to BIRP (<c>_MainTex</c>) and URP (<c>_BaseMap</c>) slots when present.
+        /// </summary>
+        public static void ApplyTextureToMaterial(Material material, Texture texture)
+        {
+            if (material == null || texture == null)
+            {
+                return;
+            }
+
+            if (material.HasProperty(MainTexId))
+            {
+                material.SetTexture(MainTexId, texture);
+            }
+
+            if (material.HasProperty(BaseMapId))
+            {
+                material.SetTexture(BaseMapId, texture);
+            }
+
+            material.mainTexture = texture;
+        }
+
+        public static Texture ReadAssignedTexture(Material material)
+        {
+            if (material == null)
+            {
+                return null;
+            }
+
+            if (material.HasProperty(BaseMapId))
+            {
+                var baseMap = material.GetTexture(BaseMapId);
+                if (baseMap != null)
+                {
+                    return baseMap;
+                }
+            }
+
+            if (material.HasProperty(MainTexId))
+            {
+                var mainTex = material.GetTexture(MainTexId);
+                if (mainTex != null)
+                {
+                    return mainTex;
+                }
+            }
+
+            return material.mainTexture;
+        }
+
+        private static void ApplyMaterial(ParticleSystemRenderer renderer, Texture texture)
+        {
+            if (renderer == null)
+            {
+                return;
+            }
+
+            var material = CreateOwnedParticleMaterial(renderer.sharedMaterial);
+            if (material == null)
+            {
+                return;
+            }
+
+            renderer.sharedMaterial = material;
+            if (renderer.GetComponent<VrmxtVfxOwnedParticleMaterial>() == null)
+            {
+                renderer.gameObject.AddComponent<VrmxtVfxOwnedParticleMaterial>();
+            }
+
+            ApplyTextureToMaterial(material, texture);
+        }
+
+        private static Material CreateOwnedParticleMaterial(Material fallbackSource)
+        {
+            var shader = ResolveParticleShader();
+            if (shader != null)
+            {
+                return new Material(shader) { name = OwnedMaterialNamePrefix };
+            }
+
+            if (fallbackSource != null)
+            {
+                return new Material(fallbackSource) { name = OwnedMaterialNamePrefix };
+            }
+
+            return null;
+        }
+
+        private static bool IsUniversalRenderPipeline()
+        {
+            var asset = GraphicsSettings.currentRenderPipeline;
+            return asset != null &&
+                   asset.GetType().Name.IndexOf("Universal", StringComparison.Ordinal) >= 0;
+        }
+
         private static Texture ResolveTexture(
             VrmxtVfxParticleData particle,
             Func<int, Texture> resolveTexture)
@@ -145,22 +283,6 @@ namespace UniVRMXT.Vfx
             }
 
             return resolveTexture(particle.TextureIndex);
-        }
-
-        private static void ApplyTexture(ParticleSystemRenderer renderer, Texture texture)
-        {
-            if (renderer == null || texture == null)
-            {
-                return;
-            }
-
-            var material = renderer.material;
-            if (material == null)
-            {
-                return;
-            }
-
-            material.mainTexture = texture;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UniVRMXT.Format;
 using UnityEngine;
 
 namespace UniVRMXT.Vfx
@@ -7,7 +8,8 @@ namespace UniVRMXT.Vfx
     /// <summary>
     /// Attach parsed <c>VRMXT_vfx</c> data to a loaded avatar without referencing UniVRM types.
     /// Call after stock <c>Vrm10.LoadGltfDataAsync</c> (or equivalent) with glTF JSON and
-    /// <c>RuntimeGltfInstance.Nodes</c>.
+    /// <c>RuntimeGltfInstance.Nodes</c>. Prefer <see cref="TryAttachFromGlb"/> when particle
+    /// textures are not imported by UniVRM (extension-only <c>textures[]</c>).
     /// </summary>
     public static class VrmxtVfxRuntime
     {
@@ -35,6 +37,11 @@ namespace UniVRMXT.Vfx
             }
 
             instance = EnsureInstance(root);
+            if (instance == null)
+            {
+                return false;
+            }
+
             instance.SetEmitters(resolved);
             return true;
         }
@@ -57,6 +64,11 @@ namespace UniVRMXT.Vfx
             }
 
             instance = EnsureInstance(root);
+            if (instance == null)
+            {
+                return false;
+            }
+
             instance.SetEmitters(resolved);
             return true;
         }
@@ -97,15 +109,77 @@ namespace UniVRMXT.Vfx
             return true;
         }
 
+        /// <summary>
+        /// Re-read GLB bytes: parse <c>VRMXT_vfx</c>, decode extension textures, build particles.
+        /// Caller owns <paramref name="textures"/> until disposed (or
+        /// <see cref="VrmxtVfxGlbTextures.ReleaseOwnership"/> after saving into an asset).
+        /// </summary>
+        public static bool TryAttachFromGlb(
+            GameObject root,
+            byte[] glbBytes,
+            Func<int, Transform> resolveNode,
+            out VrmxtVfxInstance instance,
+            out VrmxtVfxGlbTextures textures)
+        {
+            instance = null;
+            textures = null;
+            if (root == null || glbBytes == null || resolveNode == null)
+            {
+                return false;
+            }
+
+            if (!VrmxtVfxGlbTextures.TryCreate(glbBytes, out textures))
+            {
+                return false;
+            }
+
+            if (!TryAttach(root, textures.Json, resolveNode, textures.AsResolver(), out instance))
+            {
+                textures.Dispose();
+                textures = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Same as <see cref="TryAttachFromGlb(GameObject,byte[],Func{int,Transform},out VrmxtVfxInstance,out VrmxtVfxGlbTextures)"/>
+        /// with node list resolution (runtime <c>RuntimeGltfInstance.Nodes</c>).
+        /// </summary>
+        public static bool TryAttachFromGlb(
+            GameObject root,
+            byte[] glbBytes,
+            IReadOnlyList<Transform> nodes,
+            out VrmxtVfxInstance instance,
+            out VrmxtVfxGlbTextures textures)
+        {
+            textures = null;
+            instance = null;
+            if (nodes == null)
+            {
+                return false;
+            }
+
+            return TryAttachFromGlb(
+                root,
+                glbBytes,
+                index => index >= 0 && index < nodes.Count ? nodes[index] : null,
+                out instance,
+                out textures);
+        }
+
         private static VrmxtVfxInstance EnsureInstance(GameObject root)
         {
             var instance = root.GetComponent<VrmxtVfxInstance>();
-            if (instance == null)
+            if (instance != null)
             {
-                instance = root.AddComponent<VrmxtVfxInstance>();
+                return instance;
             }
 
-            return instance;
+            // ScriptedImporter main assets reject AddComponent during AssetPostprocessor
+            // (returns null). Callers must Instantiate / use a companion prefab first.
+            return root.AddComponent<VrmxtVfxInstance>();
         }
     }
 }

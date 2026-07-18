@@ -7,8 +7,11 @@ Version `0.1.0` provides foundation parsers and VFX runtime hooks for:
 - `VRMXT_vfx` — parse emitters, resolve glTF nodes after UniVRM load, store on `VrmxtVfxInstance`, optional `ParticleSystem` mapping
 - `VRMXT_materials_override` — per-material engine override metadata
 
-See [docs/architecture.md](docs/architecture.md) for the post-load attach snippet and
-[docs/vfx-particle-mapping.md](docs/vfx-particle-mapping.md) for the ParticleSystem field table.
+See [docs/architecture.md](docs/architecture.md) for runtime attach + AssetDatabase import
+(decision: companion `*.vrmxt.prefab` via AssetPostprocessor),
+[docs/vfx-particle-mapping.md](docs/vfx-particle-mapping.md) for the ParticleSystem field table, and
+[docs/univrm-upstream-hooks.md](docs/univrm-upstream-hooks.md) for ScriptedImporter limits and
+hooks to request from UniVRM.
 
 ## Requirements
 

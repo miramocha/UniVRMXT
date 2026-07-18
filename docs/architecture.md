@@ -24,7 +24,7 @@ and does not reference UniGLTF types, so format tests stay free of UniVRM load A
 - `VrmxtVfx.TryParse` validates `specVersion` `1.0`, applies particle defaults, and skips invalid emitters.
 - `VrmxtVfxImporter.TryImport` maps emitters to Unity data; Transform overloads skip unresolved nodes.
 - `VrmxtVfxRuntime.TryAttach` adds `VrmxtVfxInstance` on the avatar root after stock UniVRM load.
-- `VrmxtVfxParticleSystemMapper` maps portable fields onto Unity `ParticleSystem` (billboard + local +Y velocity).
+- `VrmxtVfxParticleSystemMapper` maps portable fields onto Unity `ParticleSystem` (billboard + local +Y velocity; BIRP/URP unlit material).
 - Field table: [vfx-particle-mapping.md](vfx-particle-mapping.md).
 
 Runtime attach after UniVRM load (caller owns UniGLTF/VRM references):
@@ -61,9 +61,17 @@ VrmxtVfxRuntime.TryAttach(
 
 ## UniVRM integration
 
-- **VFX:** parse + `TryAttach` after `Vrm10.LoadGltfDataAsync` as above. UniVRMXT Runtime asmdef does **not** hard-reference UniGLTF/VRM10; the load caller supplies JSON, `Nodes`, and optional texture resolution.
+- **VFX (runtime):** parse + `TryAttach` after `Vrm10.LoadGltfDataAsync` as above. UniVRMXT Runtime asmdef does **not** hard-reference UniGLTF/VRM10; the load caller supplies JSON, `Nodes`, and optional texture resolution.
+- **VFX (AssetDatabase):** UniVRM `VrmScriptedImporter` has no root-extension callback. Decision: **AssetPostprocessor companion prefab** (`Editor/Vfx/VrmxtVfxAssetPostprocessor.cs`) — no upstream UniVRM fork required.
+  1. On `.vrm` import, read GLB JSON via `GlbChunks.TryExtract`.
+  2. `PrefabUtility.InstantiatePrefab` the imported hierarchy (keeps `.vrm` sub-asset materials; `Object.Instantiate` breaks them). ScriptedImporter assets reject `AddComponent` on the main asset itself.
+  3. Resolve `emitters[].node` by glTF `nodes[].name` (`VrmxtVfxNodeResolver`). Imported prefabs do **not** keep `RuntimeGltfInstance`.
+  4. Re-read the same `.vrm` bytes (`TryAttachFromGlb`) and decode `textures[]` images UniVRM skipped (material-orphaned VFX textures).
+  5. Save sibling **`*.vrmxt.prefab`** (e.g. `vfx_smoke.vrm` → `vfx_smoke.vrmxt.prefab`). Use that prefab in scenes — not the raw `.vrm`.
+  - Reimport the `.vrm` after package updates (`Assets → Reimport`).
+  - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` with the same file bytes + `RuntimeGltfInstance.Nodes` (or name resolver).
+  - Blockers + proposed UniVRM hooks: [univrm-upstream-hooks.md](univrm-upstream-hooks.md).
 - **Materials (planned):** wrap `IMaterialDescriptorGenerator` through `Vrm10.LoadPathAsync`; editor factory via project settings.
-- **Editor `.vrm` import:** UniVRM `VrmScriptedImporter` has no post-extension callback; AssetDatabase path is tracked separately (issue #4).
 
 ## CI
 

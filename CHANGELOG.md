@@ -10,10 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `VrmxtVfxInstance` runtime component and `VrmxtVfxRuntime.TryAttach` for post-load VFX data
 - `VrmxtVfxImporter` Transform / node-list overloads that skip unresolved emitters
-- `VrmxtVfxParticleSystemMapper` — portable particle → Unity `ParticleSystem` (local +Y velocity, billboard, texture / solid-tint fallback)
+- `VrmxtVfxParticleSystemMapper` — portable particle → Unity `ParticleSystem` (local +Y velocity, billboard, BIRP/URP material + `_MainTex`/`_BaseMap` texture / solid-tint fallback)
 - `VrmxtVfxRuntime.TryAttach` overloads that build `ParticleSystem` children via texture resolver
+- `GlbChunks` / `GltfImageBytes` / `VrmxtVfxGlbTextures` — second GLB read for VFX-only textures UniVRM skips
+- `VrmxtVfxRuntime.TryAttachFromGlb` for runtime / Warudo-style hosts
+- `VrmxtVfxNodeResolver` for AssetDatabase node resolution without `RuntimeGltfInstance`
+- `VrmxtVfxAssetPostprocessor` — writes sibling `*.vrmxt.prefab` with VFX + decoded textures after `.vrm` import
 - Field mapping doc: `docs/vfx-particle-mapping.md`
-- VFX importer / attach / ParticleSystem NUnit tests under `Tests/Vfx/`
+- Upstream hook notes: `docs/univrm-upstream-hooks.md` (ScriptedImporter edit limits + asks for UniVRM)
+- VFX importer / attach / ParticleSystem / node-resolver NUnit tests under `Tests/Vfx/`
 
 ### Changed
 

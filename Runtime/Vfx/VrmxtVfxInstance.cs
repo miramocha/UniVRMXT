@@ -56,6 +56,7 @@ namespace UniVRMXT.Vfx
                     continue;
                 }
 
+                DestroyOwnedMaterial(particleSystem);
                 DestroyOwned(particleSystem.gameObject);
             }
 
@@ -67,20 +68,43 @@ namespace UniVRMXT.Vfx
             ClearParticleSystems();
         }
 
+        private static void DestroyOwnedMaterial(ParticleSystem particleSystem)
+        {
+            var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
+            if (renderer == null)
+            {
+                return;
+            }
+
+            var material = renderer.sharedMaterial;
+            if (!VrmxtVfxParticleSystemMapper.IsOwnedParticleMaterial(material))
+            {
+                return;
+            }
+
+            renderer.sharedMaterial = null;
+            DestroyOwnedObject(material);
+        }
+
         private static void DestroyOwned(GameObject go)
         {
-            if (go == null)
+            DestroyOwnedObject(go);
+        }
+
+        private static void DestroyOwnedObject(UnityEngine.Object obj)
+        {
+            if (obj == null)
             {
                 return;
             }
 
             if (Application.isPlaying)
             {
-                Destroy(go);
+                Destroy(obj);
             }
             else
             {
-                DestroyImmediate(go);
+                DestroyImmediate(obj);
             }
         }
     }

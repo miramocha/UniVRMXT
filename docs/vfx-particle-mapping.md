@@ -14,16 +14,35 @@ JSON omits a property (`VrmxtVfx.Default*`).
 | `startSize` | `main.startSize` | Meters (billboard size) |
 | `startSpeed` | `velocityOverLifetime.y` (local) | `main.startSpeed` forced to `0`; velocity along emitter local **+Y** |
 | `startColor` | `main.startColor` | Linear RGBA |
-| `texture` | `ParticleSystemRenderer.material.mainTexture` | Index into glTF `textures[]` via caller `resolveTexture` |
+| `texture` | Owned particle material `_MainTex` + `_BaseMap` | Index into glTF `textures[]` via caller `resolveTexture` |
 | (billboard) | `renderer.renderMode = Billboard`, `alignment = View` | Camera-facing when supported |
 | `localPosition` / `localRotation` | Child transform under node | Parent = resolved `Nodes[node]` |
 
-## Texture policy
+## Texture / material policy (BIRP + URP)
 
-1. When `texture` is set and `resolveTexture(index)` returns a non-null `Texture`, assign it to the particle material main texture.
-2. When `texture` is omitted, out of range, or unresolved (`null`), keep the default particle material and tint with `startColor` (solid-tint fallback).
+1. Mapper creates an owned unlit particle material for the active pipeline:
+   - URP → `Universal Render Pipeline/Particles/Unlit` (type-name detect, no URP asmdef)
+   - BIRP → `Particles/Standard Unlit`
+   - Last resort → `Sprites/Default`
+2. When `texture` resolves, set both `_MainTex` (BIRP) and `_BaseMap` (URP) when the shader exposes them.
+3. When `texture` is omitted, out of range, or unresolved (`null`), leave albedo default and tint with `startColor` (solid-tint fallback).
+4. HDRP is best-effort only (no dedicated particle shader pick yet).
 
-UniVRMXT Runtime does not decode glTF images itself. After `Vrm10.LoadGltfDataAsync`, pass textures from the loaded avatar (for example textures already imported onto materials, or a project-specific `textures[]` → `Texture2D` map).
+### UniVRM does not import VFX-only textures
+
+Stock UniVRM only enumerates textures referenced by materials / meta thumbnail. A
+`textures[]` entry used only by `VRMXT_vfx` is skipped. Workaround without upstream:
+
+```csharp
+// After Vrm10.LoadGltfDataAsync — re-read the same file bytes
+var bytes = File.ReadAllBytes(path);
+var nodes = vrm.GetComponent<RuntimeGltfInstance>().Nodes;
+VrmxtVfxRuntime.TryAttachFromGlb(vrm.gameObject, bytes, nodes, out var vfx, out var glbTextures);
+// Dispose glbTextures when destroying the avatar (or ReleaseOwnership if saved into an asset)
+```
+
+`VrmxtVfxGlbTextures` decodes embedded PNG/JPEG from the GLB BIN chunk via
+`GltfImageBytes` + `Texture2D.LoadImage`.
 
 ## Defaults (when properties omitted)
 
@@ -42,20 +61,25 @@ UniVRMXT Runtime does not decode glTF images itself. After `Vrm10.LoadGltfDataAs
 ## Call site (post UniVRM load)
 
 ```csharp
-using var data = new GlbLowLevelParser(path, File.ReadAllBytes(path)).Parse();
+var bytes = File.ReadAllBytes(path);
+using var data = new GlbLowLevelParser(path, bytes).Parse();
 var vrm = await Vrm10.LoadGltfDataAsync(data);
 var nodes = vrm.GetComponent<RuntimeGltfInstance>().Nodes;
 
-// Data only:
-VrmxtVfxRuntime.TryAttach(vrm.gameObject, data.Json, nodes, out var vfx);
-
-// Data + ParticleSystem children (texture resolver optional):
-VrmxtVfxRuntime.TryAttach(
-    vrm.gameObject,
-    data.Json,
-    nodes,
-    index => ResolveGltfTexture(index), // return null → solid tint
-    out vfx);
+// Preferred: second use of bytes decodes VFX-only textures UniVRM skipped
+VrmxtVfxRuntime.TryAttachFromGlb(
+    vrm.gameObject, bytes, nodes, out var vfx, out var glbTextures);
 ```
 
 Missing `extensions.VRMXT_vfx` → `TryAttach` returns `false` (no-op). Unresolved nodes skip that emitter only.
+
+## AssetDatabase `.vrm` import
+
+UniVRM `VrmScriptedImporter` does not call UniVRMXT, and its main asset rejects
+`AddComponent` inside `AssetPostprocessor`. Workflow:
+
+1. Import / reimport the `.vrm` as usual (avatar only on that asset).
+2. Postprocessor re-reads the file, decodes VFX textures, writes sibling **`*.vrmxt.prefab`**.
+3. Place the **`.vrmxt.prefab`** in the scene (not the raw `.vrm`).
+
+Example: `Assets/vfx_smoke.vrm` → `Assets/vfx_smoke.vrmxt.prefab`.
