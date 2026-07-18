@@ -10,7 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `VrmxtVfxInstance` runtime component and `VrmxtVfxRuntime.TryAttach` for post-load VFX data
 - `VrmxtVfxImporter` Transform / node-list overloads that skip unresolved emitters
-- VFX importer / attach NUnit tests under `Tests/Vfx/`
+- `VrmxtVfxParticleSystemMapper` — portable particle → Unity `ParticleSystem` (local +Y velocity, billboard, texture / solid-tint fallback)
+- `VrmxtVfxRuntime.TryAttach` overloads that build `ParticleSystem` children via texture resolver
+- Field mapping doc: `docs/vfx-particle-mapping.md`
+- VFX importer / attach / ParticleSystem NUnit tests under `Tests/Vfx/`
 
 ### Changed
 

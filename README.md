@@ -2,12 +2,13 @@
 
 Optional Unity package for [Extended VRM](https://github.com/miramocha/Extended-VRM-Specs) glTF extensions on top of [UniVRM](https://github.com/vrm-c/UniVRM).
 
-Version `0.1.0` provides foundation parsers and a VFX **data MVP** for:
+Version `0.1.0` provides foundation parsers and VFX runtime hooks for:
 
-- `VRMXT_vfx` — parse emitters, resolve glTF nodes after UniVRM load, store on `VrmxtVfxInstance` (no `ParticleSystem` yet)
+- `VRMXT_vfx` — parse emitters, resolve glTF nodes after UniVRM load, store on `VrmxtVfxInstance`, optional `ParticleSystem` mapping
 - `VRMXT_materials_override` — per-material engine override metadata
 
-See [docs/architecture.md](docs/architecture.md) for the post-load attach snippet.
+See [docs/architecture.md](docs/architecture.md) for the post-load attach snippet and
+[docs/vfx-particle-mapping.md](docs/vfx-particle-mapping.md) for the ParticleSystem field table.
 
 ## Requirements
 

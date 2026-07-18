@@ -6,10 +6,17 @@ namespace UniVRMXT.Vfx
 {
     /// <summary>
     /// Attach parsed <c>VRMXT_vfx</c> data to a loaded avatar without referencing UniVRM types.
-    /// Call after load with glTF JSON and <c>RuntimeGltfInstance.Nodes</c> (or equivalent).
+    /// Call after stock <c>Vrm10.LoadGltfDataAsync</c> (or equivalent) with glTF JSON and
+    /// <c>RuntimeGltfInstance.Nodes</c>.
     /// </summary>
     public static class VrmxtVfxRuntime
     {
+        /// <summary>
+        /// Parse + resolve nodes onto <see cref="VrmxtVfxInstance"/>. Does not build
+        /// <see cref="ParticleSystem"/> components; call
+        /// <see cref="VrmxtVfxInstance.BuildParticleSystems"/> or the texture overload.
+        /// Missing / invalid extension → false (no-op, no component added).
+        /// </summary>
         public static bool TryAttach(
             GameObject root,
             string gltfJson,
@@ -27,12 +34,7 @@ namespace UniVRMXT.Vfx
                 return false;
             }
 
-            instance = root.GetComponent<VrmxtVfxInstance>();
-            if (instance == null)
-            {
-                instance = root.AddComponent<VrmxtVfxInstance>();
-            }
-
+            instance = EnsureInstance(root);
             instance.SetEmitters(resolved);
             return true;
         }
@@ -54,14 +56,56 @@ namespace UniVRMXT.Vfx
                 return false;
             }
 
-            instance = root.GetComponent<VrmxtVfxInstance>();
+            instance = EnsureInstance(root);
+            instance.SetEmitters(resolved);
+            return true;
+        }
+
+        /// <summary>
+        /// Attach resolved emitters and map them to <see cref="ParticleSystem"/> children.
+        /// <paramref name="resolveTexture"/> may be null (all emitters use solid tint fallback).
+        /// </summary>
+        public static bool TryAttach(
+            GameObject root,
+            string gltfJson,
+            IReadOnlyList<Transform> nodes,
+            Func<int, Texture> resolveTexture,
+            out VrmxtVfxInstance instance)
+        {
+            if (!TryAttach(root, gltfJson, nodes, out instance))
+            {
+                return false;
+            }
+
+            instance.BuildParticleSystems(resolveTexture);
+            return true;
+        }
+
+        public static bool TryAttach(
+            GameObject root,
+            string gltfJson,
+            Func<int, Transform> resolveNode,
+            Func<int, Texture> resolveTexture,
+            out VrmxtVfxInstance instance)
+        {
+            if (!TryAttach(root, gltfJson, resolveNode, out instance))
+            {
+                return false;
+            }
+
+            instance.BuildParticleSystems(resolveTexture);
+            return true;
+        }
+
+        private static VrmxtVfxInstance EnsureInstance(GameObject root)
+        {
+            var instance = root.GetComponent<VrmxtVfxInstance>();
             if (instance == null)
             {
                 instance = root.AddComponent<VrmxtVfxInstance>();
             }
 
-            instance.SetEmitters(resolved);
-            return true;
+            return instance;
         }
     }
 }
