@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Generate Unity .meta files with unique GUIDs for the UniVRMXT scaffold."""
+"""Generate Unity .meta files with unique GUIDs for the UniVRMXT scaffold.
+
+Preserves existing GUIDs. Unity folder metas are siblings (FolderName.meta),
+not FolderName/.meta.
+"""
 
 from __future__ import annotations
 
+import re
 import uuid
 from pathlib import Path
 
@@ -10,10 +15,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # Fixed GUID for Runtime asmdef so Editor/Tests can reference it.
 RUNTIME_ASMDEF_GUID = "7f3a9c2e1b4d5a6f8091a2b3c4d5e6f7"
+GUID_RE = re.compile(r"^guid:\s*([0-9a-f]{32})\s*$", re.MULTILINE)
 
 
 def new_guid() -> str:
     return uuid.uuid4().hex
+
+
+def read_guid(meta_path: Path) -> str | None:
+    if not meta_path.is_file():
+        return None
+    match = GUID_RE.search(meta_path.read_text(encoding="utf-8"))
+    return match.group(1) if match else None
 
 
 def folder_meta(guid: str) -> str:
@@ -71,12 +84,39 @@ def write_meta(path: Path, content: str) -> None:
     print(f"wrote {path.relative_to(ROOT)}")
 
 
-def main() -> None:
-    guids: dict[Path, str] = {}
+def sibling_folder_meta(folder: Path) -> Path:
+    return folder.parent / f"{folder.name}.meta"
 
-    # Assign fixed runtime asmdef GUID first.
+
+def ensure_asset_meta(asset: Path, preferred_guid: str | None = None) -> None:
+    meta_path = asset.with_name(asset.name + ".meta")
+    existing = read_guid(meta_path)
+    if existing is not None:
+        if preferred_guid is not None and existing != preferred_guid:
+            # Rewrite only when the fixed Runtime asmdef GUID must be enforced.
+            write_meta(meta_path, asmdef_meta(preferred_guid))
+        return
+
+    guid = preferred_guid or new_guid()
+    if asset.suffix == ".asmdef":
+        write_meta(meta_path, asmdef_meta(guid))
+    elif asset.suffix == ".cs":
+        write_meta(meta_path, script_meta(guid))
+    else:
+        write_meta(meta_path, default_meta(guid))
+
+
+def ensure_folder_meta(folder: Path) -> None:
+    if folder == ROOT or ".git" in folder.parts:
+        return
+    meta_path = sibling_folder_meta(folder)
+    if meta_path.exists():
+        return
+    write_meta(meta_path, folder_meta(new_guid()))
+
+
+def main() -> None:
     runtime_asmdef = ROOT / "Runtime" / "UniVRMXT.asmdef"
-    guids[runtime_asmdef] = RUNTIME_ASMDEF_GUID
 
     tracked_assets: list[Path] = []
     for suffix in (".cs", ".asmdef"):
@@ -87,15 +127,8 @@ def main() -> None:
         )
 
     for asset in sorted(tracked_assets):
-        if asset not in guids:
-            guids[asset] = new_guid()
-
-    for asset, guid in guids.items():
-        meta_path = asset.with_suffix(asset.suffix + ".meta")
-        if asset.suffix == ".asmdef":
-            write_meta(meta_path, asmdef_meta(guid))
-        else:
-            write_meta(meta_path, script_meta(guid))
+        preferred = RUNTIME_ASMDEF_GUID if asset == runtime_asmdef else None
+        ensure_asset_meta(asset, preferred)
 
     folders: set[Path] = set()
     for asset in tracked_assets:
@@ -106,14 +139,8 @@ def main() -> None:
             folder = folder.parent
 
     for folder in sorted(folders, key=lambda p: str(p)):
-        if folder == ROOT or ".git" in folder.parts:
-            continue
-        meta_path = folder / ".meta"
-        if meta_path.exists():
-            continue
-        write_meta(meta_path, folder_meta(new_guid()))
+        ensure_folder_meta(folder)
 
-    # Root-level and docs assets without scripts still need metas when present.
     extra_files = [
         ROOT / "package.json",
         ROOT / "LICENSE.txt",
@@ -124,17 +151,12 @@ def main() -> None:
         ROOT / "docs" / "architecture.md",
     ]
     for asset in extra_files:
-        if not asset.exists():
-            continue
-        meta_path = asset.with_name(asset.name + ".meta")
-        if not meta_path.exists():
-            write_meta(meta_path, default_meta(new_guid()))
+        if asset.exists():
+            ensure_asset_meta(asset)
 
     for folder in (ROOT / "docs", ROOT / ".github", ROOT / ".github" / "workflows", ROOT / "tools"):
         if folder.exists():
-            meta_path = folder / ".meta"
-            if not meta_path.exists():
-                write_meta(meta_path, folder_meta(new_guid()))
+            ensure_folder_meta(folder)
 
 
 if __name__ == "__main__":

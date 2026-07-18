@@ -5,22 +5,22 @@ namespace UniVRMXT.Tests.Format
 {
     public sealed class VrmxtVfxFormatTests
     {
-        private const string ValidExtensionJson = """
+        private const string ValidExtensionJson = @"
             {
-              "specVersion": "1.0",
-              "emitters": [
+              ""specVersion"": ""1.0"",
+              ""emitters"": [
                 {
-                  "name": "HandSpark",
-                  "type": "particle",
-                  "node": 2,
-                  "particle": {
-                    "emissionRate": 20.0,
-                    "maxParticles": 32
+                  ""name"": ""HandSpark"",
+                  ""type"": ""particle"",
+                  ""node"": 2,
+                  ""particle"": {
+                    ""emissionRate"": 20.0,
+                    ""maxParticles"": 32
                   }
                 }
               ]
             }
-            """;
+            ";
 
         [Test]
         public void TryParse_ValidExtension_ReturnsEmitter()
@@ -36,18 +36,18 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_AppliesParticleDefaults()
         {
-            const string json = """
+            const string json = @"
                 {
-                  "specVersion": "1.0",
-                  "emitters": [
+                  ""specVersion"": ""1.0"",
+                  ""emitters"": [
                     {
-                      "type": "particle",
-                      "node": 0,
-                      "particle": {}
+                      ""type"": ""particle"",
+                      ""node"": 0,
+                      ""particle"": {}
                     }
                   ]
                 }
-                """;
+                ";
 
             Assert.IsTrue(VrmxtVfx.TryParse(json, out var extension));
             var particle = extension.Emitters[0].Particle;
@@ -62,22 +62,22 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_SkipsUnknownType()
         {
-            const string json = """
+            const string json = @"
                 {
-                  "specVersion": "1.0",
-                  "emitters": [
+                  ""specVersion"": ""1.0"",
+                  ""emitters"": [
                     {
-                      "type": "ribbon",
-                      "node": 0
+                      ""type"": ""ribbon"",
+                      ""node"": 0
                     },
                     {
-                      "type": "particle",
-                      "node": 1,
-                      "particle": {}
+                      ""type"": ""particle"",
+                      ""node"": 1,
+                      ""particle"": {}
                     }
                   ]
                 }
-                """;
+                ";
 
             Assert.IsTrue(VrmxtVfx.TryParse(json, out var extension));
             Assert.AreEqual(1, extension.Emitters.Count);
@@ -87,12 +87,12 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_RejectsWrongSpecVersion()
         {
-            const string json = """
+            const string json = @"
                 {
-                  "specVersion": "2.0",
-                  "emitters": []
+                  ""specVersion"": ""2.0"",
+                  ""emitters"": []
                 }
-                """;
+                ";
 
             Assert.IsFalse(VrmxtVfx.TryParse(json, out _));
         }
@@ -100,25 +100,25 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_SkipsInvalidParticleValues()
         {
-            const string json = """
+            const string json = @"
                 {
-                  "specVersion": "1.0",
-                  "emitters": [
+                  ""specVersion"": ""1.0"",
+                  ""emitters"": [
                     {
-                      "type": "particle",
-                      "node": 0,
-                      "particle": {
-                        "maxParticles": 0
+                      ""type"": ""particle"",
+                      ""node"": 0,
+                      ""particle"": {
+                        ""maxParticles"": 0
                       }
                     },
                     {
-                      "type": "particle",
-                      "node": 1,
-                      "particle": {}
+                      ""type"": ""particle"",
+                      ""node"": 1,
+                      ""particle"": {}
                     }
                   ]
                 }
-                """;
+                ";
 
             Assert.IsTrue(VrmxtVfx.TryParse(json, out var extension));
             Assert.AreEqual(1, extension.Emitters.Count);

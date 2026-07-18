@@ -15,6 +15,7 @@
     "name": "Mira Luna"
   },
   "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
     "com.vrmc.gltf": "0.131.1",
     "com.vrmc.vrm": "0.131.1"
   }

@@ -6,28 +6,28 @@ namespace UniVRMXT.Tests.Format
 {
     public sealed class VrmxtMaterialsOverrideFormatTests
     {
-        private const string ValidUnityOverrideJson = """
+        private const string ValidUnityOverrideJson = @"
             {
-              "specVersion": "1.0",
-              "overrides": [
+              ""specVersion"": ""1.0"",
+              ""overrides"": [
                 {
-                  "engine": "unity",
-                  "material": {
-                    "kind": "shader",
-                    "name": "Example/SkinToon",
-                    "variant": "urp"
+                  ""engine"": ""unity"",
+                  ""material"": {
+                    ""kind"": ""shader"",
+                    ""name"": ""Example/SkinToon"",
+                    ""variant"": ""urp""
                   },
-                  "bindings": [
+                  ""bindings"": [
                     {
-                      "source": "shadeColorFactor",
-                      "target": "_ShadeColor",
-                      "targetType": "vector"
+                      ""source"": ""shadeColorFactor"",
+                      ""target"": ""_ShadeColor"",
+                      ""targetType"": ""vector""
                     }
                   ]
                 }
               ]
             }
-            """;
+            ";
 
         [Test]
         public void TryParse_ValidUnityOverride_ParsesShaderProfile()
@@ -43,27 +43,27 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_RejectsDuplicateEngines()
         {
-            const string json = """
+            const string json = @"
                 {
-                  "specVersion": "1.0",
-                  "overrides": [
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
                     {
-                      "engine": "unity",
-                      "material": {
-                        "kind": "shader",
-                        "name": "A"
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""kind"": ""shader"",
+                        ""name"": ""A""
                       }
                     },
                     {
-                      "engine": "unity",
-                      "material": {
-                        "kind": "shader",
-                        "name": "B"
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""kind"": ""shader"",
+                        ""name"": ""B""
                       }
                     }
                   ]
                 }
-                """;
+                ";
 
             Assert.IsFalse(VrmxtMaterialsOverride.TryParse(json, out _));
         }
@@ -71,22 +71,22 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_ParsesUnrealMaterialSet()
         {
-            const string json = """
+            const string json = @"
                 {
-                  "specVersion": "1.0",
-                  "overrides": [
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
                     {
-                      "engine": "unreal",
-                      "material": {
-                        "kind": "materialSet",
-                        "variants": {
-                          "opaque": "/Game/M_Opaque"
+                      ""engine"": ""unreal"",
+                      ""material"": {
+                        ""kind"": ""materialSet"",
+                        ""variants"": {
+                          ""opaque"": ""/Game/M_Opaque""
                         }
                       }
                     }
                   ]
                 }
-                """;
+                ";
 
             Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var extension));
             var material = extension.Overrides[0].Material as UnrealMaterialOverride;

@@ -6,13 +6,14 @@ UniVRMXT is an optional consumer package for [Extended VRM](https://github.com/m
 
 | Layer | Location | Depends on |
 |-------|----------|------------|
-| Format | `Runtime/Format/` | `System.Text.Json` only |
+| Format | `Runtime/Format/` | `Newtonsoft.Json` only |
 | VFX runtime | `Runtime/Vfx/` | Format, UnityEngine |
 | Materials override | `Runtime/MaterialsOverride/` | Format, UnityEngine |
 | Editor integration | `Editor/` | Runtime |
-| Tests | `Tests/Format/` | Runtime (Editor, NUnit) |
+| Tests | `Tests/Format/`, `Tests/Vfx/` | Runtime (Editor, NUnit) |
 
-The Format layer parses extension JSON without referencing UniGLTF types so CI and unit tests stay lightweight.
+The Format layer parses extension JSON with Newtonsoft.Json (`com.unity.nuget.newtonsoft-json`)
+and does not reference UniGLTF types, so format tests stay free of UniVRM load APIs.
 
 ## Extensions (v0.1.0)
 
@@ -21,7 +22,17 @@ The Format layer parses extension JSON without referencing UniGLTF types so CI a
 - Root extension: `extensions.VRMXT_vfx`
 - Spec: [vrmxt-vfx.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/vrmxt-vfx.md)
 - `VrmxtVfx.TryParse` validates `specVersion` `1.0`, applies particle defaults, and skips invalid emitters.
-- `VrmxtVfxImporter.TryImport` resolves glTF node indices through a caller-supplied delegate.
+- `VrmxtVfxImporter.TryImport` maps emitters to Unity data; Transform overloads skip unresolved nodes.
+- `VrmxtVfxRuntime.TryAttach` adds `VrmxtVfxInstance` on the avatar root (data MVP; no `ParticleSystem` yet).
+
+Runtime attach after UniVRM load (caller owns UniGLTF/VRM references):
+
+```csharp
+using var data = new GlbLowLevelParser(path, File.ReadAllBytes(path)).Parse();
+var vrm = await Vrm10.LoadGltfDataAsync(data);
+var nodes = vrm.GetComponent<RuntimeGltfInstance>().Nodes;
+VrmxtVfxRuntime.TryAttach(vrm.gameObject, data.Json, nodes, out var vfx);
+```
 
 ### VRMXT_materials_override
 
@@ -31,14 +42,10 @@ The Format layer parses extension JSON without referencing UniGLTF types so CI a
 - `UnityOverrideSelector` matches `engine: unity` entries against the active render pipeline variant.
 - Full `IMaterialDescriptorGenerator` wrapping requires UniVRM at consumption time; see `VrmxtMaterialsOverrideGenerator`.
 
-## UniVRM integration (planned consumption)
+## UniVRM integration
 
-When installed beside UniVRM 0.131.1:
-
-1. Runtime VRM loads pass a wrapped `IMaterialDescriptorGenerator` through `Vrm10.LoadPathAsync` (or equivalent).
-2. Editor import assigns a `MaterialDescriptorGeneratorFactory` subclass via project settings.
-
-The v0.1.0 scaffold documents these integration points without hard asmdef references to UniGLTF.
+- **VFX (data MVP):** parse + `TryAttach` after `Vrm10.LoadGltfDataAsync` as above. UniVRMXT Runtime asmdef does **not** hard-reference UniGLTF/VRM10.
+- **Materials (planned):** wrap `IMaterialDescriptorGenerator` through `Vrm10.LoadPathAsync`; editor factory via project settings.
 
 ## CI
 
