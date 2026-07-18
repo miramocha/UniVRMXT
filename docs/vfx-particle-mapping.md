@@ -34,9 +34,11 @@ Editing only `VrmxtVfxInstance` fields also works when no PS child exists.
      `GraphicsSettings.currentRenderPipeline == null`, but both are always tried).
      Do not pick the packaged shader while a host URP/BIRP name still resolves — during
      ScriptedImporter the pipeline asset is often null even in URP projects.
-   - Then packaged **`UniVRMXT/Particles Unlit`** (first-party ShaderLab; no URP package
+   - Then packaged **`VRMXT/Particles Unlit`** (first-party ShaderLab; no URP package
      dependency). Material at `Resources/UniVRMXT/ParticlesUnlit` keeps that shader in
-     player builds when the UniVRMXT package (or Warudo mod copy) is present.
+     player builds when the UniVRMXT package is present. Hosts that cannot use
+     `Resources.Load` (e.g. Warudo/UMod) set `PackagedMaterialProvider` +
+     `PreferPackagedParticleMaterial` after loading the mat via ModHost.
    - If `Shader.Find` fails: clone the Resources material, else default `ParticleSystem`
      material / `Default-Particle`.
 2. Owned materials are forced to **Transparent + Alpha blend** (`ConfigureTransparentAlphaBlending`)

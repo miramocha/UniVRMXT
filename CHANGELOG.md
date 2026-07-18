@@ -35,7 +35,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   playOnAwake start)
 - `ResolveParticleShader`: try host URP **and** BIRP names before packaged shader
   (pipeline null only sets search order — import-time null must not skip URP names);
-  packaged `UniVRMXT/Particles Unlit` + Resources mat for build inclusion
+  packaged `VRMXT/Particles Unlit` + Resources mat for build inclusion
+- `PackagedMaterialProvider` / `PreferPackagedParticleMaterial` for hosts that load the
+  packaged mat via ModHost (Warudo) instead of `Resources.Load`
 - Ship first-party particle shader + `Resources/UniVRMXT/ParticlesUnlit` material so builds
   keep a usable particle shader without Always Included lists
 - Particle materials: broader shader fallbacks; persist textures before materials and re-bind
