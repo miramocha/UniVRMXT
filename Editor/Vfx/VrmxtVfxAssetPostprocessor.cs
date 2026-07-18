@@ -10,7 +10,7 @@ namespace UniVRMXT.Editor.Vfx
 {
     /// <summary>
     /// Fallback when Extended-UniVRM import hooks are absent or disabled: build sibling
-    /// <c>*.vrmxt.prefab</c>. When hooks are available and Preferences/VRM10 enable them,
+    /// <c>*.vrmxt.prefab</c>. When hooks are available and Project Settings/VRM10 enable them,
     /// VFX is written onto the original <c>.vrm</c> during import and this postprocessor
     /// skips companion creation.
     /// </summary>

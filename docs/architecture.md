@@ -63,7 +63,7 @@ VrmxtVfxRuntime.TryAttach(
 
 - **VFX (runtime):** parse + `TryAttach` after `Vrm10.LoadGltfDataAsync` as above. UniVRMXT Runtime asmdef does **not** hard-reference UniGLTF/VRM10; the load caller supplies JSON, `Nodes`, and optional texture resolution.
 - **VFX (AssetDatabase):** Dual path depending on host UniVRM:
-  - **Extended-UniVRM** (hooks present + Preferences/VRM10 → Enable VRM import extensions):
+  - **Extended-UniVRM** (hooks present + Project Settings/VRM10 → Enable VRM Import Extensions):
     `VrmxtVfxImportHookBootstrap` soft-detects `Vrm10ImportExtensionRegistry.IsEnabled` and
     attaches VFX onto the **original** `.vrm` during `VrmScriptedImporter` (no companion prefab).
   - **Stock UniVRM**, or Extended with import extensions **disabled**: `VrmxtVfxAssetPostprocessor`

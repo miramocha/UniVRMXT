@@ -10,7 +10,7 @@ namespace UniVRMXT.Editor.Vfx
 {
     /// <summary>
     /// Soft-detect Extended-UniVRM <c>Vrm10ImportExtensionRegistry</c> and register VFX attach
-    /// on the imported <c>.vrm</c> when hooks exist and are enabled in Preferences/VRM10.
+    /// on the imported <c>.vrm</c> when hooks exist and are enabled in Project Settings/VRM10.
     /// Stock UniVRM or hooks disabled → companion prefab via <see cref="VrmxtVfxAssetPostprocessor"/>.
     /// </summary>
     [InitializeOnLoad]
@@ -27,8 +27,8 @@ namespace UniVRMXT.Editor.Vfx
         }
 
         /// <summary>
-        /// True when Extended hooks exist and Preferences → VRM10 → Enable VRM import
-        /// extensions is on. False → postprocessor builds <c>*.vrmxt.prefab</c>.
+        /// True when Extended hooks exist and Project Settings → VRM10 → Enable VRM Import
+        /// Extensions is on. False → postprocessor builds <c>*.vrmxt.prefab</c>.
         /// </summary>
         public static bool ImportHooksAvailable
         {
