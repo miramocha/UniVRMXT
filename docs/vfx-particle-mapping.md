@@ -28,9 +28,9 @@ JSON omits a property (`VrmxtVfx.Default*`).
 2. When `texture` resolves, set both `_MainTex` (BIRP) and `_BaseMap` (URP) when the shader exposes them.
 3. When `texture` is omitted, out of range, or unresolved (`null`), leave albedo default and tint with `startColor` (solid-tint fallback).
 4. HDRP is best-effort only (no dedicated particle shader pick yet).
-5. **Import persistence:** owned materials and VFX-only textures must be
-   `AddObjectToAsset`'d (hook path) or embedded in the companion prefab. Otherwise Unity
-   drops the material after import and particles render pink (missing shader).
+5. **Import persistence:** decode textures, `AddObjectToAsset` them **first**, re-bind onto
+   owned particle materials, then `AddObjectToAsset` the materials (or embed in the companion
+   prefab). Adding materials before textures drops texture slots on serialize (empty albedo).
 
 ### UniVRM does not import VFX-only textures
 

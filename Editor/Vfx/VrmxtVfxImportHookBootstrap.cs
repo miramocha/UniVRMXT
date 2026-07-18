@@ -77,7 +77,7 @@ namespace UniVRMXT.Editor.Vfx
 
         private static bool ReadIsEnabled(Type registryType)
         {
-            // Extended-UniVRM with preference gate. Older builds without IsEnabled → assume on.
+            // Extended-UniVRM with project-setting gate. Older builds without IsEnabled → assume on.
             var prop = registryType.GetProperty(
                 "IsEnabled",
                 BindingFlags.Public | BindingFlags.Static);
@@ -159,59 +159,16 @@ namespace UniVRMXT.Editor.Vfx
                 return;
             }
 
-            // Materials created with `new Material()` during ScriptedImporter are destroyed
-            // unless sub-asseted → missing refs → pink particles after import.
-            PersistOwnedParticleMaterials(root, addObject, contextObj);
-
             try
             {
-                if (glbTextures == null)
-                {
-                    return;
-                }
-
-                var i = 0;
-                foreach (var texture in glbTextures.CachedTextures)
-                {
-                    if (texture == null)
-                    {
-                        continue;
-                    }
-
-                    addObject.Invoke(contextObj, new object[] { "VRMXT_vfx_tex_" + i, texture });
-                    i++;
-                }
-
-                glbTextures.ReleaseOwnership();
+                VrmxtVfxImportSubAssets.Persist(
+                    root,
+                    glbTextures,
+                    (id, obj) => addObject.Invoke(contextObj, new object[] { id, obj }));
             }
             finally
             {
                 glbTextures?.Dispose();
-            }
-        }
-
-        private static void PersistOwnedParticleMaterials(
-            GameObject root,
-            MethodInfo addObject,
-            object contextObj)
-        {
-            if (root == null || addObject == null || contextObj == null)
-            {
-                return;
-            }
-
-            var renderers = root.GetComponentsInChildren<ParticleSystemRenderer>(true);
-            var i = 0;
-            for (var r = 0; r < renderers.Length; r++)
-            {
-                var material = renderers[r] != null ? renderers[r].sharedMaterial : null;
-                if (!VrmxtVfxParticleSystemMapper.IsOwnedParticleMaterial(material))
-                {
-                    continue;
-                }
-
-                addObject.Invoke(contextObj, new object[] { "VRMXT_vfx_mat_" + i, material });
-                i++;
             }
         }
     }

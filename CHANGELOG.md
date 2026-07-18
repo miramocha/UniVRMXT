@@ -23,7 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- Particle materials: broader shader fallbacks + persist owned mats/`AddObjectToAsset` on import (avoids pink missing-shader particles)
+- Particle materials: broader shader fallbacks; persist textures before materials and re-bind
+  albedo slots on import (avoids pink / empty-texture particles)
 - Format parsers use Newtonsoft.Json (`com.unity.nuget.newtonsoft-json`) instead of
   System.Text.Json so they compile under Unity (STJ types are inaccessible there)
 - Public `TryParse` overloads now take `JToken` instead of `JsonElement`

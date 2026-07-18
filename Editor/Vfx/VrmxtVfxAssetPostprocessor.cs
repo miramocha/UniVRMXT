@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using UniVRMXT.Format;
 using UniVRMXT.Vfx;
@@ -126,10 +125,10 @@ namespace UniVRMXT.Editor.Vfx
                 }
 
                 var companionPath = GetCompanionPrefabPath(assetPath);
-                var ownedMaterials = CollectOwnedParticleMaterials(editable);
-                PrefabUtility.SaveAsPrefabAsset(editable, companionPath);
-                PersistOwnedParticleMaterials(companionPath, ownedMaterials);
-                PersistDecodedTextures(companionPath, glbTextures);
+                VrmxtVfxImportSubAssets.PersistToPrefabAsset(
+                    companionPath,
+                    editable,
+                    glbTextures);
                 return true;
             }
             finally
@@ -159,80 +158,6 @@ namespace UniVRMXT.Editor.Vfx
             {
                 AssetDatabase.DeleteAsset(companionPath);
             }
-        }
-
-        private static List<Material> CollectOwnedParticleMaterials(GameObject root)
-        {
-            var list = new List<Material>();
-            if (root == null)
-            {
-                return list;
-            }
-
-            var renderers = root.GetComponentsInChildren<ParticleSystemRenderer>(true);
-            for (var r = 0; r < renderers.Length; r++)
-            {
-                var material = renderers[r] != null ? renderers[r].sharedMaterial : null;
-                if (!VrmxtVfxParticleSystemMapper.IsOwnedParticleMaterial(material))
-                {
-                    continue;
-                }
-
-                list.Add(material);
-            }
-
-            return list;
-        }
-
-        private static void PersistOwnedParticleMaterials(
-            string prefabPath,
-            List<Material> ownedMaterials)
-        {
-            if (string.IsNullOrEmpty(prefabPath) || ownedMaterials == null || ownedMaterials.Count == 0)
-            {
-                return;
-            }
-
-            for (var i = 0; i < ownedMaterials.Count; i++)
-            {
-                var material = ownedMaterials[i];
-                if (material == null || AssetDatabase.Contains(material))
-                {
-                    continue;
-                }
-
-                AssetDatabase.AddObjectToAsset(material, prefabPath);
-                EditorUtility.SetDirty(material);
-            }
-
-            var prefabRoot = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (prefabRoot != null)
-            {
-                EditorUtility.SetDirty(prefabRoot);
-            }
-        }
-
-        private static void PersistDecodedTextures(string prefabPath, VrmxtVfxGlbTextures glbTextures)
-        {
-            if (glbTextures == null)
-            {
-                return;
-            }
-
-            foreach (var texture in glbTextures.CachedTextures)
-            {
-                if (texture == null || AssetDatabase.Contains(texture))
-                {
-                    continue;
-                }
-
-                AssetDatabase.AddObjectToAsset(texture, prefabPath);
-                EditorUtility.SetDirty(texture);
-            }
-
-            // Prefab now owns the Texture2D objects — do not Destroy them on Dispose.
-            glbTextures.ReleaseOwnership();
-            EditorUtility.SetDirty(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath));
         }
     }
 }
