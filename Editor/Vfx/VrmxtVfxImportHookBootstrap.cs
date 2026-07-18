@@ -27,13 +27,20 @@ namespace UniVRMXT.Editor.Vfx
         }
 
         /// <summary>
-        /// True when Extended hooks exist and Project Settings → VRM10 → Enable VRM Import
-        /// Extensions is on. False → postprocessor builds <c>*.vrmxt.prefab</c>.
+        /// True when the VFX import handler is registered and Project Settings → VRM10 →
+        /// Enable VRM Import Extensions is on. False → postprocessor builds
+        /// <c>*.vrmxt.prefab</c>.
         /// </summary>
         public static bool ImportHooksAvailable
         {
             get
             {
+                // Require successful registration — registry type alone is not enough.
+                if (!TryRegister())
+                {
+                    return false;
+                }
+
                 var registryType = Type.GetType(RegistryTypeName, throwOnError: false);
                 if (registryType == null)
                 {

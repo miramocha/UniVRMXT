@@ -74,7 +74,18 @@ namespace UniVRMXT.Editor.Vfx
 
             var materialTextures = CaptureMaterialTextures(editableRoot);
 
-            PrefabUtility.SaveAsPrefabAsset(editableRoot, prefabPath);
+            // Create an empty prefab shell first so textures can be sub-asseted before any
+            // material is written (SaveAsPrefabAsset with mats first drops albedo refs).
+            var shellName = editableRoot.name;
+            var shell = new GameObject(shellName);
+            try
+            {
+                PrefabUtility.SaveAsPrefabAsset(shell, prefabPath);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(shell);
+            }
 
             if (glbTextures != null)
             {
@@ -110,6 +121,9 @@ namespace UniVRMXT.Editor.Vfx
 
                 EditorUtility.SetDirty(material);
             }
+
+            // Hierarchy last — materials/textures are already assets, so refs survive.
+            PrefabUtility.SaveAsPrefabAsset(editableRoot, prefabPath);
 
             var prefabRoot = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefabRoot != null)

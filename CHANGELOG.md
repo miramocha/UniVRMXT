@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Particle materials: broader shader fallbacks; persist textures before materials and re-bind
   albedo slots on import (avoids pink / empty-texture particles)
+- Import hooks: `ImportHooksAvailable` requires successful handler registration
+- Companion prefab: delete on missing `VRMXT_vfx`, `.vrm` delete/move; shell-first persist
+  so textures are sub-asseted before materials
 - Format parsers use Newtonsoft.Json (`com.unity.nuget.newtonsoft-json`) instead of
   System.Text.Json so they compile under Unity (STJ types are inaccessible there)
 - Public `TryParse` overloads now take `JToken` instead of `JsonElement`
