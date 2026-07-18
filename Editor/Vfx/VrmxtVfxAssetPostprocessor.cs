@@ -29,7 +29,7 @@ namespace UniVRMXT.Editor.Vfx
                 return;
             }
 
-            // Extended-UniVRM + Preferences enable: VFX already on .vrm via import hooks.
+            // Extended-UniVRM + Project Settings enable: VFX already on .vrm via import hooks.
             if (VrmxtVfxImportHookBootstrap.ImportHooksAvailable)
             {
                 for (var i = 0; i < importedAssets.Length; i++)

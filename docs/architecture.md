@@ -68,7 +68,7 @@ VrmxtVfxRuntime.TryAttach(
     attaches VFX onto the **original** `.vrm` during `VrmScriptedImporter` (no companion prefab).
   - **Stock UniVRM**, or Extended with import extensions **disabled**: `VrmxtVfxAssetPostprocessor`
     writes sibling **`*.vrmxt.prefab`** via `TryAttachFromGlb` (name-based node resolve + second-read textures).
-  - Detection: registry type in `VRM10.Editor` plus `IsEnabled` (EditorPrefs); no hard `VRM10.Editor` asmdef reference.
+  - Detection: registry type in `VRM10.Editor` plus `IsEnabled` (project setting); no hard `VRM10.Editor` asmdef reference.
   - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` (unchanged).
   - Design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
 - **Materials (planned):** wrap `IMaterialDescriptorGenerator` through `Vrm10.LoadPathAsync`; editor factory via project settings.
