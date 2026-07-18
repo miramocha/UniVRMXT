@@ -23,6 +23,23 @@ namespace UniVRMXT.Editor.Vfx
             string[] movedAssets,
             string[] movedFromAssetPaths)
         {
+            // Delete orphan companions when the source .vrm is removed or renamed away.
+            if (deletedAssets != null)
+            {
+                for (var i = 0; i < deletedAssets.Length; i++)
+                {
+                    TryDeleteStaleCompanion(deletedAssets[i]);
+                }
+            }
+
+            if (movedFromAssetPaths != null)
+            {
+                for (var i = 0; i < movedFromAssetPaths.Length; i++)
+                {
+                    TryDeleteStaleCompanion(movedFromAssetPaths[i]);
+                }
+            }
+
             if (importedAssets == null)
             {
                 return;
@@ -85,15 +102,17 @@ namespace UniVRMXT.Editor.Vfx
                 return false;
             }
 
-            // Missing / invalid extension → no companion write.
+            // Missing / invalid extension → drop any stale companion from a prior import.
             if (!GlbChunks.TryExtract(bytes, out var json, out _) ||
                 !VrmxtVfx.TryParse(json, out _))
             {
+                TryDeleteStaleCompanion(assetPath);
                 return false;
             }
 
             if (!VrmxtVfxNodeResolver.TryReadNodeNames(json, out var nodeNames))
             {
+                TryDeleteStaleCompanion(assetPath);
                 return false;
             }
 
@@ -121,6 +140,7 @@ namespace UniVRMXT.Editor.Vfx
                         out _,
                         out glbTextures))
                 {
+                    TryDeleteStaleCompanion(assetPath);
                     return false;
                 }
 
