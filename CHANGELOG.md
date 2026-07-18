@@ -16,10 +16,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `VrmxtVfxRuntime.TryAttachFromGlb` for runtime / Warudo-style hosts
 - `VrmxtVfxNodeResolver` for AssetDatabase node resolution without `RuntimeGltfInstance`
 - `VrmxtVfxImportHookBootstrap` — soft-detect Extended-UniVRM import hooks (`IsEnabled` project setting); attach VFX on original `.vrm` when enabled
+- `VrmxtVfxExportHookBootstrap` — soft-detect Extended-UniVRM export hooks; write `VRMXT_vfx` from `VrmxtVfxInstance` (strip preview ParticleSystems on export copy)
+- `VrmxtVfx.ToJson` / `ToUtf8Json` and `VrmxtVfxExporter` for portable re-export
+- Export sync: live `ParticleSystem` preview values (e.g. `startColor`) fold back into
+  `VrmxtVfxInstance` before writing `VRMXT_vfx`
+- Particle materials: force Transparent + Alpha blend so texture alpha works (URP Particles/Unlit
+  defaults to Opaque when created from script)
 - `VrmxtVfxAssetPostprocessor` — companion `*.vrmxt.prefab` fallback for stock UniVRM or when import extensions are disabled
 - Field mapping doc: `docs/vfx-particle-mapping.md`
 - Upstream hook notes: [Extended-VRM-Specs univrm-upstream-hooks](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)
-- VFX importer / attach / ParticleSystem / node-resolver NUnit tests under `Tests/Vfx/`
+- VFX importer / attach / ParticleSystem / node-resolver / exporter NUnit tests under `Tests/Vfx/` and `Tests/Format/`
 
 ### Changed
 

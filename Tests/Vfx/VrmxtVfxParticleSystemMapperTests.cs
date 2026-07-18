@@ -99,6 +99,7 @@ namespace UniVRMXT.Tests.Vfx
                     texture,
                     VrmxtVfxParticleSystemMapper.ReadAssignedTexture(renderer.sharedMaterial));
                 AssertTextureSlots(renderer.sharedMaterial, texture);
+                AssertTransparentBlendConfigured(renderer.sharedMaterial);
             }
             finally
             {
@@ -107,6 +108,27 @@ namespace UniVRMXT.Tests.Vfx
                 {
                     Object.DestroyImmediate(texture);
                 }
+            }
+        }
+
+        [Test]
+        public void ConfigureTransparentAlphaBlending_SetsTransparentQueue()
+        {
+            var shader = VrmxtVfxParticleSystemMapper.ResolveParticleShader();
+            if (shader == null)
+            {
+                Assert.Ignore("No particle shader available in this test runner.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                VrmxtVfxParticleSystemMapper.ConfigureTransparentAlphaBlending(material);
+                AssertTransparentBlendConfigured(material);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
             }
         }
 
@@ -237,6 +259,25 @@ namespace UniVRMXT.Tests.Vfx
             Assert.AreSame(
                 texture,
                 VrmxtVfxParticleSystemMapper.ReadAssignedTexture(material));
+        }
+
+        private static void AssertTransparentBlendConfigured(Material material)
+        {
+            Assert.IsNotNull(material);
+            Assert.AreEqual((int)UnityEngine.Rendering.RenderQueue.Transparent, material.renderQueue);
+
+            if (material.HasProperty("_Surface"))
+            {
+                Assert.AreEqual(1f, material.GetFloat("_Surface"), 1e-4f);
+            }
+
+            if (material.HasProperty("_SrcBlend"))
+            {
+                Assert.AreEqual(
+                    (float)UnityEngine.Rendering.BlendMode.SrcAlpha,
+                    material.GetFloat("_SrcBlend"),
+                    1e-4f);
+            }
         }
     }
 }

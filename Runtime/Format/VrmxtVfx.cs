@@ -77,6 +77,161 @@ namespace UniVRMXT.Format
             return true;
         }
 
+        /// <summary>
+        /// Serialize a portable extension object to compact JSON (UTF-8).
+        /// </summary>
+        public static string ToJson(VrmxtVfxExtension extension)
+        {
+            if (extension == null)
+            {
+                throw new ArgumentNullException(nameof(extension));
+            }
+
+            return BuildExtensionObject(extension).ToString(Formatting.None);
+        }
+
+        /// <summary>
+        /// UTF-8 JSON bytes suitable for glTF <c>extensions.VRMXT_vfx</c>.
+        /// </summary>
+        public static byte[] ToUtf8Json(VrmxtVfxExtension extension)
+        {
+            var json = ToJson(extension);
+            return System.Text.Encoding.UTF8.GetBytes(json);
+        }
+
+        private static JObject BuildExtensionObject(VrmxtVfxExtension extension)
+        {
+            var emitters = new JArray();
+            foreach (var emitter in extension.Emitters)
+            {
+                if (emitter == null)
+                {
+                    continue;
+                }
+
+                emitters.Add(BuildEmitterObject(emitter));
+            }
+
+            return new JObject
+            {
+                ["specVersion"] = SpecVersionValue,
+                ["emitters"] = emitters,
+            };
+        }
+
+        private static JObject BuildEmitterObject(VrmxtVfxEmitter emitter)
+        {
+            var obj = new JObject
+            {
+                ["type"] = string.IsNullOrEmpty(emitter.Type) ? "particle" : emitter.Type,
+                ["node"] = emitter.Node,
+                ["particle"] = BuildParticleObject(emitter.Particle),
+            };
+
+            if (!string.IsNullOrEmpty(emitter.Name))
+            {
+                obj["name"] = emitter.Name;
+            }
+
+            if (!IsDefaultFloatArray(emitter.LocalPosition, DefaultLocalPosition))
+            {
+                obj["localPosition"] = ToJArray(emitter.LocalPosition);
+            }
+
+            if (!IsDefaultFloatArray(emitter.LocalRotation, DefaultLocalRotation))
+            {
+                obj["localRotation"] = ToJArray(emitter.LocalRotation);
+            }
+
+            return obj;
+        }
+
+        private static JObject BuildParticleObject(VrmxtVfxParticle particle)
+        {
+            if (particle == null)
+            {
+                return new JObject();
+            }
+
+            var obj = new JObject();
+
+            if (particle.Texture.HasValue)
+            {
+                obj["texture"] = particle.Texture.Value;
+            }
+
+            if (!NearlyEqual(particle.EmissionRate, DefaultEmissionRate))
+            {
+                obj["emissionRate"] = particle.EmissionRate;
+            }
+
+            if (particle.MaxParticles != DefaultMaxParticles)
+            {
+                obj["maxParticles"] = particle.MaxParticles;
+            }
+
+            if (!NearlyEqual(particle.Lifetime, DefaultLifetime))
+            {
+                obj["lifetime"] = particle.Lifetime;
+            }
+
+            if (!NearlyEqual(particle.StartSize, DefaultStartSize))
+            {
+                obj["startSize"] = particle.StartSize;
+            }
+
+            if (!NearlyEqual(particle.StartSpeed, DefaultStartSpeed))
+            {
+                obj["startSpeed"] = particle.StartSpeed;
+            }
+
+            if (!IsDefaultFloatArray(particle.StartColor, DefaultStartColor))
+            {
+                obj["startColor"] = ToJArray(particle.StartColor);
+            }
+
+            return obj;
+        }
+
+        private static JArray ToJArray(IReadOnlyList<float> values)
+        {
+            var array = new JArray();
+            if (values == null)
+            {
+                return array;
+            }
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                array.Add(values[i]);
+            }
+
+            return array;
+        }
+
+        private static bool IsDefaultFloatArray(IReadOnlyList<float> values, float[] defaults)
+        {
+            if (values == null || defaults == null || values.Count != defaults.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < defaults.Length; i++)
+            {
+                if (!NearlyEqual(values[i], defaults[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool NearlyEqual(float a, float b)
+        {
+            return Math.Abs(a - b) <= 1e-5f;
+        }
+
         private static bool TryGetExtensionObject(JToken root, out JObject extension)
         {
             extension = null;

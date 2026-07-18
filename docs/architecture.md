@@ -25,6 +25,7 @@ and does not reference UniGLTF types, so format tests stay free of UniVRM load A
 - `VrmxtVfxImporter.TryImport` maps emitters to Unity data; Transform overloads skip unresolved nodes.
 - `VrmxtVfxRuntime.TryAttach` adds `VrmxtVfxInstance` on the avatar root after stock UniVRM load.
 - `VrmxtVfxParticleSystemMapper` maps portable fields onto Unity `ParticleSystem` (billboard + local +Y velocity; BIRP/URP unlit material).
+- `VrmxtVfx.ToJson` / `VrmxtVfxExporter` + `VrmxtVfxExportHookBootstrap` re-write `VRMXT_vfx` on Extended-UniVRM VRM export.
 - Field table: [vfx-particle-mapping.md](vfx-particle-mapping.md).
 
 Runtime attach after UniVRM load (caller owns UniGLTF/VRM references):
@@ -69,6 +70,9 @@ VrmxtVfxRuntime.TryAttach(
   - **Stock UniVRM**, or Extended with import extensions **disabled**: `VrmxtVfxAssetPostprocessor`
     writes sibling **`*.vrmxt.prefab`** via `TryAttachFromGlb` (name-based node resolve + second-read textures).
   - Detection: registry type in `VRM10.Editor` plus `IsEnabled` (project setting); no hard `VRM10.Editor` asmdef reference.
+  - **Export (Extended-UniVRM):** `VrmxtVfxExportHookBootstrap` soft-detects Runtime
+    `Vrm10ExportExtensionRegistry` and writes `VRMXT_vfx` from `VrmxtVfxInstance`
+    (Project Settings → Enable VRM Export Extensions).
   - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` (unchanged).
   - Design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
 - **Materials (planned):** wrap `IMaterialDescriptorGenerator` through `Vrm10.LoadPathAsync`; editor factory via project settings.
