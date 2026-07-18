@@ -33,6 +33,10 @@ namespace UniVRMXT.Vfx
                 return pending;
             }
 
+            // Ensure Particle.Texture is populated before PS clear (import may only have
+            // HasTexture + material slots until Sync / Bind runs).
+            instance.SyncTexturesFromParticleMaterials();
+
             var emitters = instance.Emitters;
             for (var i = 0; i < emitters.Count; i++)
             {

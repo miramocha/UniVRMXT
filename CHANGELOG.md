@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `VrmxtVfxInstance` before writing `VRMXT_vfx`
 - Particle materials: force Transparent + Alpha blend so texture alpha works (URP Particles/Unlit
   defaults to Opaque when created from script)
+- Bind/sync particle textures onto `VrmxtVfxInstance` emitters so re-export keeps albedo
+  after preview ParticleSystems are cleared or only materials were persisted
 - `VrmxtVfxAssetPostprocessor` — companion `*.vrmxt.prefab` fallback for stock UniVRM or when import extensions are disabled
 - Field mapping doc: `docs/vfx-particle-mapping.md`
 - Upstream hook notes: [Extended-VRM-Specs univrm-upstream-hooks](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)

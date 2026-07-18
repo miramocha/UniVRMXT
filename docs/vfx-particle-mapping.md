@@ -23,7 +23,9 @@ JSON omits a property (`VrmxtVfx.Default*`).
 Before writing `VRMXT_vfx`, `VrmxtVfxExporter.CaptureAndClearParticleSystems` calls
 `VrmxtVfxParticleSystemMapper.ReadFromParticleSystem` so Unity inspector edits on the
 preview `ParticleSystem` (color, rate, lifetime, size, speed, local TR) fold into portable
-emitter data. Editing only `VrmxtVfxInstance` fields also works when no PS child exists.
+emitter data. Albedo is taken from `VrmxtVfxParticleData.Texture` (set on import bind /
+material sync) so export still embeds textures after preview systems are cleared.
+Editing only `VrmxtVfxInstance` fields also works when no PS child exists.
 
 ## Texture / material policy (BIRP + URP)
 

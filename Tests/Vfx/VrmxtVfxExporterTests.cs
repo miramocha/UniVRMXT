@@ -63,6 +63,81 @@ namespace UniVRMXT.Tests.Vfx
         }
 
         [Test]
+        public void CaptureAndClearParticleSystems_KeepsTextureWithoutLiveParticleSystem()
+        {
+            var root = new GameObject("root");
+            var bone = new GameObject("bone");
+            bone.transform.SetParent(root.transform, false);
+
+            try
+            {
+                var instance = root.AddComponent<VrmxtVfxInstance>();
+                var texture = new Texture2D(2, 2);
+                instance.SetEmitters(new[]
+                {
+                    new VrmxtVfxResolvedEmitter
+                    {
+                        Name = "Spark",
+                        NodeTransform = bone.transform,
+                        Particle = new VrmxtVfxParticleData
+                        {
+                            HasTexture = true,
+                            TextureIndex = 0,
+                            Texture = texture,
+                        },
+                    },
+                });
+
+                var pending = VrmxtVfxExporter.CaptureAndClearParticleSystems(root);
+                Assert.AreEqual(1, pending.Count);
+                Assert.AreSame(texture, pending[0].Texture);
+
+                pending[0].ExportTextureIndex = 3;
+                Assert.IsTrue(
+                    VrmxtVfxExporter.TryBuildUtf8Json(
+                        pending,
+                        t => t == bone.transform ? 1 : (int?)null,
+                        out var utf8));
+                var json = VrmxtVfxExporter.Utf8ToString(utf8);
+                Assert.IsTrue(VrmxtVfx.TryParse(json, out var parsed));
+                Assert.AreEqual(3, parsed.Emitters[0].Particle.Texture);
+
+                Object.DestroyImmediate(texture);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void BindTexturesFromResolver_SetsParticleTextureWithoutBuildingSystems()
+        {
+            var texture = new Texture2D(2, 2);
+            try
+            {
+                var emitters = new[]
+                {
+                    new VrmxtVfxResolvedEmitter
+                    {
+                        Particle = new VrmxtVfxParticleData
+                        {
+                            HasTexture = true,
+                            TextureIndex = 0,
+                        },
+                    },
+                };
+
+                VrmxtVfxInstance.BindTexturesFromResolver(emitters, _ => texture);
+                Assert.AreSame(texture, emitters[0].Particle.Texture);
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
         public void CaptureAndClearParticleSystems_RemovesPreviewChildren()
         {
             var root = new GameObject("root");
