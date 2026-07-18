@@ -7,34 +7,34 @@ namespace UniVRMXT.Tests.Vfx
 {
     public sealed class VrmxtVfxImporterTests
     {
-        private const string TwoEmittersJson = """
+        private const string TwoEmittersJson = @"
             {
-              "extensions": {
-                "VRMXT_vfx": {
-                  "specVersion": "1.0",
-                  "emitters": [
+              ""extensions"": {
+                ""VRMXT_vfx"": {
+                  ""specVersion"": ""1.0"",
+                  ""emitters"": [
                     {
-                      "name": "Keep",
-                      "type": "particle",
-                      "node": 1,
-                      "localPosition": [0.1, 0.2, 0.3],
-                      "particle": {
-                        "emissionRate": 17.5,
-                        "maxParticles": 42,
-                        "texture": 0
+                      ""name"": ""Keep"",
+                      ""type"": ""particle"",
+                      ""node"": 1,
+                      ""localPosition"": [0.1, 0.2, 0.3],
+                      ""particle"": {
+                        ""emissionRate"": 17.5,
+                        ""maxParticles"": 42,
+                        ""texture"": 0
                       }
                     },
                     {
-                      "name": "Skip",
-                      "type": "particle",
-                      "node": 99,
-                      "particle": {}
+                      ""name"": ""Skip"",
+                      ""type"": ""particle"",
+                      ""node"": 99,
+                      ""particle"": {}
                     }
                   ]
                 }
               }
             }
-            """;
+            ";
 
         [Test]
         public void TryImport_ByTransformList_SkipsUnresolvedNodes()
@@ -84,12 +84,12 @@ namespace UniVRMXT.Tests.Vfx
         [Test]
         public void TryImport_RejectsWrongSpecVersion()
         {
-            const string json = """
+            const string json = @"
                 {
-                  "specVersion": "2.0",
-                  "emitters": []
+                  ""specVersion"": ""2.0"",
+                  ""emitters"": []
                 }
-                """;
+                ";
 
             Assert.IsFalse(
                 VrmxtVfxImporter.TryImport(json, _ => "node", out VrmxtVfxData _));
