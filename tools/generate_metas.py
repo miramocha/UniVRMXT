@@ -149,6 +149,7 @@ def main() -> None:
         ROOT / "CONTRIBUTING.md",
         ROOT / "docs" / "installation.md",
         ROOT / "docs" / "architecture.md",
+        ROOT / "docs" / "vfx-particle-mapping.md",
     ]
     for asset in extra_files:
         if asset.exists():

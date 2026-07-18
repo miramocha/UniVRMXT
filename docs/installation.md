@@ -38,6 +38,15 @@ python tools/validate_package.py
 
 In Unity, open **Window → General → Test Runner** and run **UniVRMXT.Tests**.
 
+## Editor VFX on `.vrm` import
+
+| UniVRM host | Scene asset |
+|-------------|-------------|
+| [Extended-UniVRM](https://github.com/miramocha/Extended-UniVRM) with **Project Settings → VRM10 → Enable VRM Import Extensions** | Raw `.vrm` (hooks attach VFX during import) |
+| Stock [vrm-c/UniVRM](https://github.com/vrm-c/UniVRM), or Extended with that setting off | Sibling `*.vrmxt.prefab` |
+
+Reimport `.vrm` after changing the Project Settings toggle. See [architecture.md](architecture.md).
+
 ## Related documentation
 
 - [Extended VRM specifications](https://github.com/miramocha/Extended-VRM-Specs)

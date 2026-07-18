@@ -123,6 +123,34 @@ namespace UniVRMXT.Tests.Vfx
                 Assert.AreEqual(1, instance.Emitters.Count);
                 Assert.AreEqual("Keep", instance.Emitters[0].Name);
                 Assert.AreSame(nodes[1], instance.Emitters[0].NodeTransform);
+                Assert.AreEqual(0, instance.ParticleSystems.Count);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                foreach (var node in nodes)
+                {
+                    Object.DestroyImmediate(node.gameObject);
+                }
+            }
+        }
+
+        [Test]
+        public void TryAttach_MissingExtension_IsNoOp()
+        {
+            var root = new GameObject("AvatarRoot");
+            var nodes = new List<Transform> { new GameObject("n0").transform };
+
+            try
+            {
+                Assert.IsFalse(
+                    VrmxtVfxRuntime.TryAttach(
+                        root,
+                        @"{ ""asset"": { ""version"": ""2.0"" } }",
+                        nodes,
+                        out var instance));
+                Assert.IsNull(instance);
+                Assert.IsNull(root.GetComponent<VrmxtVfxInstance>());
             }
             finally
             {
