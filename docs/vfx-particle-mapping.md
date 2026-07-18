@@ -29,17 +29,26 @@ Editing only `VrmxtVfxInstance` fields also works when no PS child exists.
 
 ## Texture / material policy (BIRP + URP)
 
-1. Mapper creates an owned unlit particle material for the active pipeline:
-   - URP → `Universal Render Pipeline/Particles/Unlit` (then Simple Lit)
-   - BIRP → `Particles/Standard Unlit`, then legacy particle / Mobile / Alpha Blended names
-   - If `Shader.Find` fails (common during ScriptedImporter): clone the default
-     `ParticleSystem` material (`Default-Particle`), then `Sprites/Default` / unlit fallbacks
-2. Owned materials are forced to **Transparent + Alpha blend** (`ConfigureTransparentAlphaBlending`).
-   URP Particles/Unlit defaults to Opaque when created from script, which ignores texture alpha.
-   PNG alpha from GLB `LoadImage` is fine; missing transparency was a material surface setting.
+1. Mapper creates an owned unlit particle material:
+   - Probe host **URP and BIRP** particle shader names (order hinted by
+     `GraphicsSettings.currentRenderPipeline == null`, but both are always tried).
+     Do not pick the packaged shader while a host URP/BIRP name still resolves — during
+     ScriptedImporter the pipeline asset is often null even in URP projects.
+   - Then packaged **`VRMXT/Particles Unlit`** (first-party ShaderLab; no URP package
+     dependency). Material at `Resources/UniVRMXT/ParticlesUnlit` keeps that shader in
+     player builds when the UniVRMXT package is present. Hosts that cannot use
+     `Resources.Load` (e.g. Warudo/UMod) set `PackagedMaterialProvider` +
+     `PreferPackagedParticleMaterial` after loading the mat via ModHost.
+   - If `Shader.Find` fails: clone the Resources material, else default `ParticleSystem`
+     material / `Default-Particle`.
+2. Owned materials are forced to **Transparent + Alpha blend** (`ConfigureTransparentAlphaBlending`)
+   when the host shader exposes URP/BIRP surface keywords. The packaged shader is already
+   transparent in ShaderLab.
+   PNG alpha from GLB `LoadImage` is fine; missing transparency on host URP Particles/Unlit
+   was a material surface setting (defaults to Opaque when created from script).
 3. When `texture` resolves, set both `_MainTex` (BIRP) and `_BaseMap` (URP) when the shader exposes them.
 4. When `texture` is omitted, out of range, or unresolved (`null`), leave albedo default and tint with `startColor` (solid-tint fallback).
-5. HDRP is best-effort only (no dedicated particle shader pick yet).
+5. HDRP is best-effort (packaged ShaderLab pass or host fallbacks; no dedicated HDRP particle shader).
 6. **Import persistence:** decode textures, `AddObjectToAsset` them **first**, re-bind onto
    owned particle materials, then `AddObjectToAsset` the materials (or embed in the companion
    prefab). Adding materials before textures drops texture slots on serialize (empty albedo).
