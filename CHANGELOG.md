@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `VrmxtVfxNodeResolver` for AssetDatabase node resolution without `RuntimeGltfInstance`
 - `VrmxtVfxAssetPostprocessor` — writes sibling `*.vrmxt.prefab` with VFX + decoded textures after `.vrm` import
 - Field mapping doc: `docs/vfx-particle-mapping.md`
-- Upstream hook notes: `docs/univrm-upstream-hooks.md` (ScriptedImporter edit limits + asks for UniVRM)
+- Upstream hook notes: [Extended-VRM-Specs univrm-upstream-hooks](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)
 - VFX importer / attach / ParticleSystem / node-resolver NUnit tests under `Tests/Vfx/`
 
 ### Changed

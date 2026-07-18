@@ -10,8 +10,8 @@ Version `0.1.0` provides foundation parsers and VFX runtime hooks for:
 See [docs/architecture.md](docs/architecture.md) for runtime attach + AssetDatabase import
 (decision: companion `*.vrmxt.prefab` via AssetPostprocessor),
 [docs/vfx-particle-mapping.md](docs/vfx-particle-mapping.md) for the ParticleSystem field table, and
-[docs/univrm-upstream-hooks.md](docs/univrm-upstream-hooks.md) for ScriptedImporter limits and
-hooks to request from UniVRM.
+[Extended-VRM-Specs univrm-upstream-hooks](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)
+for ScriptedImporter limits and hooks to request from UniVRM.
 
 ## Requirements
 

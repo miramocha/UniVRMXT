@@ -70,7 +70,7 @@ VrmxtVfxRuntime.TryAttach(
   5. Save sibling **`*.vrmxt.prefab`** (e.g. `vfx_smoke.vrm` → `vfx_smoke.vrmxt.prefab`). Use that prefab in scenes — not the raw `.vrm`.
   - Reimport the `.vrm` after package updates (`Assets → Reimport`).
   - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` with the same file bytes + `RuntimeGltfInstance.Nodes` (or name resolver).
-  - Blockers + proposed UniVRM hooks: [univrm-upstream-hooks.md](univrm-upstream-hooks.md).
+  - Blockers + proposed UniVRM hooks: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
 - **Materials (planned):** wrap `IMaterialDescriptorGenerator` through `Vrm10.LoadPathAsync`; editor factory via project settings.
 
 ## CI
