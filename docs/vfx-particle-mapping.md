@@ -21,12 +21,16 @@ JSON omits a property (`VrmxtVfx.Default*`).
 ## Texture / material policy (BIRP + URP)
 
 1. Mapper creates an owned unlit particle material for the active pipeline:
-   - URP → `Universal Render Pipeline/Particles/Unlit` (type-name detect, no URP asmdef)
-   - BIRP → `Particles/Standard Unlit`
-   - Last resort → `Sprites/Default`
+   - URP → `Universal Render Pipeline/Particles/Unlit` (then Simple Lit)
+   - BIRP → `Particles/Standard Unlit`, then legacy particle / Mobile / Alpha Blended names
+   - If `Shader.Find` fails (common during ScriptedImporter): clone the default
+     `ParticleSystem` material (`Default-Particle`), then `Sprites/Default` / unlit fallbacks
 2. When `texture` resolves, set both `_MainTex` (BIRP) and `_BaseMap` (URP) when the shader exposes them.
 3. When `texture` is omitted, out of range, or unresolved (`null`), leave albedo default and tint with `startColor` (solid-tint fallback).
 4. HDRP is best-effort only (no dedicated particle shader pick yet).
+5. **Import persistence:** owned materials and VFX-only textures must be
+   `AddObjectToAsset`'d (hook path) or embedded in the companion prefab. Otherwise Unity
+   drops the material after import and particles render pink (missing shader).
 
 ### UniVRM does not import VFX-only textures
 
@@ -75,11 +79,12 @@ Missing `extensions.VRMXT_vfx` → `TryAttach` returns `false` (no-op). Unresolv
 
 ## AssetDatabase `.vrm` import
 
-UniVRM `VrmScriptedImporter` does not call UniVRMXT, and its main asset rejects
-`AddComponent` inside `AssetPostprocessor`. Workflow:
+Dual path:
 
-1. Import / reimport the `.vrm` as usual (avatar only on that asset).
-2. Postprocessor re-reads the file, decodes VFX textures, writes sibling **`*.vrmxt.prefab`**.
-3. Place the **`.vrmxt.prefab`** in the scene (not the raw `.vrm`).
+| Host | What to use in scenes |
+|------|------------------------|
+| **Extended-UniVRM** (import hooks) | Raw **`.vrm`** — VFX attached during ScriptedImporter |
+| **Stock UniVRM** | Sibling **`*.vrmxt.prefab`** (postprocessor fallback) |
 
-Example: `Assets/vfx_smoke.vrm` → `Assets/vfx_smoke.vrmxt.prefab`.
+Reimport after updating UniVRMXT / Extended-UniVRM. Details:
+[univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).

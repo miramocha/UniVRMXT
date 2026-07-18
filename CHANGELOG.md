@@ -15,13 +15,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `GlbChunks` / `GltfImageBytes` / `VrmxtVfxGlbTextures` — second GLB read for VFX-only textures UniVRM skips
 - `VrmxtVfxRuntime.TryAttachFromGlb` for runtime / Warudo-style hosts
 - `VrmxtVfxNodeResolver` for AssetDatabase node resolution without `RuntimeGltfInstance`
-- `VrmxtVfxAssetPostprocessor` — writes sibling `*.vrmxt.prefab` with VFX + decoded textures after `.vrm` import
+- `VrmxtVfxImportHookBootstrap` — soft-detect Extended-UniVRM import hooks (`IsEnabled` preference); attach VFX on original `.vrm` when enabled
+- `VrmxtVfxAssetPostprocessor` — companion `*.vrmxt.prefab` fallback for stock UniVRM or when import extensions are disabled
 - Field mapping doc: `docs/vfx-particle-mapping.md`
 - Upstream hook notes: [Extended-VRM-Specs univrm-upstream-hooks](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)
 - VFX importer / attach / ParticleSystem / node-resolver NUnit tests under `Tests/Vfx/`
 
 ### Changed
 
+- Particle materials: broader shader fallbacks + persist owned mats/`AddObjectToAsset` on import (avoids pink missing-shader particles)
 - Format parsers use Newtonsoft.Json (`com.unity.nuget.newtonsoft-json`) instead of
   System.Text.Json so they compile under Unity (STJ types are inaccessible there)
 - Public `TryParse` overloads now take `JToken` instead of `JsonElement`

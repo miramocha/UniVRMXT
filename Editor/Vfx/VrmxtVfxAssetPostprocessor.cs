@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UniVRMXT.Format;
 using UniVRMXT.Vfx;
@@ -8,10 +9,10 @@ using UnityEngine;
 namespace UniVRMXT.Editor.Vfx
 {
     /// <summary>
-    /// After UniVRM <c>VrmScriptedImporter</c> finishes, build a companion
-    /// <c>*.vrmxt.prefab</c> with <c>VRMXT_vfx</c> attached.
-    /// ScriptedImporter main assets reject <c>AddComponent</c> in postprocessors, so VFX
-    /// cannot be written onto the <c>.vrm</c> itself (see docs/architecture.md).
+    /// Fallback when Extended-UniVRM import hooks are absent or disabled: build sibling
+    /// <c>*.vrmxt.prefab</c>. When hooks are available and Preferences/VRM10 enable them,
+    /// VFX is written onto the original <c>.vrm</c> during import and this postprocessor
+    /// skips companion creation.
     /// </summary>
     public sealed class VrmxtVfxAssetPostprocessor : AssetPostprocessor
     {
@@ -25,6 +26,17 @@ namespace UniVRMXT.Editor.Vfx
         {
             if (importedAssets == null)
             {
+                return;
+            }
+
+            // Extended-UniVRM + Preferences enable: VFX already on .vrm via import hooks.
+            if (VrmxtVfxImportHookBootstrap.ImportHooksAvailable)
+            {
+                for (var i = 0; i < importedAssets.Length; i++)
+                {
+                    TryDeleteStaleCompanion(importedAssets[i]);
+                }
+
                 return;
             }
 
@@ -114,7 +126,9 @@ namespace UniVRMXT.Editor.Vfx
                 }
 
                 var companionPath = GetCompanionPrefabPath(assetPath);
+                var ownedMaterials = CollectOwnedParticleMaterials(editable);
                 PrefabUtility.SaveAsPrefabAsset(editable, companionPath);
+                PersistOwnedParticleMaterials(companionPath, ownedMaterials);
                 PersistDecodedTextures(companionPath, glbTextures);
                 return true;
             }
@@ -130,6 +144,72 @@ namespace UniVRMXT.Editor.Vfx
             var extension = Path.GetExtension(vrmAssetPath);
             var withoutExt = vrmAssetPath.Substring(0, vrmAssetPath.Length - extension.Length);
             return withoutExt + CompanionExtension;
+        }
+
+        private static void TryDeleteStaleCompanion(string vrmAssetPath)
+        {
+            if (string.IsNullOrEmpty(vrmAssetPath) ||
+                !vrmAssetPath.EndsWith(".vrm", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var companionPath = GetCompanionPrefabPath(vrmAssetPath);
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(companionPath) != null)
+            {
+                AssetDatabase.DeleteAsset(companionPath);
+            }
+        }
+
+        private static List<Material> CollectOwnedParticleMaterials(GameObject root)
+        {
+            var list = new List<Material>();
+            if (root == null)
+            {
+                return list;
+            }
+
+            var renderers = root.GetComponentsInChildren<ParticleSystemRenderer>(true);
+            for (var r = 0; r < renderers.Length; r++)
+            {
+                var material = renderers[r] != null ? renderers[r].sharedMaterial : null;
+                if (!VrmxtVfxParticleSystemMapper.IsOwnedParticleMaterial(material))
+                {
+                    continue;
+                }
+
+                list.Add(material);
+            }
+
+            return list;
+        }
+
+        private static void PersistOwnedParticleMaterials(
+            string prefabPath,
+            List<Material> ownedMaterials)
+        {
+            if (string.IsNullOrEmpty(prefabPath) || ownedMaterials == null || ownedMaterials.Count == 0)
+            {
+                return;
+            }
+
+            for (var i = 0; i < ownedMaterials.Count; i++)
+            {
+                var material = ownedMaterials[i];
+                if (material == null || AssetDatabase.Contains(material))
+                {
+                    continue;
+                }
+
+                AssetDatabase.AddObjectToAsset(material, prefabPath);
+                EditorUtility.SetDirty(material);
+            }
+
+            var prefabRoot = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefabRoot != null)
+            {
+                EditorUtility.SetDirty(prefabRoot);
+            }
         }
 
         private static void PersistDecodedTextures(string prefabPath, VrmxtVfxGlbTextures glbTextures)

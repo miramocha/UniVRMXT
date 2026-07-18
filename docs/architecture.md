@@ -62,15 +62,15 @@ VrmxtVfxRuntime.TryAttach(
 ## UniVRM integration
 
 - **VFX (runtime):** parse + `TryAttach` after `Vrm10.LoadGltfDataAsync` as above. UniVRMXT Runtime asmdef does **not** hard-reference UniGLTF/VRM10; the load caller supplies JSON, `Nodes`, and optional texture resolution.
-- **VFX (AssetDatabase):** UniVRM `VrmScriptedImporter` has no root-extension callback. Decision: **AssetPostprocessor companion prefab** (`Editor/Vfx/VrmxtVfxAssetPostprocessor.cs`) — no upstream UniVRM fork required.
-  1. On `.vrm` import, read GLB JSON via `GlbChunks.TryExtract`.
-  2. `PrefabUtility.InstantiatePrefab` the imported hierarchy (keeps `.vrm` sub-asset materials; `Object.Instantiate` breaks them). ScriptedImporter assets reject `AddComponent` on the main asset itself.
-  3. Resolve `emitters[].node` by glTF `nodes[].name` (`VrmxtVfxNodeResolver`). Imported prefabs do **not** keep `RuntimeGltfInstance`.
-  4. Re-read the same `.vrm` bytes (`TryAttachFromGlb`) and decode `textures[]` images UniVRM skipped (material-orphaned VFX textures).
-  5. Save sibling **`*.vrmxt.prefab`** (e.g. `vfx_smoke.vrm` → `vfx_smoke.vrmxt.prefab`). Use that prefab in scenes — not the raw `.vrm`.
-  - Reimport the `.vrm` after package updates (`Assets → Reimport`).
-  - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` with the same file bytes + `RuntimeGltfInstance.Nodes` (or name resolver).
-  - Blockers + proposed UniVRM hooks: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
+- **VFX (AssetDatabase):** Dual path depending on host UniVRM:
+  - **Extended-UniVRM** (hooks present + Preferences/VRM10 → Enable VRM import extensions):
+    `VrmxtVfxImportHookBootstrap` soft-detects `Vrm10ImportExtensionRegistry.IsEnabled` and
+    attaches VFX onto the **original** `.vrm` during `VrmScriptedImporter` (no companion prefab).
+  - **Stock UniVRM**, or Extended with import extensions **disabled**: `VrmxtVfxAssetPostprocessor`
+    writes sibling **`*.vrmxt.prefab`** via `TryAttachFromGlb` (name-based node resolve + second-read textures).
+  - Detection: registry type in `VRM10.Editor` plus `IsEnabled` (EditorPrefs); no hard `VRM10.Editor` asmdef reference.
+  - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` (unchanged).
+  - Design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
 - **Materials (planned):** wrap `IMaterialDescriptorGenerator` through `Vrm10.LoadPathAsync`; editor factory via project settings.
 
 ## CI

@@ -149,32 +149,48 @@ namespace UniVRMXT.Vfx
         /// <summary>
         /// Pick an unlit particle shader for the active pipeline (BIRP or URP).
         /// No hard URP package reference — uses <see cref="Shader.Find"/> + type name check.
+        /// During ScriptedImporter, <see cref="Shader.Find"/> may return null; callers should
+        /// fall back to the default <see cref="ParticleSystem"/> material.
         /// </summary>
         public static Shader ResolveParticleShader()
         {
             if (IsUniversalRenderPipeline())
             {
-                var urp = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                var urp = FindFirstShader(
+                    "Universal Render Pipeline/Particles/Unlit",
+                    "Universal Render Pipeline/Particles/Simple Lit");
                 if (urp != null)
                 {
                     return urp;
                 }
             }
 
-            var builtin = Shader.Find("Particles/Standard Unlit");
+            var builtin = FindFirstShader(
+                "Particles/Standard Unlit",
+                "Particles/Standard Surface",
+                "Legacy Shaders/Particles/Alpha Blended Premultiply",
+                "Legacy Shaders/Particles/Alpha Blended",
+                "Mobile/Particles/Alpha Blended",
+                "Particles/Alpha Blended");
             if (builtin != null)
             {
                 return builtin;
             }
 
-            // URP present but GraphicsSettings not yet reporting (tests / odd boot order).
-            var urpFallback = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            // URP shaders may still exist when pipeline asset is temporarily null (import).
+            var urpFallback = FindFirstShader(
+                "Universal Render Pipeline/Particles/Unlit",
+                "Universal Render Pipeline/Particles/Simple Lit");
             if (urpFallback != null)
             {
                 return urpFallback;
             }
 
-            return Shader.Find("Sprites/Default");
+            return FindFirstShader(
+                "Sprites/Default",
+                "Unlit/Transparent",
+                "Unlit/Color",
+                "UI/Default");
         }
 
         /// <summary>
@@ -235,9 +251,11 @@ namespace UniVRMXT.Vfx
                 return;
             }
 
-            var material = CreateOwnedParticleMaterial(renderer.sharedMaterial);
+            var material = CreateOwnedParticleMaterial(renderer);
             if (material == null)
             {
+                Debug.LogWarning(
+                    "UniVRMXT: could not resolve a particle shader/material; particles may render pink.");
                 return;
             }
 
@@ -250,20 +268,64 @@ namespace UniVRMXT.Vfx
             ApplyTextureToMaterial(material, texture);
         }
 
-        private static Material CreateOwnedParticleMaterial(Material fallbackSource)
+        private static Material CreateOwnedParticleMaterial(ParticleSystemRenderer renderer)
         {
             var shader = ResolveParticleShader();
-            if (shader != null)
+            if (IsUsableShader(shader))
             {
                 return new Material(shader) { name = OwnedMaterialNamePrefix };
             }
 
-            if (fallbackSource != null)
+            // ScriptedImporter / early boot: Shader.Find often fails. Clone Unity's default
+            // ParticleSystem material (usually Default-Particle) instead of leaving shader null.
+            var defaultMaterial = renderer != null ? renderer.sharedMaterial : null;
+            if (IsUsableMaterial(defaultMaterial))
             {
-                return new Material(fallbackSource) { name = OwnedMaterialNamePrefix };
+                return new Material(defaultMaterial) { name = OwnedMaterialNamePrefix };
+            }
+
+            var builtinParticle = TryGetBuiltinParticleMaterial();
+            if (IsUsableMaterial(builtinParticle))
+            {
+                return new Material(builtinParticle) { name = OwnedMaterialNamePrefix };
             }
 
             return null;
+        }
+
+        private static Material TryGetBuiltinParticleMaterial()
+        {
+            // May be null outside Editor; ParticleSystem.sharedMaterial clone is the primary fallback.
+            return Resources.GetBuiltinResource<Material>("Default-Particle.mat");
+        }
+
+        private static Shader FindFirstShader(params string[] names)
+        {
+            if (names == null)
+            {
+                return null;
+            }
+
+            for (var i = 0; i < names.Length; i++)
+            {
+                var shader = Shader.Find(names[i]);
+                if (IsUsableShader(shader))
+                {
+                    return shader;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsUsableShader(Shader shader)
+        {
+            return shader != null && shader.name != "Hidden/InternalErrorShader";
+        }
+
+        private static bool IsUsableMaterial(Material material)
+        {
+            return material != null && IsUsableShader(material.shader);
         }
 
         private static bool IsUniversalRenderPipeline()
