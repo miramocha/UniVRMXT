@@ -31,6 +31,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `VrmxtVfxParticleSystemMapper.Apply`: call `Play(true)` after configure (`Stop` clears
+  playOnAwake start)
+- `ResolveParticleShader`: try host URP **and** BIRP names before packaged shader
+  (pipeline null only sets search order — import-time null must not skip URP names);
+  packaged `UniVRMXT/Particles Unlit` + Resources mat for build inclusion
+- Ship first-party particle shader + `Resources/UniVRMXT/ParticlesUnlit` material so builds
+  keep a usable particle shader without Always Included lists
 - Particle materials: broader shader fallbacks; persist textures before materials and re-bind
   albedo slots on import (avoids pink / empty-texture particles)
 - Import hooks: `ImportHooksAvailable` requires successful handler registration

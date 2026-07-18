@@ -14,6 +14,15 @@ namespace UniVRMXT.Vfx
         public const string EmitterObjectNamePrefix = "VRMXT_vfx_";
         public const string OwnedMaterialNamePrefix = "VRMXT_vfx_Particle";
 
+        /// <summary>ShaderLab name of the packaged first-party particle shader.</summary>
+        public const string PackagedShaderName = "UniVRMXT/Particles Unlit";
+
+        /// <summary>
+        /// <see cref="Resources.Load{T}(string)"/> path for the packaged particle material
+        /// (<c>Runtime/Resources/UniVRMXT/ParticlesUnlit.mat</c>). Keeps the shader in builds.
+        /// </summary>
+        public const string PackagedMaterialResourcesPath = "UniVRMXT/ParticlesUnlit";
+
         private static readonly int SurfaceId = Shader.PropertyToID("_Surface");
         private static readonly int BlendId = Shader.PropertyToID("_Blend");
         private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
@@ -138,6 +147,9 @@ namespace UniVRMXT.Vfx
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.alignment = ParticleSystemRenderSpace.View;
             ApplyMaterial(renderer, texture);
+
+            // Stop() above clears playOnAwake start; must Play after configure.
+            particleSystem.Play(true);
         }
 
         /// <summary>
@@ -244,42 +256,60 @@ namespace UniVRMXT.Vfx
 
         /// <summary>
         /// Pick an unlit particle shader for the active pipeline (BIRP or URP).
-        /// No hard URP package reference — uses <see cref="Shader.Find"/> + type name check.
-        /// During ScriptedImporter, <see cref="Shader.Find"/> may return null; callers should
-        /// fall back to the default <see cref="ParticleSystem"/> material.
+        /// Always tries both host URP and BIRP particle shader names before the packaged
+        /// <see cref="PackagedShaderName"/> — during ScriptedImporter / early boot
+        /// <see cref="GraphicsSettings.currentRenderPipeline"/> is often null even in URP
+        /// projects, so gating on that alone can persist a Built-in CG material that pinks
+        /// under URP at runtime. Pipeline null/non-null only sets search <em>order</em>.
+        /// If all <see cref="Shader.Find"/> calls miss, <see cref="CreateOwnedParticleMaterial"/>
+        /// clones the Resources material (keeps packaged shader in builds).
         /// </summary>
         public static Shader ResolveParticleShader()
         {
-            if (IsUniversalRenderPipeline())
+            // Prefer likely pipeline first, but always probe both before packaged.
+            Shader preferred;
+            Shader secondary;
+            if (GraphicsSettings.currentRenderPipeline == null)
             {
-                var urp = FindFirstShader(
+                preferred = FindFirstShader(
+                    "Particles/Standard Unlit",
+                    "Particles/Standard Surface",
+                    "Legacy Shaders/Particles/Alpha Blended Premultiply",
+                    "Legacy Shaders/Particles/Alpha Blended",
+                    "Mobile/Particles/Alpha Blended",
+                    "Particles/Alpha Blended");
+                secondary = FindFirstShader(
                     "Universal Render Pipeline/Particles/Unlit",
                     "Universal Render Pipeline/Particles/Simple Lit");
-                if (urp != null)
-                {
-                    return urp;
-                }
+            }
+            else
+            {
+                preferred = FindFirstShader(
+                    "Universal Render Pipeline/Particles/Unlit",
+                    "Universal Render Pipeline/Particles/Simple Lit");
+                secondary = FindFirstShader(
+                    "Particles/Standard Unlit",
+                    "Particles/Standard Surface",
+                    "Legacy Shaders/Particles/Alpha Blended Premultiply",
+                    "Legacy Shaders/Particles/Alpha Blended",
+                    "Mobile/Particles/Alpha Blended",
+                    "Particles/Alpha Blended");
             }
 
-            var builtin = FindFirstShader(
-                "Particles/Standard Unlit",
-                "Particles/Standard Surface",
-                "Legacy Shaders/Particles/Alpha Blended Premultiply",
-                "Legacy Shaders/Particles/Alpha Blended",
-                "Mobile/Particles/Alpha Blended",
-                "Particles/Alpha Blended");
-            if (builtin != null)
+            if (preferred != null)
             {
-                return builtin;
+                return preferred;
             }
 
-            // URP shaders may still exist when pipeline asset is temporarily null (import).
-            var urpFallback = FindFirstShader(
-                "Universal Render Pipeline/Particles/Unlit",
-                "Universal Render Pipeline/Particles/Simple Lit");
-            if (urpFallback != null)
+            if (secondary != null)
             {
-                return urpFallback;
+                return secondary;
+            }
+
+            var packaged = FindFirstShader(PackagedShaderName);
+            if (packaged != null)
+            {
+                return packaged;
             }
 
             return FindFirstShader(
@@ -437,7 +467,18 @@ namespace UniVRMXT.Vfx
             {
                 material = new Material(shader) { name = OwnedMaterialNamePrefix };
             }
-            else
+
+            if (material == null)
+            {
+                // Resources material references the packaged shader → kept in player builds.
+                var packaged = Resources.Load<Material>(PackagedMaterialResourcesPath);
+                if (IsUsableMaterial(packaged))
+                {
+                    material = new Material(packaged) { name = OwnedMaterialNamePrefix };
+                }
+            }
+
+            if (material == null)
             {
                 // ScriptedImporter / early boot: Shader.Find often fails. Clone Unity's default
                 // ParticleSystem material (usually Default-Particle) instead of leaving shader null.
@@ -497,13 +538,6 @@ namespace UniVRMXT.Vfx
         private static bool IsUsableMaterial(Material material)
         {
             return material != null && IsUsableShader(material.shader);
-        }
-
-        private static bool IsUniversalRenderPipeline()
-        {
-            var asset = GraphicsSettings.currentRenderPipeline;
-            return asset != null &&
-                   asset.GetType().Name.IndexOf("Universal", StringComparison.Ordinal) >= 0;
         }
 
         private static Texture ResolveTexture(
