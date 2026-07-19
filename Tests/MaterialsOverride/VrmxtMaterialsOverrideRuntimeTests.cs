@@ -94,6 +94,43 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void TryAttachFromGltfJson_StripsUnityInstanceSuffixFromMaterialName()
+        {
+            var root = new GameObject("root");
+            try
+            {
+                const string json = @"
+                    {
+                      ""materials"": [
+                        {
+                          ""name"": ""Hair (Instance)"",
+                          ""extensions"": {
+                            ""VRMXT_materials_override"": {
+                              ""specVersion"": ""1.0"",
+                              ""overrides"": [
+                                {
+                                  ""engine"": ""unity"",
+                                  ""material"": { ""idType"": ""shaderName"", ""id"": ""Example/Skin"" }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                    ";
+
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store));
+                Assert.IsTrue(store.TryGetEntry("Hair", out _));
+                Assert.IsFalse(store.TryGetEntry("Hair (Instance)", out _));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void TryAttachFromGltfJson_UnnamedMaterial_UsesIndexFallbackName()
         {
             var root = new GameObject("root");

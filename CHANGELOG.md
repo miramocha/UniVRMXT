@@ -11,11 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can
   supply shaders when `Shader.Find` misses (Warudo/uMod ModHost cache); optional
   `resolveShader` arg on `Apply`
+- `VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix` — shared strip for Unity
+  ` (Instance)` clone suffix on material names
 
 ### Fixed
 
 - `DetectActivePipeline`: identify URP/HDRP via `Object.ToString()` instead of
   `GetType().Name` so Warudo/UMod can vendor Applier (code security bans Reflection)
+- Materials Override name match: strip ` (Instance)` on both store keys and live
+  material names (Warudo clone exports bake suffix into glTF `materials[].name`)
 
 ### Changed
 

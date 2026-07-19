@@ -171,6 +171,73 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void FindMaterialsByName_StoreKeyWithInstanceSuffix_MatchesLiveWithoutSuffix()
+        {
+            var root = CreateRootWithNamedMaterial("Hair", out var material);
+            try
+            {
+                var hits = new System.Collections.Generic.List<Material>(
+                    VrmxtMaterialsOverrideApplier.FindMaterialsByName(root, "Hair (Instance)"));
+                Assert.AreEqual(1, hits.Count);
+                Assert.AreSame(material, hits[0]);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void Apply_StoreKeyWithInstanceSuffix_MatchesLiveMaterialWithoutSuffix()
+        {
+            var root = CreateRootWithNamedMaterial("Hair", out var material);
+            try
+            {
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                    root,
+                    @"{
+                      ""materials"": [{
+                        ""name"": ""Hair (Instance)"",
+                        ""extensions"": {
+                          ""VRMXT_materials_override"": {
+                            ""specVersion"": ""1.0"",
+                            ""overrides"": [{
+                              ""engine"": ""unity"",
+                              ""material"": {
+                                ""idType"": ""shaderName"",
+                                ""id"": ""Standard""
+                              },
+                              ""properties"": [
+                                { ""name"": ""_Glossiness"", ""type"": ""scalar"", ""value"": 0.33 }
+                              ]
+                            }]
+                          }
+                        }
+                      }]
+                    }",
+                    out var store));
+
+                Assert.IsTrue(store.TryGetPair("Hair", out var pair));
+                pair.SourceMaterial = material;
+
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    store,
+                    "{}",
+                    RenderPipelineVariant.Builtin);
+
+                Assert.AreEqual(1, applied);
+                Assert.AreEqual(0.33f, material.GetFloat("_Glossiness"), 1e-4f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void Apply_SetsShaderAndPropertiesAndBindings_BindingSourceFromSiblingMtoon()
         {
             var root = CreateRootWithNamedMaterial("Hair", out var material);
