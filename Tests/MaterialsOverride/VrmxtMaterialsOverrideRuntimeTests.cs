@@ -94,6 +94,53 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void TryAttachFromGltfJson_KeepsUnityInstanceSuffixOnStoreKey_MatchesLiveWithoutSuffix()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+            var material = new Material(Shader.Find("Standard")) { name = "Hair" };
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = material;
+            try
+            {
+                const string json = @"
+                    {
+                      ""materials"": [
+                        {
+                          ""name"": ""Hair (Instance)"",
+                          ""extensions"": {
+                            ""VRMXT_materials_override"": {
+                              ""specVersion"": ""1.0"",
+                              ""overrides"": [
+                                {
+                                  ""engine"": ""unity"",
+                                  ""material"": { ""idType"": ""shaderName"", ""id"": ""Example/Skin"" }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                    ";
+
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store));
+                Assert.IsTrue(store.TryGetEntry("Hair (Instance)", out _));
+                Assert.IsFalse(store.TryGetEntry("Hair", out _));
+
+                var hits = new System.Collections.Generic.List<Material>(
+                    VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(root, "Hair (Instance)"));
+                Assert.AreEqual(1, hits.Count);
+                Assert.AreSame(material, hits[0]);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void TryAttachFromGltfJson_UnnamedMaterial_UsesIndexFallbackName()
         {
             var root = new GameObject("root");

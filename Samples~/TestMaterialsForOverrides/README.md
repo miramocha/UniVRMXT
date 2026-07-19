@@ -10,9 +10,9 @@ Fragment color is `tex2D(_MainTex) * _Color` — sample albedo × tint (Built-in
 
 Sample albedo: `Textures/VrmxtTestTexture.png` (assigned on both Materials as `_MainTex`).
 
-URP sample needs Universal RP in the project (`#include` of URP Core.hlsl).
-The URP shader declares `PackageRequirements` inside its `SubShader` so Built-in-only
-projects skip compiling it (avoids console errors after Test Runner / domain reload).
+URP sample is CG + `UnityCG.cginc` with `LightMode = SRPDefaultUnlit` — no URP package
+includes. Built-in-only hosts (e.g. Warudo uMod) can compile and ship it; URP/HDRP draw
+the SRP default-unlit pass. Same dependency idea as packaged `VRMXT/Particles Unlit`.
 
 ## Property ↔ binding map
 

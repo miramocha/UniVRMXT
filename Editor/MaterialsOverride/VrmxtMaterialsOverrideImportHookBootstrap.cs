@@ -162,7 +162,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                     // Decode into Instance first. Apply must not use glbTextures.AsResolver()
                     // after ReleaseOwnership — Get() would re-decode, then Dispose() would
                     // DestroyImmediate those live SetTexture refs (missing on reimport).
-                    store.RememberTexturesFromPairs(glbTextures.AsResolver());
+                    store.RememberTexturesFromPairs(glbTextures.AsResolver(), json);
                     PersistImportedTextures(store, contextObj, addObject);
                     glbTextures.ReleaseOwnership();
                     resolveTexture = index =>

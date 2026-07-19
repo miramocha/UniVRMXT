@@ -65,7 +65,8 @@ namespace UniVRMXT.MaterialsOverride
                     var materialName = GetMaterialName(materialObject, i);
                     found.Add(new VrmxtMaterialsOverridePair(
                         materialName,
-                        extensionObject.ToString(Formatting.None)));
+                        extensionObject.ToString(Formatting.None),
+                        i));
                 }
 
                 DisambiguateDuplicateNames(found);
@@ -97,6 +98,10 @@ namespace UniVRMXT.MaterialsOverride
         /// <summary>
         /// glTF material display name: <c>name</c> when present and non-empty, otherwise a
         /// stable index-based fallback (<see cref="FallbackMaterialNameFormat"/>).
+        /// Keeps a trailing Unity <c> (Instance)</c> suffix when present in glTF so
+        /// <c>Hair</c> and <c>Hair (Instance)</c> stay distinct store keys; live matching
+        /// strips the suffix via <see cref="StripUnityInstanceSuffix"/> /
+        /// <see cref="VrmxtMaterialsOverrideApplier.FindMaterialsByName"/>.
         /// </summary>
         public static string GetMaterialName(JObject materialObject, int index)
         {
@@ -112,6 +117,21 @@ namespace UniVRMXT.MaterialsOverride
             }
 
             return string.Format(FallbackMaterialNameFormat, index);
+        }
+
+        /// <summary>
+        /// Remove a trailing Unity <c> (Instance)</c> clone suffix, if any.
+        /// </summary>
+        public static string StripUnityInstanceSuffix(string materialName)
+        {
+            const string instanceSuffix = " (Instance)";
+            if (materialName != null &&
+                materialName.EndsWith(instanceSuffix, StringComparison.Ordinal))
+            {
+                return materialName.Substring(0, materialName.Length - instanceSuffix.Length);
+            }
+
+            return materialName;
         }
 
         /// <summary>
@@ -153,6 +173,13 @@ namespace UniVRMXT.MaterialsOverride
         /// disambiguator format from <see cref="DisambiguateDuplicateNames"/>. Falls back to
         /// a plain <see cref="VrmxtMaterialsOverrideApplier.FindMaterialsByName"/> lookup
         /// when the key has no disambiguator suffix.
+        /// Occurrence <c>N</c> is the Nth distinct live material whose name matches the
+        /// base (after <c> (Instance)</c> strip), in
+        /// <see cref="GameObject.GetComponentsInChildren{T}(bool)"/> order — the same order
+        /// used at attach/apply time. This may differ from glTF <c>materials[]</c> order when
+        /// renderer hierarchy and glTF indices diverge; prefer
+        /// <see cref="VrmxtMaterialsOverridePair.GltfMaterialIndex"/> for glTF-side lookups
+        /// (e.g. sibling MToon).
         /// Note: a material genuinely named e.g. "Hair#1" (no collision, so never
         /// disambiguated at attach time) is indistinguishable from a disambiguated key here
         /// and would resolve as occurrence 1 of "Hair" — an accepted limitation of this
@@ -201,6 +228,15 @@ namespace UniVRMXT.MaterialsOverride
             baseName = storeKey.Substring(0, hashIndex);
             return true;
         }
+
+        /// <summary>
+        /// Public parse of <c>Name#N</c> store keys for applier / texture remember paths.
+        /// </summary>
+        public static bool TryGetDisambiguatedStoreKey(
+            string storeKey,
+            out string baseName,
+            out int occurrence) =>
+            TryParseDisambiguatedKey(storeKey, out baseName, out occurrence);
 
         private static bool TryGetMaterialsArray(string gltfJson, out JArray materials)
         {
