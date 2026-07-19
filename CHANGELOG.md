@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Materials Override: selection-key uniqueness (`engine` + `material.variant` for Unity/Unreal) — multiple `unity` slots (`builtin` / `urp` / `hdrp`) and multiple `unreal` slots allowed; duplicate `(engine, variant)` rejected
-- Unreal format: `idType: resourcePath` + `id` + `variant` (no `materialSet` map)
+- Unreal format: `idType: resourcePath` + `id` + `variant`
 - `UnityOverrideSelector` / Applier / Generator: pick among multi-slot `unity` entries by active RP (exact variant, else single empty variant, else stock)
 - Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export; empty-variant siblings are kept even when the active typed slot already matched; empty-variant slots keep their content when the Override Material shader differs (do not fold into active RP)
 - Export `PrepareTextures` remaps textures on every unity slot: selector-chosen slot prefers live OverrideMaterial / mesh textures; all slots fall back to `ImportedTextures` (decoded on import) so foreign-RP images are re-registered into the new GLB (stale write-through indices are never kept)
@@ -42,7 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `VrmxtInstance` — avatar-root facade with `Vfx` + `MaterialsOverride` props
 - Sample **Test Materials for Overrides** (`Samples~/TestMaterialsForOverrides`) — unlit `VRMXT/Samples/TestOverrideBuiltin` (green tint) and `VRMXT/Samples/TestOverrideURP` (yellow tint); fragment is `_MainTex` × `_Color` with shared `Textures/VrmxtTestTexture.png`
 - `VrmxtMaterialsOverride.TryParse` / `ToJson` / `ToUtf8Json` — full `VRMXT_materials_override` round-trip: selection-key uniqueness, Unity `idType: shaderName` (multi-slot variants), Unreal `idType: resourcePath`, `properties[]` (`scalar`/`vector`/`texture`/`shaderFeature`), `bindings[]` sourced from a sibling `VRMC_materials_mtoon`
-- `VrmxtMaterialsOverrideInstance` — per-material pairs (`MaterialName`, `SourceMaterial`, `OverrideMaterial`, verbatim `ExtensionJson`); CustomEditor keeps VRM/glTF side read-only; `OnValidate` syncs override Material → JSON + renderers
+- `VrmxtMaterialsOverrideInstance` — per-material pairs (`MaterialName`, `SourceMaterial`, `OverrideMaterial`, `ExtensionJson`); CustomEditor keeps VRM/glTF side read-only; `OnValidate` syncs override Material → JSON + renderers
 - `VrmxtMaterialsOverrideAuthoring` — capture Unity override from Material (variant survival); apply override onto named slots
 - `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` — parses `materials[]` and populates the instance without a UniGLTF/VRM10 reference
 - `VrmxtMaterialsOverrideApplier.Apply` — shared apply logic for Editor and Warudo-style hosts: resolves the `unity` override via `UnityOverrideSelector` (render-pipeline `variant` match), sets `shader`, writes `properties` then `bindings` (bindings win on overlap); unresolved shaders or variant mismatches leave the material untouched
