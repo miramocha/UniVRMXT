@@ -102,6 +102,69 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void BuildPending_MultiUnitySlots_KeepsSiblingAfterSync()
+        {
+            var root = new GameObject("root");
+            var shader = Shader.Find("Standard");
+            var overrideMat = new Material(shader) { name = "Override" };
+            try
+            {
+                const string multiSlotJson = @"
+                    {
+                      ""specVersion"": ""1.0"",
+                      ""overrides"": [
+                        {
+                          ""engine"": ""unity"",
+                          ""material"": {
+                            ""idType"": ""shaderName"",
+                            ""id"": ""Builtin/Shader"",
+                            ""variant"": ""builtin""
+                          },
+                          ""properties"": [
+                            { ""name"": ""_Color"", ""type"": ""vector"", ""value"": [0, 1, 0, 1] }
+                          ]
+                        },
+                        {
+                          ""engine"": ""unity"",
+                          ""material"": {
+                            ""idType"": ""shaderName"",
+                            ""id"": ""Urp/Shader"",
+                            ""variant"": ""urp""
+                          },
+                          ""properties"": [
+                            { ""name"": ""_Color"", ""type"": ""vector"", ""value"": [1, 1, 0, 1] }
+                          ]
+                        }
+                      ]
+                    }
+                    ";
+
+                var store = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+                store.SetPairs(new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", multiSlotJson)
+                    {
+                        OverrideMaterial = overrideMat,
+                    },
+                });
+
+                var pending = VrmxtMaterialsOverrideExporter.BuildPending(store);
+                Assert.AreEqual(1, pending.Count);
+                Assert.IsTrue(VrmxtMaterialsOverrideExporter.TryBuildUtf8Extension(pending, "Hair", out var utf8));
+                var json = Encoding.UTF8.GetString(utf8);
+
+                StringAssert.Contains("\"variant\":\"builtin\"", json);
+                StringAssert.Contains("\"variant\":\"urp\"", json);
+                StringAssert.Contains("Urp/Shader", json);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void PrepareTextures_DropsTextureProperty_WhenNoLiveMaterialMatches()
         {
             // No renderer/material named "Hair" exists on root, so the remap can never

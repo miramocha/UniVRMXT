@@ -63,7 +63,70 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
-        public void TryParse_RejectsDuplicateEngines()
+        public void TryParse_AcceptsMultiUnity_DistinctVariants()
+        {
+            const string json = @"
+                {
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""A/Builtin"",
+                        ""variant"": ""builtin""
+                      }
+                    },
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""B/Urp"",
+                        ""variant"": ""urp""
+                      }
+                    }
+                  ]
+                }
+                ";
+
+            Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var extension));
+            Assert.AreEqual(2, extension.Overrides.Count);
+            Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverrides(extension, out var unitySlots));
+            Assert.AreEqual(2, unitySlots.Count);
+        }
+
+        [Test]
+        public void TryParse_RejectsDuplicateEngineVariant()
+        {
+            const string json = @"
+                {
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""A"",
+                        ""variant"": ""urp""
+                      }
+                    },
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""B"",
+                        ""variant"": ""urp""
+                      }
+                    }
+                  ]
+                }
+                ";
+
+            Assert.IsFalse(VrmxtMaterialsOverride.TryParse(json, out _));
+        }
+
+        [Test]
+        public void TryParse_RejectsDuplicateEmptyUnityVariants()
         {
             const string json = @"
                 {
@@ -91,7 +154,7 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
-        public void TryParse_ParsesUnrealMaterialSet()
+        public void TryParse_RejectsUnrealMaterialSet()
         {
             const string json = @"
                 {
@@ -110,24 +173,49 @@ namespace UniVRMXT.Tests.Format
                 }
                 ";
 
+            Assert.IsFalse(VrmxtMaterialsOverride.TryParse(json, out _));
+        }
+
+        [Test]
+        public void TryParse_ParsesUnrealResourcePath()
+        {
+            const string json = @"
+                {
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
+                    {
+                      ""engine"": ""unreal"",
+                      ""material"": {
+                        ""idType"": ""resourcePath"",
+                        ""id"": ""/Game/M_Opaque"",
+                        ""variant"": ""opaque""
+                      }
+                    }
+                  ]
+                }
+                ";
+
             Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var extension));
             var material = extension.Overrides[0].Material as UnrealMaterialOverride;
             Assert.IsNotNull(material);
-            Assert.AreEqual("materialSet", material.IdType);
-            Assert.AreEqual("/Game/M_Opaque", material.Variants["opaque"]);
+            Assert.AreEqual("resourcePath", material.IdType);
+            Assert.AreEqual("/Game/M_Opaque", material.Id);
+            Assert.AreEqual("opaque", material.Variant);
         }
 
         [Test]
         public void TryParse_ParsesUnityAndUnrealTogether_PreservesUnityVariant()
         {
             const string json =
-                @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Shader"",""variant"":""urp""},""bindings"":[{""source"":""shadeColorFactor"",""target"":""_Color"",""targetType"":""vector""}],""properties"":[]},{""engine"":""unreal"",""material"":{""idType"":""materialSet"",""variants"":{""default"":""/Game/M""}}}]}";
+                @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Shader"",""variant"":""urp""},""bindings"":[{""source"":""shadeColorFactor"",""target"":""_Color"",""targetType"":""vector""}],""properties"":[]},{""engine"":""unreal"",""material"":{""idType"":""resourcePath"",""id"":""/Game/M"",""variant"":""opaque""}}]}";
 
             Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var extension));
             Assert.AreEqual(2, extension.Overrides.Count);
             Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverride(extension, out var unity));
             Assert.AreEqual("urp", unity.Variant);
-            Assert.IsNotNull(extension.Overrides[1].Material as UnrealMaterialOverride);
+            var unreal = extension.Overrides[1].Material as UnrealMaterialOverride;
+            Assert.IsNotNull(unreal);
+            Assert.AreEqual("/Game/M", unreal.Id);
         }
 
         [Test]
@@ -288,7 +376,7 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
-        public void ToJson_RoundTripsUnrealMaterialSet()
+        public void ToJson_RoundTripsUnrealResourcePath()
         {
             const string json = @"
                 {
@@ -297,10 +385,9 @@ namespace UniVRMXT.Tests.Format
                     {
                       ""engine"": ""unreal"",
                       ""material"": {
-                        ""idType"": ""materialSet"",
-                        ""variants"": {
-                          ""opaque"": ""/Game/M_Opaque""
-                        }
+                        ""idType"": ""resourcePath"",
+                        ""id"": ""/Game/M_Opaque"",
+                        ""variant"": ""opaque""
                       }
                     }
                   ]
@@ -314,8 +401,56 @@ namespace UniVRMXT.Tests.Format
 
             var material = roundTripped.Overrides[0].Material as UnrealMaterialOverride;
             Assert.IsNotNull(material);
-            Assert.AreEqual("materialSet", material.IdType);
-            Assert.AreEqual("/Game/M_Opaque", material.Variants["opaque"]);
+            Assert.AreEqual("resourcePath", material.IdType);
+            Assert.AreEqual("/Game/M_Opaque", material.Id);
+            Assert.AreEqual("opaque", material.Variant);
+        }
+
+        [Test]
+        public void ToJson_RoundTripsMultiUnitySlots()
+        {
+            const string json = @"
+                {
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""VRMXT/Samples/TestOverrideBuiltin"",
+                        ""variant"": ""builtin""
+                      },
+                      ""properties"": [
+                        { ""name"": ""_Color"", ""type"": ""vector"", ""value"": [0, 1, 0, 1] }
+                      ]
+                    },
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""VRMXT/Samples/TestOverrideURP"",
+                        ""variant"": ""urp""
+                      },
+                      ""properties"": [
+                        { ""name"": ""_Color"", ""type"": ""vector"", ""value"": [1, 1, 0, 1] }
+                      ]
+                    }
+                  ]
+                }
+                ";
+
+            Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var original));
+            var roundTripJson = VrmxtMaterialsOverride.ToJson(original);
+            Assert.IsTrue(VrmxtMaterialsOverride.TryParse(roundTripJson, out var roundTripped));
+            Assert.AreEqual(2, roundTripped.Overrides.Count);
+
+            Assert.IsTrue(UnityOverrideSelector.TrySelectUnityOverride(
+                roundTripped, RenderPipelineVariant.Builtin, out var builtin));
+            Assert.AreEqual("VRMXT/Samples/TestOverrideBuiltin", builtin.ShaderName);
+
+            Assert.IsTrue(UnityOverrideSelector.TrySelectUnityOverride(
+                roundTripped, RenderPipelineVariant.Urp, out var urp));
+            Assert.AreEqual("VRMXT/Samples/TestOverrideURP", urp.ShaderName);
         }
 
         [Test]
@@ -331,6 +466,49 @@ namespace UniVRMXT.Tests.Format
                 RenderPipelineVariant.Urp,
                 out var unityOverride));
             Assert.AreEqual("Example/SkinToon", unityOverride.ShaderName);
+        }
+
+        [Test]
+        public void UnityOverrideSelector_PicksMatchingSlot_AmongMultiUnity()
+        {
+            const string json = @"
+                {
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""Builtin/Shader"",
+                        ""variant"": ""builtin""
+                      },
+                      ""properties"": [
+                        { ""name"": ""_Color"", ""type"": ""vector"", ""value"": [0, 1, 0, 1] }
+                      ]
+                    },
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": ""Urp/Shader"",
+                        ""variant"": ""urp""
+                      },
+                      ""properties"": [
+                        { ""name"": ""_Color"", ""type"": ""vector"", ""value"": [1, 1, 0, 1] }
+                      ]
+                    }
+                  ]
+                }
+                ";
+
+            Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var extension));
+            Assert.IsTrue(UnityOverrideSelector.TrySelectUnityEngineOverride(
+                extension, RenderPipelineVariant.Urp, out var selected));
+            Assert.AreEqual("Urp/Shader", ((UnityMaterialOverride)selected.Material).ShaderName);
+            Assert.AreEqual(1, selected.Properties.Count);
+
+            Assert.IsFalse(UnityOverrideSelector.TrySelectUnityEngineOverride(
+                extension, RenderPipelineVariant.Hdrp, out _));
         }
 
         [Test]

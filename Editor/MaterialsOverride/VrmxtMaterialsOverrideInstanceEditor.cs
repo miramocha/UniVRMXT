@@ -203,18 +203,44 @@ namespace UniVRMXT.Editor.MaterialsOverride
             bool hasOverrideMaterial)
         {
             var sb = new StringBuilder();
+            var unityCount = 0;
 
-            if (VrmxtMaterialsOverride.TryGetUnityOverride(extension, out var unity))
+            foreach (var entry in extension.Overrides)
             {
-                sb.Append("unity · ");
-                sb.Append(unity.ShaderName ?? unity.Id ?? "(no id)");
-                if (!string.IsNullOrEmpty(unity.Variant))
+                if (entry == null ||
+                    !string.Equals(
+                        entry.Engine,
+                        VrmxtMaterialsOverride.EngineUnity,
+                        System.StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var unity = entry.Material as UnityMaterialOverride;
+                if (unity == null)
+                {
+                    continue;
+                }
+
+                if (unityCount > 0)
                 {
                     sb.Append(" · ");
-                    sb.Append(unity.Variant);
                 }
+
+                sb.Append("unity");
+                if (!string.IsNullOrEmpty(unity.Variant))
+                {
+                    sb.Append('[');
+                    sb.Append(unity.Variant);
+                    sb.Append(']');
+                }
+
+                sb.Append(" · ");
+                sb.Append(unity.ShaderName ?? unity.Id ?? "(no id)");
+                unityCount++;
             }
-            else
+
+            if (unityCount == 0)
             {
                 sb.Append("no unity engine entry");
             }
@@ -222,18 +248,28 @@ namespace UniVRMXT.Editor.MaterialsOverride
             foreach (var entry in extension.Overrides)
             {
                 if (entry == null ||
-                    string.Equals(entry.Engine, VrmxtMaterialsOverride.EngineUnity, System.StringComparison.Ordinal))
+                    string.Equals(
+                        entry.Engine,
+                        VrmxtMaterialsOverride.EngineUnity,
+                        System.StringComparison.Ordinal))
                 {
                     continue;
                 }
 
                 sb.Append(" · +");
                 sb.Append(entry.Engine);
+                var unreal = entry.Material as UnrealMaterialOverride;
+                if (unreal != null && !string.IsNullOrEmpty(unreal.Variant))
+                {
+                    sb.Append('[');
+                    sb.Append(unreal.Variant);
+                    sb.Append(']');
+                }
             }
 
             if (hasOverrideMaterial)
             {
-                sb.Append(" · local Override Material assigned (will rewrite unity on sync/export)");
+                sb.Append(" · local Override Material assigned (sync upserts active unity slot only)");
             }
 
             return sb.ToString();

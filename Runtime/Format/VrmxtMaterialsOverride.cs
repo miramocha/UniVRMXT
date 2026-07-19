@@ -14,7 +14,7 @@ namespace UniVRMXT.Format
         public const string EngineUnreal = "unreal";
 
         public const string UnityMaterialIdTypeShaderName = "shaderName";
-        public const string UnrealMaterialIdTypeMaterialSet = "materialSet";
+        public const string UnrealMaterialIdTypeResourcePath = "resourcePath";
 
         public const string TargetTypeScalar = "scalar";
         public const string TargetTypeVector = "vector";
@@ -66,7 +66,8 @@ namespace UniVRMXT.Format
             }
 
             var overrides = new List<VrmxtMaterialEngineOverride>();
-            var engines = new HashSet<string>(StringComparer.Ordinal);
+            // Selection key: engine alone, or (engine, material.variant) for unity/unreal.
+            var selectionKeys = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var overrideToken in (JArray)overridesToken)
             {
@@ -75,7 +76,7 @@ namespace UniVRMXT.Format
                     return false;
                 }
 
-                if (!engines.Add(engineOverride.Engine))
+                if (!selectionKeys.Add(BuildSelectionKey(engineOverride)))
                 {
                     return false;
                 }
@@ -87,6 +88,10 @@ namespace UniVRMXT.Format
             return true;
         }
 
+        /// <summary>
+        /// First <c>unity</c> entry (any variant). Prefer
+        /// <see cref="TryGetUnityOverrides"/> or pipeline selection for multi-slot files.
+        /// </summary>
         public static bool TryGetUnityOverride(
             VrmxtMaterialsOverrideExtension extension,
             out UnityMaterialOverride unityOverride)
@@ -112,6 +117,76 @@ namespace UniVRMXT.Format
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// All <c>unity</c> engine overrides (one per render-pipeline slot when multi-slot).
+        /// </summary>
+        public static bool TryGetUnityOverrides(
+            VrmxtMaterialsOverrideExtension extension,
+            out IReadOnlyList<VrmxtMaterialEngineOverride> unityOverrides)
+        {
+            unityOverrides = Array.Empty<VrmxtMaterialEngineOverride>();
+            if (extension == null)
+            {
+                return false;
+            }
+
+            var list = new List<VrmxtMaterialEngineOverride>();
+            foreach (var entry in extension.Overrides)
+            {
+                if (entry == null ||
+                    !string.Equals(entry.Engine, EngineUnity, StringComparison.Ordinal) ||
+                    !(entry.Material is UnityMaterialOverride))
+                {
+                    continue;
+                }
+
+                list.Add(entry);
+            }
+
+            if (list.Count == 0)
+            {
+                return false;
+            }
+
+            unityOverrides = list;
+            return true;
+        }
+
+        /// <summary>
+        /// Selection key for uniqueness (base-spec rule 6). Unity/Unreal refine with
+        /// <c>material.variant</c>; empty/omitted variant is the empty string.
+        /// </summary>
+        public static string BuildSelectionKey(VrmxtMaterialEngineOverride entry)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.Engine))
+            {
+                return string.Empty;
+            }
+
+            if (string.Equals(entry.Engine, EngineUnity, StringComparison.Ordinal) ||
+                string.Equals(entry.Engine, EngineUnreal, StringComparison.Ordinal))
+            {
+                return entry.Engine + "\0" + (GetMaterialVariant(entry.Material) ?? string.Empty);
+            }
+
+            return entry.Engine;
+        }
+
+        public static string GetMaterialVariant(IVrmxtMaterialDefinition material)
+        {
+            if (material is UnityMaterialOverride unity)
+            {
+                return unity.Variant;
+            }
+
+            if (material is UnrealMaterialOverride unreal)
+            {
+                return unreal.Variant;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -213,8 +288,13 @@ namespace UniVRMXT.Format
                 var obj = new JObject
                 {
                     ["idType"] = unreal.IdType,
-                    ["variants"] = BuildVariantsObject(unreal.Variants),
+                    ["id"] = unreal.Id ?? string.Empty,
                 };
+
+                if (!string.IsNullOrEmpty(unreal.Variant))
+                {
+                    obj["variant"] = unreal.Variant;
+                }
 
                 AddProviderObject(obj, unreal.Provider);
                 return obj;
@@ -228,22 +308,6 @@ namespace UniVRMXT.Format
 
             AddProviderObject(fallback, material?.Provider);
             return fallback;
-        }
-
-        private static JObject BuildVariantsObject(IReadOnlyDictionary<string, string> variants)
-        {
-            var obj = new JObject();
-            if (variants == null)
-            {
-                return obj;
-            }
-
-            foreach (var variant in variants)
-            {
-                obj[variant.Key] = variant.Value;
-            }
-
-            return obj;
         }
 
         private static void AddProviderObject(JObject obj, MaterialProvider provider)
@@ -521,45 +585,31 @@ namespace UniVRMXT.Format
 
             if (string.Equals(engine, EngineUnreal, StringComparison.Ordinal))
             {
-                if (!string.Equals(idType, UnrealMaterialIdTypeMaterialSet, StringComparison.Ordinal))
+                if (!string.Equals(idType, UnrealMaterialIdTypeResourcePath, StringComparison.Ordinal))
                 {
                     return false;
                 }
 
-                if (!TryGetProperty(materialObject, "variants", out var variantsToken))
+                if (!TryGetProperty(materialObject, "id", out var idToken) ||
+                    idToken.Type != JTokenType.String)
                 {
                     return false;
                 }
 
-                var variantsObject = variantsToken as JObject;
-                if (variantsObject == null)
+                var id = idToken.Value<string>();
+                if (string.IsNullOrEmpty(id))
                 {
                     return false;
                 }
 
-                var variants = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var property in variantsObject.Properties())
+                string variant = null;
+                if (TryGetProperty(materialObject, "variant", out var variantToken) &&
+                    variantToken.Type == JTokenType.String)
                 {
-                    if (property.Value.Type != JTokenType.String)
-                    {
-                        return false;
-                    }
-
-                    var path = property.Value.Value<string>();
-                    if (string.IsNullOrEmpty(path))
-                    {
-                        return false;
-                    }
-
-                    variants[property.Name] = path;
+                    variant = variantToken.Value<string>();
                 }
 
-                if (variants.Count == 0)
-                {
-                    return false;
-                }
-
-                material = new UnrealMaterialOverride(idType, variants, provider);
+                material = new UnrealMaterialOverride(idType, id, variant, provider);
                 return true;
             }
 
@@ -850,18 +900,17 @@ namespace UniVRMXT.Format
 
     public sealed class UnrealMaterialOverride : IVrmxtMaterialDefinition
     {
-        public UnrealMaterialOverride(
-            string idType,
-            IReadOnlyDictionary<string, string> variants,
-            MaterialProvider provider)
+        public UnrealMaterialOverride(string idType, string id, string variant, MaterialProvider provider)
         {
             IdType = idType;
-            Variants = variants;
+            Id = id;
+            Variant = variant;
             Provider = provider;
         }
 
         public string IdType { get; }
-        public IReadOnlyDictionary<string, string> Variants { get; }
+        public string Id { get; }
+        public string Variant { get; }
         public MaterialProvider Provider { get; }
     }
 

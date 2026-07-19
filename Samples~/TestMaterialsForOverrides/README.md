@@ -9,8 +9,8 @@ Fragment color comes from `_Color` (Main Color) — edit the Material or `proper
 | URP | `VRMXT/Samples/TestOverrideURP` | yellow `(1,1,0,1)` |
 
 URP sample needs Universal RP in the project (`#include` of URP Core.hlsl).
-The URP shader declares `PackageRequirements` so Built-in-only projects skip compiling
-it (avoids console errors after Test Runner / domain reload).
+The URP shader declares `PackageRequirements` inside its `SubShader` so Built-in-only
+projects skip compiling it (avoids console errors after Test Runner / domain reload).
 
 ## Property ↔ binding map
 

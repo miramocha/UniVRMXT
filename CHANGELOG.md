@@ -8,16 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Materials Override: selection-key uniqueness (`engine` + `material.variant` for Unity/Unreal) — multiple `unity` slots (`builtin` / `urp` / `hdrp`) and multiple `unreal` slots allowed; duplicate `(engine, variant)` rejected
+- Unreal format: `idType: resourcePath` + `id` + `variant` (no `materialSet` map)
+- `UnityOverrideSelector` / Applier / Generator: pick among multi-slot `unity` entries by active RP (exact variant, else single empty variant, else stock)
+- Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export
+- Export `PrepareTextures` remaps textures on the active unity slot only; sibling slots write through
+- Materials Override inspector: lists each unity/unreal variant slot in Status detail
 - Materials Override inspector: per-pair Status (`Stock` / `Imported` / `Authored` / `Imported + Authored`) with unity shader·variant summary; HelpBox clarifies empty Override Material after import is normal; per-pair **Clear** plus `ClearOverrideAt` / `ClearOverride`
 
 ### Fixed
 
 - Clear Material Overrides: inspector no longer re-applies stale Override via `ApplyModifiedProperties`; DontSave previews are never wired as `SourceMaterial`; restore matches `Name#N` store keys
-- Sample URP override shader uses `PackageRequirements` so Built-in projects do not compile-error missing URP includes after tests / domain reload
+- Sample URP override shader: move `PackageRequirements` inside `SubShader` (Shader-root placement → `TOK_PACKAGEREQUIREMENTS` parse error); Built-in projects still skip compiling missing URP includes
 - Materials Override `OnValidate` defers Apply while Editor is compiling/updating (avoids pink VRMXT shaders when Test Runner restores a scene with overrides)
 - Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
 - Export restore of SourceMaterial on the throwaway copy does not `DestroyImmediate` DontSave preview mats (Instantiate may share them with the scene → pink after export)
-- Authoring `SyncUnityOverrideFromMaterial` peeks `material.variant` from raw JSON before merge so variant survival holds when typed parse/cast is incomplete
+- Authoring `SyncUnityOverrideFromMaterial` upserts the active unity slot and keeps sibling variants
 - Format `TryParse` uses `as JObject` casts instead of `is` patterns (Unity + Newtonsoft asmdef boundary safety)
 - `TryAttachFromGltfJson` tests expect instance attach even when all material extensions are invalid (invalid entries still skipped)
 - Import Apply mutates host-built materials in place again — `DontSave` clones on imported assets do not serialize (pink / missing)
@@ -29,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `VrmxtInstance` — avatar-root facade with `Vfx` + `MaterialsOverride` props
 - Sample **Test Materials for Overrides** (`Samples~/TestMaterialsForOverrides`) — unlit `VRMXT/Samples/TestOverrideBuiltin` (green) and `VRMXT/Samples/TestOverrideURP` (yellow) with override property slots
-- `VrmxtMaterialsOverride.TryParse` / `ToJson` / `ToUtf8Json` — full `VRMXT_materials_override` round-trip: unique `engine` per material, Unity `idType: shaderName` / Unreal `idType: materialSet`, `properties[]` (`scalar`/`vector`/`texture`/`shaderFeature`), `bindings[]` sourced from a sibling `VRMC_materials_mtoon`
+- `VrmxtMaterialsOverride.TryParse` / `ToJson` / `ToUtf8Json` — full `VRMXT_materials_override` round-trip: selection-key uniqueness, Unity `idType: shaderName` (multi-slot variants), Unreal `idType: resourcePath`, `properties[]` (`scalar`/`vector`/`texture`/`shaderFeature`), `bindings[]` sourced from a sibling `VRMC_materials_mtoon`
 - `VrmxtMaterialsOverrideInstance` — per-material pairs (`MaterialName`, `SourceMaterial`, `OverrideMaterial`, verbatim `ExtensionJson`); CustomEditor keeps VRM/glTF side read-only; `OnValidate` syncs override Material → JSON + renderers
 - `VrmxtMaterialsOverrideAuthoring` — capture Unity override from Material (variant survival); apply override onto named slots
 - `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` — parses `materials[]` and populates the instance without a UniGLTF/VRM10 reference

@@ -19,17 +19,17 @@ Shader "VRMXT/Samples/TestOverrideURP"
         [Toggle(_USE_RIM_LIGHT)] _UseRimLight ("Use Rim Light", Float) = 0
     }
 
-    // Skip compiling this shader when URP is not installed (e.g. Built-in-only projects).
-    // Without this, missing Core.hlsl errors spam the console after domain reload / tests.
-    PackageRequirements
-    {
-        "com.unity.render-pipelines.universal": "12.0"
-    }
-
     // URP test material for VRMXT_materials_override.
     // Same property slots as the Built-in sample; fragment outputs _Color (default yellow).
     SubShader
     {
+        // Skip this SubShader when URP is not installed (e.g. Built-in-only projects).
+        // Must be first inside SubShader/Pass — Shader-root PackageRequirements is a parse error.
+        PackageRequirements
+        {
+            "com.unity.render-pipelines.universal": "12.0"
+        }
+
         Tags
         {
             "RenderType" = "Opaque"

@@ -8,7 +8,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
     public sealed class VrmxtMaterialsOverrideAuthoringTests
     {
         [Test]
-        public void SyncUnityOverrideFromMaterial_WritesShaderNameAndPreservesVariant()
+        public void SyncUnityOverrideFromMaterial_UpsertsActiveSlot_KeepsSiblingVariant()
         {
             var shader = Shader.Find("Standard");
             Assert.IsNotNull(shader);
@@ -19,7 +19,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 overrideMat.SetFloat("_Metallic", 0.3f);
 
                 const string initialJson =
-                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Shader"",""variant"":""urp""},""bindings"":[{""source"":""shadeColorFactor"",""target"":""_Color"",""targetType"":""vector""}],""properties"":[]},{""engine"":""unreal"",""material"":{""idType"":""materialSet"",""variants"":{""default"":""/Game/M""}}}]}";
+                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Shader"",""variant"":""urp""},""bindings"":[{""source"":""shadeColorFactor"",""target"":""_Color"",""targetType"":""vector""}],""properties"":[]},{""engine"":""unreal"",""material"":{""idType"":""resourcePath"",""id"":""/Game/M"",""variant"":""opaque""}}]}";
 
                 Assert.IsTrue(
                     VrmxtMaterialsOverride.TryParse(initialJson, out _),
@@ -31,9 +31,108 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);
 
                 Assert.IsTrue(VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension));
-                Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverride(extension, out var unity));
+
+                var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline());
+
+                Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverrides(extension, out var unitySlots));
+                Assert.GreaterOrEqual(unitySlots.Count, 1);
+
+                UnityMaterialOverride activeUnity = null;
+                UnityMaterialOverride urpSibling = null;
+                foreach (var slot in unitySlots)
+                {
+                    var unity = slot.Material as UnityMaterialOverride;
+                    Assert.IsNotNull(unity);
+                    if (string.Equals(unity.Variant, activeVariant, System.StringComparison.Ordinal))
+                    {
+                        activeUnity = unity;
+                    }
+
+                    if (string.Equals(unity.Variant, "urp", System.StringComparison.Ordinal))
+                    {
+                        urpSibling = unity;
+                    }
+                }
+
+                Assert.IsNotNull(activeUnity);
+                Assert.AreEqual("Standard", activeUnity.ShaderName);
+
+                if (string.Equals(activeVariant, "urp", System.StringComparison.Ordinal))
+                {
+                    // Sync on URP updates the existing urp slot; bindings survive.
+                    Assert.AreEqual(1, unitySlots.Count);
+                    Assert.AreEqual(1, unitySlots[0].Bindings.Count);
+                }
+                else
+                {
+                    // Sync on BIRP/HDRP creates active slot; urp sibling + bindings stay.
+                    Assert.IsNotNull(urpSibling);
+                    Assert.AreEqual("Old/Shader", urpSibling.ShaderName);
+                    foreach (var slot in unitySlots)
+                    {
+                        if (string.Equals(
+                                ((UnityMaterialOverride)slot.Material).Variant,
+                                "urp",
+                                System.StringComparison.Ordinal))
+                        {
+                            Assert.AreEqual(1, slot.Bindings.Count);
+                        }
+                    }
+                }
+
+                var hasUnreal = false;
+                foreach (var entry in extension.Overrides)
+                {
+                    if (entry.Engine == "unreal")
+                    {
+                        hasUnreal = true;
+                    }
+                }
+
+                Assert.IsTrue(hasUnreal);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+            }
+        }
+
+        [Test]
+        public void SyncUnityOverrideFromMaterial_WritesShaderNameAndPreservesVariant()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+
+            var overrideMat = new Material(shader) { name = "Override" };
+            try
+            {
+                overrideMat.SetFloat("_Metallic", 0.3f);
+
+                var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline());
+
+                var initialJson =
+                    "{\"specVersion\":\"1.0\",\"overrides\":[{\"engine\":\"unity\",\"material\":{\"idType\":\"shaderName\",\"id\":\"Old/Shader\",\"variant\":\"" +
+                    activeVariant +
+                    "\"},\"bindings\":[{\"source\":\"shadeColorFactor\",\"target\":\"_Color\",\"targetType\":\"vector\"}],\"properties\":[]},{\"engine\":\"unreal\",\"material\":{\"idType\":\"resourcePath\",\"id\":\"/Game/M\",\"variant\":\"opaque\"}}]}";
+
+                Assert.IsTrue(
+                    VrmxtMaterialsOverride.TryParse(initialJson, out _),
+                    "fixture JSON must parse before Sync");
+
+                var pair = new VrmxtMaterialsOverridePair("Hair", initialJson);
+
+                pair.OverrideMaterial = overrideMat;
+                VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);
+
+                Assert.IsTrue(VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension));
+                Assert.IsTrue(UnityOverrideSelector.TrySelectUnityOverride(
+                    extension,
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline(),
+                    out var unity));
                 Assert.AreEqual("Standard", unity.ShaderName);
-                Assert.AreEqual("urp", unity.Variant);
+                Assert.AreEqual(activeVariant, unity.Variant);
 
                 var hasUnreal = false;
                 var hasBinding = false;
@@ -52,6 +151,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
 
                 Assert.IsTrue(hasUnreal);
                 Assert.IsTrue(hasBinding);
+                Assert.AreEqual(2, extension.Overrides.Count);
             }
             finally
             {
