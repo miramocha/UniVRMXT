@@ -114,9 +114,14 @@ namespace UniVRMXT.Tests.MaterialsOverride
         public void Apply_ShaderResolveProvider_UsedWhenShaderFindWouldMiss()
         {
             var root = CreateRootWithNamedMaterial("Hair", out var material);
+            var stockShader = Shader.Find("Unlit/Color");
+            Assert.IsNotNull(stockShader, "Unlit/Color required for stock vs override contrast");
+            material.shader = stockShader;
             var originalShader = material.shader;
+
             var replacement = Shader.Find("Standard");
             Assert.IsNotNull(replacement);
+            Assert.AreNotSame(originalShader, replacement);
 
             var previous = VrmxtMaterialsOverrideApplier.ShaderResolveProvider;
             try
