@@ -151,6 +151,9 @@ namespace UniVRMXT.MaterialsOverride
         /// <see cref="UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline"/>.
         /// Unrecognized SRPs fall back to <see cref="RenderPipelineVariant.Builtin"/> so
         /// variant-gated overrides stay conservative (no false-positive match).
+        /// Does not use <c>Object.GetType()</c> / Reflection — Warudo UMod code security
+        /// rejects those APIs. Distinguishes URP vs HDRP via
+        /// <see cref="UnityEngine.Object.ToString"/> (<c>name (TypeName)</c>).
         /// </summary>
         public static RenderPipelineVariant DetectActivePipeline()
         {
@@ -160,13 +163,16 @@ namespace UniVRMXT.MaterialsOverride
                 return RenderPipelineVariant.Builtin;
             }
 
-            var typeName = pipelineAsset.GetType().Name;
-            if (typeName.Contains("Universal"))
+            // UnityEngine.Object.ToString → "assetName (TypeName)". Prefer this over
+            // GetType().Name so restricted hosts (Warudo/UMod) can vendor this file.
+            var label = pipelineAsset.ToString();
+            if (label.IndexOf("Universal", StringComparison.Ordinal) >= 0)
             {
                 return RenderPipelineVariant.Urp;
             }
 
-            if (typeName.Contains("HD"))
+            if (label.IndexOf("HDRenderPipeline", StringComparison.Ordinal) >= 0 ||
+                label.IndexOf("HDRender", StringComparison.Ordinal) >= 0)
             {
                 return RenderPipelineVariant.Hdrp;
             }

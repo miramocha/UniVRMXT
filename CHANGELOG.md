@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `DetectActivePipeline`: identify URP/HDRP via `Object.ToString()` instead of
+  `GetType().Name` so Warudo/UMod can vendor Applier (code security bans Reflection)
+
 ### Changed
 
 - Materials Override: selection-key uniqueness (`engine` + `material.variant` for Unity/Unreal) — multiple `unity` slots (`builtin` / `urp` / `hdrp`) and multiple `unreal` slots allowed; duplicate `(engine, variant)` rejected
