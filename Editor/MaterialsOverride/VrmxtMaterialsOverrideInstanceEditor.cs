@@ -138,12 +138,23 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             if (overrideProp != null)
             {
+                EditorGUI.BeginChangeCheck();
                 EditorGUILayout.PropertyField(
                     overrideProp,
                     new GUIContent(
                         "Override Material",
-                        "Optional. Assign to author/rewrite the Unity override from this asset. " +
+                        "Optional. Assign to author/rewrite the active unity slot from this asset. " +
+                        "Sibling pipeline slots in extension JSON are kept. " +
                         "Leave empty when using imported extension JSON only."));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    // Apply OverrideMaterial first so OnValidate Sync can read siblings from
+                    // ExtensionJson, then reload SO so a later ApplyModifiedProperties does
+                    // not stomp the multi-slot JSON Sync just wrote.
+                    serializedObject.ApplyModifiedProperties();
+                    serializedObject.Update();
+                    GUIUtility.ExitGUI();
+                }
             }
 
             EditorGUILayout.EndVertical();
@@ -203,18 +214,44 @@ namespace UniVRMXT.Editor.MaterialsOverride
             bool hasOverrideMaterial)
         {
             var sb = new StringBuilder();
+            var unityCount = 0;
 
-            if (VrmxtMaterialsOverride.TryGetUnityOverride(extension, out var unity))
+            foreach (var entry in extension.Overrides)
             {
-                sb.Append("unity · ");
-                sb.Append(unity.ShaderName ?? unity.Id ?? "(no id)");
-                if (!string.IsNullOrEmpty(unity.Variant))
+                if (entry == null ||
+                    !string.Equals(
+                        entry.Engine,
+                        VrmxtMaterialsOverride.EngineUnity,
+                        System.StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var unity = entry.Material as UnityMaterialOverride;
+                if (unity == null)
+                {
+                    continue;
+                }
+
+                if (unityCount > 0)
                 {
                     sb.Append(" · ");
-                    sb.Append(unity.Variant);
                 }
+
+                sb.Append("unity");
+                if (!string.IsNullOrEmpty(unity.Variant))
+                {
+                    sb.Append('[');
+                    sb.Append(unity.Variant);
+                    sb.Append(']');
+                }
+
+                sb.Append(" · ");
+                sb.Append(unity.ShaderName ?? unity.Id ?? "(no id)");
+                unityCount++;
             }
-            else
+
+            if (unityCount == 0)
             {
                 sb.Append("no unity engine entry");
             }
@@ -222,18 +259,28 @@ namespace UniVRMXT.Editor.MaterialsOverride
             foreach (var entry in extension.Overrides)
             {
                 if (entry == null ||
-                    string.Equals(entry.Engine, VrmxtMaterialsOverride.EngineUnity, System.StringComparison.Ordinal))
+                    string.Equals(
+                        entry.Engine,
+                        VrmxtMaterialsOverride.EngineUnity,
+                        System.StringComparison.Ordinal))
                 {
                     continue;
                 }
 
                 sb.Append(" · +");
                 sb.Append(entry.Engine);
+                var unreal = entry.Material as UnrealMaterialOverride;
+                if (unreal != null && !string.IsNullOrEmpty(unreal.Variant))
+                {
+                    sb.Append('[');
+                    sb.Append(unreal.Variant);
+                    sb.Append(']');
+                }
             }
 
             if (hasOverrideMaterial)
             {
-                sb.Append(" · local Override Material assigned (will rewrite unity on sync/export)");
+                sb.Append(" · local Override Material assigned (sync upserts active unity slot only)");
             }
 
             return sb.ToString();

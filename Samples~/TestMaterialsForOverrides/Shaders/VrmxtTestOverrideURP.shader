@@ -2,7 +2,8 @@ Shader "VRMXT/Samples/TestOverrideURP"
 {
     Properties
     {
-        // Visible unlit color — change in the Material inspector / properties[].
+        // Visible unlit albedo: sample × _Color (default yellow tint).
+        _MainTex ("Main Texture", 2D) = "white" {}
         _Color ("Main Color", Color) = (1, 1, 0, 1)
 
         // Binding targets (Unity profile / VRMC_materials_mtoon sources).
@@ -19,17 +20,17 @@ Shader "VRMXT/Samples/TestOverrideURP"
         [Toggle(_USE_RIM_LIGHT)] _UseRimLight ("Use Rim Light", Float) = 0
     }
 
-    // Skip compiling this shader when URP is not installed (e.g. Built-in-only projects).
-    // Without this, missing Core.hlsl errors spam the console after domain reload / tests.
-    PackageRequirements
-    {
-        "com.unity.render-pipelines.universal": "12.0"
-    }
-
     // URP test material for VRMXT_materials_override.
-    // Same property slots as the Built-in sample; fragment outputs _Color (default yellow).
+    // Same property slots as the Built-in sample; fragment outputs sample × _Color.
     SubShader
     {
+        // Skip this SubShader when URP is not installed (e.g. Built-in-only projects).
+        // Must be first inside SubShader/Pass — Shader-root PackageRequirements is a parse error.
+        PackageRequirements
+        {
+            "com.unity.render-pipelines.universal": "12.0"
+        }
+
         Tags
         {
             "RenderType" = "Opaque"
@@ -51,6 +52,7 @@ Shader "VRMXT/Samples/TestOverrideURP"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
+                float4 _MainTex_ST;
                 float4 _Color;
                 float4 _ShadeColor;
                 float4 _ShadeTex_ST;
@@ -63,6 +65,8 @@ Shader "VRMXT/Samples/TestOverrideURP"
                 float _UseRimLight;
             CBUFFER_END
 
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
             TEXTURE2D(_ShadeTex);
             SAMPLER(sampler_ShadeTex);
             TEXTURE2D(_ShadingShiftTex);
@@ -84,7 +88,7 @@ Shader "VRMXT/Samples/TestOverrideURP"
             {
                 Varyings output;
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
-                output.uv = input.uv;
+                output.uv = TRANSFORM_TEX(input.uv, _MainTex);
                 return output;
             }
 
@@ -103,7 +107,8 @@ Shader "VRMXT/Samples/TestOverrideURP"
 #endif
                 sink *= 0.0;
 
-                return (half4)_Color + sink;
+                half4 albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv) * (half4)_Color;
+                return albedo + sink;
             }
             ENDHLSL
         }

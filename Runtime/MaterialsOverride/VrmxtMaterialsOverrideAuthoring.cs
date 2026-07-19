@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using UniVRMXT.Format;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -35,10 +33,10 @@ namespace UniVRMXT.MaterialsOverride
         }
 
         /// <summary>
-        /// Merge a <c>unity</c> engine block from <see cref="VrmxtMaterialsOverridePair.OverrideMaterial"/>
-        /// into <see cref="VrmxtMaterialsOverridePair.ExtensionJson"/>. Preserves other engines
-        /// and existing <c>bindings[]</c>. Fills <c>variant</c> only when missing
-        /// (variant survival — see <see cref="VrmxtMaterialsOverrideExporter.ResolveUnityVariant"/>).
+        /// Upsert the active <c>(unity, variant)</c> slot from
+        /// <see cref="VrmxtMaterialsOverridePair.OverrideMaterial"/>. Sibling unity variants
+        /// and other engines stay intact. Fills <c>variant</c> from the active RP when creating
+        /// a new slot (see <see cref="VrmxtMaterialsOverrideExporter.ResolveUnityVariant"/>).
         /// </summary>
         public static void SyncUnityOverrideFromMaterial(VrmxtMaterialsOverridePair pair)
         {
@@ -49,44 +47,97 @@ namespace UniVRMXT.MaterialsOverride
 
             var material = pair.OverrideMaterial;
             var shaderName = material.shader.name;
-
-            // Peek variant from raw JSON first so survival does not depend on the typed
-            // Material cast succeeding after TryParse (same assembly, but defensive).
-            TryPeekUnityVariant(pair.ExtensionJson, out var existingVariant);
+            var activePipeline = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
+            var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(activePipeline);
 
             MaterialProvider existingProvider = null;
             IReadOnlyList<VrmxtMaterialBinding> existingBindings = Array.Empty<VrmxtMaterialBinding>();
-            var otherOverrides = new List<VrmxtMaterialEngineOverride>();
+            string slotVariant = null;
+            var siblings = new List<VrmxtMaterialEngineOverride>();
+            VrmxtMaterialEngineOverride emptyVariantUnity = null;
+            var typedUnityCount = 0;
 
             if (VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var existing))
             {
                 foreach (var entry in existing.Overrides)
                 {
-                    if (string.Equals(entry.Engine, VrmxtMaterialsOverride.EngineUnity, StringComparison.Ordinal))
+                    if (entry == null)
                     {
-                        var unity = entry.Material as UnityMaterialOverride;
-                        if (unity != null)
-                        {
-                            if (!string.IsNullOrEmpty(unity.Variant))
-                            {
-                                existingVariant = unity.Variant;
-                            }
+                        continue;
+                    }
 
-                            existingProvider = unity.Provider;
-                        }
+                    if (!string.Equals(entry.Engine, VrmxtMaterialsOverride.EngineUnity, StringComparison.Ordinal))
+                    {
+                        siblings.Add(entry);
+                        continue;
+                    }
 
+                    var unity = entry.Material as UnityMaterialOverride;
+                    if (unity == null)
+                    {
+                        siblings.Add(entry);
+                        continue;
+                    }
+
+                    if (string.Equals(unity.Variant, activeVariant, StringComparison.Ordinal))
+                    {
+                        // Active slot — replace below; keep bindings / provider / variant.
+                        existingProvider = unity.Provider;
                         existingBindings = entry.Bindings;
+                        slotVariant = unity.Variant;
+                        continue;
                     }
-                    else
+
+                    if (string.IsNullOrEmpty(unity.Variant))
                     {
-                        otherOverrides.Add(entry);
+                        emptyVariantUnity = entry;
+                        continue;
                     }
+
+                    typedUnityCount++;
+                    siblings.Add(entry);
                 }
             }
 
-            var variant = VrmxtMaterialsOverrideExporter.ResolveUnityVariant(
-                existingVariant,
-                VrmxtMaterialsOverrideApplier.DetectActivePipeline());
+            if (slotVariant == null && emptyVariantUnity != null)
+            {
+                var emptyUnity = emptyVariantUnity.Material as UnityMaterialOverride;
+                var sameShader = emptyUnity != null &&
+                                 string.Equals(emptyUnity.Id, shaderName, StringComparison.Ordinal);
+
+                // Only fold an empty-variant slot into the active RP when it is the sole
+                // unity entry and the shader matches (in-place single-slot edit). A different
+                // shader means a new pipeline slot — keep the empty entry so BIRP/URP
+                // siblings survive (stamp builtin when adding urp/hdrp for a conforming key).
+                if (sameShader && typedUnityCount == 0)
+                {
+                    existingProvider = emptyUnity.Provider;
+                    existingBindings = emptyVariantUnity.Bindings;
+                    slotVariant = VrmxtMaterialsOverrideExporter.ResolveUnityVariant(
+                        emptyUnity.Variant,
+                        activePipeline);
+                }
+                else
+                {
+                    siblings.Add(StampEmptyUnityVariantForSibling(
+                        emptyVariantUnity,
+                        activeVariant,
+                        CollectOccupiedUnityVariants(siblings, activeVariant)));
+                }
+            }
+            else if (emptyVariantUnity != null)
+            {
+                // Active typed slot already matched — still keep the empty sibling.
+                siblings.Add(StampEmptyUnityVariantForSibling(
+                    emptyVariantUnity,
+                    activeVariant,
+                    CollectOccupiedUnityVariants(siblings, activeVariant)));
+            }
+
+            if (slotVariant == null)
+            {
+                slotVariant = activeVariant;
+            }
 
             var provider = existingProvider ?? new MaterialProvider(
                 DefaultProviderId,
@@ -97,7 +148,7 @@ namespace UniVRMXT.MaterialsOverride
             var unityMaterial = new UnityMaterialOverride(
                 VrmxtMaterialsOverride.UnityMaterialIdTypeShaderName,
                 shaderName,
-                variant,
+                slotVariant,
                 provider);
 
             var unityOverride = new VrmxtMaterialEngineOverride(
@@ -107,71 +158,81 @@ namespace UniVRMXT.MaterialsOverride
                 properties);
 
             var overrides = new List<VrmxtMaterialEngineOverride> { unityOverride };
-            overrides.AddRange(otherOverrides);
+            overrides.AddRange(siblings);
 
             pair.ExtensionJson = VrmxtMaterialsOverride.ToJson(
                 new VrmxtMaterialsOverrideExtension(overrides));
         }
 
         /// <summary>
-        /// Best-effort read of <c>overrides[engine=unity].material.variant</c> without full
-        /// schema validation, so authoring sync can keep an existing variant when a sibling
-        /// engine entry prevents <see cref="VrmxtMaterialsOverride.TryParse"/>.
+        /// Variants already taken by sibling unity slots plus the active slot about to be
+        /// written — used so empty→builtin stamping cannot collide with an existing builtin.
         /// </summary>
-        internal static bool TryPeekUnityVariant(string extensionJson, out string variant)
+        private static HashSet<string> CollectOccupiedUnityVariants(
+            IReadOnlyList<VrmxtMaterialEngineOverride> siblings,
+            string activeVariant)
         {
-            variant = null;
-            if (string.IsNullOrWhiteSpace(extensionJson))
+            var occupied = new HashSet<string>(StringComparer.Ordinal);
+            if (!string.IsNullOrEmpty(activeVariant))
             {
-                return false;
+                occupied.Add(activeVariant);
             }
 
-            try
+            if (siblings == null)
             {
-                // Use `as` casts (not `is` pattern) — Unity + Newtonsoft type identity has
-                // historically broken pattern matching against JObject across asmdef boundaries.
-                var root = JToken.Parse(extensionJson) as JObject;
-                var overrides = root?["overrides"] as JArray;
-                if (overrides == null)
+                return occupied;
+            }
+
+            for (var i = 0; i < siblings.Count; i++)
+            {
+                if (siblings[i]?.Material is UnityMaterialOverride unity &&
+                    !string.IsNullOrEmpty(unity.Variant))
                 {
-                    return false;
-                }
-
-                foreach (var overrideToken in overrides)
-                {
-                    var overrideObject = overrideToken as JObject;
-                    if (overrideObject == null)
-                    {
-                        continue;
-                    }
-
-                    var engine = overrideObject["engine"]?.Value<string>();
-                    if (!string.Equals(engine, VrmxtMaterialsOverride.EngineUnity, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-
-                    var materialObject = overrideObject["material"] as JObject;
-                    var peeked = materialObject?["variant"]?.Value<string>();
-                    if (string.IsNullOrEmpty(peeked))
-                    {
-                        return false;
-                    }
-
-                    variant = peeked;
-                    return true;
+                    occupied.Add(unity.Variant);
                 }
             }
-            catch (JsonReaderException)
+
+            return occupied;
+        }
+
+        /// <summary>
+        /// When keeping an empty-variant unity entry beside a new typed slot, give it a
+        /// concrete variant so selection-key uniqueness stays valid (2+ unity entries).
+        /// Skips stamping when the preferred variant is already occupied (leave empty).
+        /// </summary>
+        private static VrmxtMaterialEngineOverride StampEmptyUnityVariantForSibling(
+            VrmxtMaterialEngineOverride emptyEntry,
+            string activeVariant,
+            HashSet<string> occupiedVariants)
+        {
+            var emptyUnity = emptyEntry?.Material as UnityMaterialOverride;
+            if (emptyUnity == null || !string.IsNullOrEmpty(emptyUnity.Variant))
             {
-                return false;
-            }
-            catch (JsonException)
-            {
-                return false;
+                return emptyEntry;
             }
 
-            return false;
+            // Most common sibling when authoring urp/hdrp on top of an unlabeled slot.
+            var stampedVariant = string.Equals(activeVariant, "builtin", StringComparison.Ordinal)
+                ? null
+                : "builtin";
+            if (string.IsNullOrEmpty(stampedVariant) ||
+                (occupiedVariants != null && occupiedVariants.Contains(stampedVariant)))
+            {
+                // Prefer leaving empty over duplicating (unity, builtin) — TryParse rejects
+                // duplicate selection keys.
+                return emptyEntry;
+            }
+
+            var stampedMaterial = new UnityMaterialOverride(
+                emptyUnity.IdType,
+                emptyUnity.Id,
+                stampedVariant,
+                emptyUnity.Provider);
+            return new VrmxtMaterialEngineOverride(
+                emptyEntry.Engine,
+                stampedMaterial,
+                emptyEntry.Bindings,
+                emptyEntry.Properties);
         }
 
         public static void ApplyOverrideMaterialsToRenderers(

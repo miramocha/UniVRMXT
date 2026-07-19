@@ -2,7 +2,8 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
 {
     Properties
     {
-        // Visible unlit color — change in the Material inspector / properties[].
+        // Visible unlit albedo: sample × _Color (default green tint).
+        _MainTex ("Main Texture", 2D) = "white" {}
         _Color ("Main Color", Color) = (0, 1, 0, 1)
 
         // Binding targets (Unity profile / VRMC_materials_mtoon sources).
@@ -21,7 +22,7 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
 
     // Built-in RP test material for VRMXT_materials_override.
     // Declares override property names so Applier SetFloat/SetColor/SetTexture/keywords work.
-    // Fragment outputs _Color (default green).
+    // Fragment outputs tex2D(_MainTex) * _Color.
     SubShader
     {
         Tags
@@ -44,6 +45,8 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
             #pragma shader_feature_local _USE_RIM_LIGHT
             #include "UnityCG.cginc"
 
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
             float4 _Color;
             float4 _ShadeColor;
             sampler2D _ShadeTex;
@@ -73,7 +76,7 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
             {
                 v2f o;
                 o.pos = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
             }
 
@@ -93,7 +96,8 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
 #endif
                 sink *= 0.0;
 
-                return _Color + sink;
+                fixed4 albedo = tex2D(_MainTex, i.uv) * _Color;
+                return albedo + sink;
             }
             ENDCG
         }

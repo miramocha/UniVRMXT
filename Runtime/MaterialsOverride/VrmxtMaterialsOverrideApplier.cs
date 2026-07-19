@@ -53,6 +53,14 @@ namespace UniVRMXT.MaterialsOverride
                 return 0;
             }
 
+            // Prefer caller resolver; else use textures decoded/persisted on the Instance
+            // (Editor import hook path after GLB ReleaseOwnership).
+            if (resolveTexture == null)
+            {
+                resolveTexture = index =>
+                    store.TryGetImportedTexture(index, out var texture) ? texture : null;
+            }
+
             var gltfRoot = TryParseGltfRoot(gltfJson);
 
             var applied = 0;
@@ -68,7 +76,14 @@ namespace UniVRMXT.MaterialsOverride
                     continue;
                 }
 
-                if (!UnityOverrideSelector.TrySelectUnityOverride(extension, activePipeline, out var unityOverride))
+                if (!UnityOverrideSelector.TrySelectUnityEngineOverride(
+                        extension, activePipeline, out var engineOverride))
+                {
+                    continue;
+                }
+
+                var unityOverride = engineOverride.Material as UnityMaterialOverride;
+                if (unityOverride == null)
                 {
                     continue;
                 }
@@ -93,7 +108,6 @@ namespace UniVRMXT.MaterialsOverride
 
                 WarnOnProviderMismatch(entry.MaterialName, unityOverride.Provider, isProviderMismatch);
 
-                var engineOverride = FindEngineOverride(extension, VrmxtMaterialsOverride.EngineUnity);
                 var hasMtoon = TryFindSiblingMtoon(gltfRoot, entry.MaterialName, out var mtoon);
 
                 // Drop stale DontSave authoring previews so we apply onto stock import mats.
@@ -118,8 +132,8 @@ namespace UniVRMXT.MaterialsOverride
                     // authoring uses DontSave clones via Authoring instead — those must not
                     // be written onto imported assets (they do not serialize → pink/missing).
                     material.shader = shader;
-                    ApplyProperties(material, engineOverride?.Properties, resolveTexture);
-                    ApplyBindings(material, engineOverride?.Bindings, hasMtoon, mtoon, resolveTexture);
+                    ApplyProperties(material, engineOverride.Properties, resolveTexture);
+                    ApplyBindings(material, engineOverride.Bindings, hasMtoon, mtoon, resolveTexture);
                     appliedToAny = true;
                 }
 
@@ -227,21 +241,6 @@ namespace UniVRMXT.MaterialsOverride
                     (string.IsNullOrEmpty(provider.Version) ? string.Empty : $" {provider.Version}") +
                     $" for material '{materialName}' does not match the resolved package. Applying anyway (provider is advisory).");
             }
-        }
-
-        private static VrmxtMaterialEngineOverride FindEngineOverride(
-            VrmxtMaterialsOverrideExtension extension,
-            string engine)
-        {
-            foreach (var entry in extension.Overrides)
-            {
-                if (string.Equals(entry.Engine, engine, StringComparison.Ordinal))
-                {
-                    return entry;
-                }
-            }
-
-            return null;
         }
 
         private static void ApplyProperties(

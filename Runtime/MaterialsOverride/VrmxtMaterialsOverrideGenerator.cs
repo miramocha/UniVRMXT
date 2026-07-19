@@ -49,32 +49,24 @@ namespace UniVRMXT.MaterialsOverride
                 return false;
             }
 
-            if (!UnityOverrideSelector.TrySelectUnityOverride(
+            if (!UnityOverrideSelector.TrySelectUnityEngineOverride(
                     materialsOverride,
                     activePipeline,
-                    out var unityOverride))
+                    out var selected))
+            {
+                return false;
+            }
+
+            var unityOverride = selected.Material as UnityMaterialOverride;
+            if (unityOverride == null)
             {
                 return false;
             }
 
             descriptor = new VrmxtMaterialOverrideDescriptor(
                 unityOverride.ShaderName,
-                FindBindings(materialsOverride));
+                selected.Bindings);
             return true;
-        }
-
-        private static IReadOnlyList<VrmxtMaterialBinding> FindBindings(
-            VrmxtMaterialsOverrideExtension materialsOverride)
-        {
-            foreach (var entry in materialsOverride.Overrides)
-            {
-                if (string.Equals(entry.Engine, VrmxtMaterialsOverride.EngineUnity, System.StringComparison.Ordinal))
-                {
-                    return entry.Bindings;
-                }
-            }
-
-            return System.Array.Empty<VrmxtMaterialBinding>();
         }
     }
 }

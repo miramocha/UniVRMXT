@@ -1,16 +1,18 @@
 # Test Materials for Overrides
 
 Unlit test shaders for `VRMXT_materials_override`. Same property slots on both pipelines.
-Fragment color comes from `_Color` (Main Color) — edit the Material or `properties[]`.
+Fragment color is `tex2D(_MainTex) * _Color` — sample albedo × tint (Built-in green / URP yellow).
 
 | Pipeline | Shader.Find name | Default `_Color` |
 |----------|------------------|------------------|
 | Built-in | `VRMXT/Samples/TestOverrideBuiltin` | green `(0,1,0,1)` |
 | URP | `VRMXT/Samples/TestOverrideURP` | yellow `(1,1,0,1)` |
 
+Sample albedo: `Textures/VrmxtTestTexture.png` (assigned on both Materials as `_MainTex`).
+
 URP sample needs Universal RP in the project (`#include` of URP Core.hlsl).
-The URP shader declares `PackageRequirements` so Built-in-only projects skip compiling
-it (avoids console errors after Test Runner / domain reload).
+The URP shader declares `PackageRequirements` inside its `SubShader` so Built-in-only
+projects skip compiling it (avoids console errors after Test Runner / domain reload).
 
 ## Property ↔ binding map
 
@@ -28,7 +30,8 @@ Unbound samples for `properties[]`:
 
 | Property | Type | Notes |
 |----------|------|--------|
-| `_Color` | `vector` | Main unlit color (visible) |
+| `_MainTex` | `texture` | Albedo sample (material asset / export remaps index) |
+| `_Color` | `vector` | Tint multiplied with `_MainTex` |
 | `_OutlineWidth` | `scalar` | |
 | `_USE_RIM_LIGHT` | `shaderFeature` | |
 
