@@ -343,6 +343,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
         {
             // No render pipeline asset assigned in test environment → Builtin. Assert the
             // helper does not throw and returns a defined enum value either way.
+            // Implementation must not use Object.GetType() (Warudo/UMod Reflection ban).
             var pipeline = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
             Assert.IsTrue(
                 pipeline == RenderPipelineVariant.Builtin ||
