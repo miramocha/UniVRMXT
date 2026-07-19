@@ -18,5 +18,12 @@
     "com.unity.nuget.newtonsoft-json": "3.2.1",
     "com.vrmc.gltf": "0.131.1",
     "com.vrmc.vrm": "0.131.1"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Test Materials for Overrides",
+      "description": "Unlit Built-in (green) and URP (yellow) test shaders with VRMXT_materials_override property slots.",
+      "path": "Samples~/TestMaterialsForOverrides"
+    }
+  ]
 }

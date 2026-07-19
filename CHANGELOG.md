@@ -6,9 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
+- Export restore of SourceMaterial on the throwaway copy does not `DestroyImmediate` DontSave preview mats (Instantiate may share them with the scene → pink after export)
+- Authoring `SyncUnityOverrideFromMaterial` peeks `material.variant` from raw JSON before merge so variant survival holds when typed parse/cast is incomplete
+- Format `TryParse` uses `as JObject` casts instead of `is` patterns (Unity + Newtonsoft asmdef boundary safety)
+- `TryAttachFromGltfJson` tests expect instance attach even when all material extensions are invalid (invalid entries still skipped)
+- Import Apply mutates host-built materials in place again — `DontSave` clones on imported assets do not serialize (pink / missing)
+- Missing `Shader.Find` on import restores `SourceMaterial` and leaves stock look (JSON kept on Instance)
+- `TryGetMaterialIndex` reflection unboxes boxed `int` correctly (`as int?` was always null)
+- Authoring preview clones: update existing `DontSave` instances in place (no leak when Source unset)
+
 ### Added
 
+- `VrmxtInstance` — avatar-root facade with `Vfx` + `MaterialsOverride` props
+- Sample **Test Materials for Overrides** (`Samples~/TestMaterialsForOverrides`) — unlit `VRMXT/Samples/TestOverrideBuiltin` (green) and `VRMXT/Samples/TestOverrideURP` (yellow) with override property slots
+- `VrmxtMaterialsOverride.TryParse` / `ToJson` / `ToUtf8Json` — full `VRMXT_materials_override` round-trip: unique `engine` per material, Unity `idType: shaderName` / Unreal `idType: materialSet`, `properties[]` (`scalar`/`vector`/`texture`/`shaderFeature`), `bindings[]` sourced from a sibling `VRMC_materials_mtoon`
+- `VrmxtMaterialsOverrideInstance` — per-material pairs (`MaterialName`, `SourceMaterial`, `OverrideMaterial`, verbatim `ExtensionJson`); CustomEditor keeps VRM/glTF side read-only; `OnValidate` syncs override Material → JSON + renderers
+- `VrmxtMaterialsOverrideAuthoring` — capture Unity override from Material (variant survival); apply override onto named slots
+- `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` — parses `materials[]` and populates the instance without a UniGLTF/VRM10 reference
+- `VrmxtMaterialsOverrideApplier.Apply` — shared apply logic for Editor and Warudo-style hosts: resolves the `unity` override via `UnityOverrideSelector` (render-pipeline `variant` match), sets `shader`, writes `properties` then `bindings` (bindings win on overlap); unresolved shaders or variant mismatches leave the material untouched
+- `VrmxtMaterialsOverrideExporter` — `BuildPending` / `PrepareTextures` (re-register live Unity textures for `properties[].texture`) / `TryBuildUtf8Extension` / `BuildAllUtf8Extensions` for writing `VRMXT_materials_override` via `Vrm10ExportExtensionContext.AddMaterialExtension` during the `PrepareTextures` / `WriteExtensions` export phases; `ResolveUnityVariant` implements variant survival (an existing `material.variant` always wins over the active pipeline)
+- Materials override NUnit tests under `Tests/Format/` and `Tests/MaterialsOverride/`
 - `VrmxtVfxInstance` runtime component and `VrmxtVfxRuntime.TryAttach` for post-load VFX data
+- `VrmxtVfxInstance.OnValidate` / `SyncParticleSystemsFromEmitters` — Instance field edits refresh bound preview ParticleSystems
+- `VrmxtVfxInstance` `[ExecuteAlways]` pull — preview ParticleSystem edits sync back into emitter fields
 - `VrmxtVfxImporter` Transform / node-list overloads that skip unresolved emitters
 - `VrmxtVfxParticleSystemMapper` — portable particle → Unity `ParticleSystem` (local +Y velocity, billboard, BIRP/URP material + `_MainTex`/`_BaseMap` texture / solid-tint fallback)
 - `VrmxtVfxRuntime.TryAttach` overloads that build `ParticleSystem` children via texture resolver

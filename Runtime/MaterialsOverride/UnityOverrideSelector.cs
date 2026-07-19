@@ -28,7 +28,7 @@ namespace UniVRMXT.MaterialsOverride
                 return false;
             }
 
-            if (!string.Equals(candidate.Kind, VrmxtMaterialsOverride.UnityMaterialKindShader, StringComparison.Ordinal))
+            if (!string.Equals(candidate.IdType, VrmxtMaterialsOverride.UnityMaterialIdTypeShaderName, StringComparison.Ordinal))
             {
                 return false;
             }

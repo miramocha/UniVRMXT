@@ -1,0 +1,71 @@
+{
+  "specVersion": "1.0",
+  "overrides": [
+    {
+      "engine": "unity",
+      "material": {
+        "idType": "shaderName",
+        "id": "VRMXT/Samples/TestOverrideBuiltin",
+        "variant": "builtin",
+        "provider": {
+          "id": "com.miramocha.univrmxt",
+          "version": "0.1.0"
+        }
+      },
+      "bindings": [
+        {
+          "source": "shadeColorFactor",
+          "target": "_ShadeColor",
+          "targetType": "vector"
+        },
+        {
+          "source": "shadeMultiplyTexture",
+          "target": "_ShadeTex",
+          "targetType": "texture"
+        },
+        {
+          "source": "shadingShiftFactor",
+          "target": "_ShadingShiftFactor",
+          "targetType": "scalar"
+        },
+        {
+          "source": "shadingShiftTexture",
+          "target": "_ShadingShiftTex",
+          "targetType": "texture"
+        },
+        {
+          "source": "shadingShiftTexture.scale",
+          "target": "_ShadingShiftTexScale",
+          "targetType": "scalar"
+        },
+        {
+          "source": "shadingToonyFactor",
+          "target": "_ShadingToonyFactor",
+          "targetType": "scalar"
+        },
+        {
+          "source": "giEqualizationFactor",
+          "target": "_GiEqualizationFactor",
+          "targetType": "scalar"
+        }
+      ],
+      "properties": [
+        {
+          "name": "_Color",
+          "type": "vector",
+          "value": [0.0, 1.0, 0.0, 1.0]
+        },
+        {
+          "name": "_OutlineWidth",
+          "type": "scalar",
+          "value": 0.05
+        },
+        {
+          "name": "_USE_RIM_LIGHT",
+          "type": "shaderFeature",
+          "value": true
+        }
+      ]
+    }
+  ]
+}
