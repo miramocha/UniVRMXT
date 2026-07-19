@@ -191,17 +191,45 @@ namespace UniVRMXT.MaterialsOverride
 
         /// <summary>
         /// Add pairs for unique renderer material names under this root that lack an entry.
+        /// Skips materials already covered by an import/store key (including <c>Name#N</c>
+        /// disambiguated keys whose live mats still use the plain glTF name).
         /// </summary>
         [ContextMenu("Populate Pairs From Renderers")]
         public void PopulatePairsFromRenderers()
         {
             var root = gameObject;
-            var existing = new HashSet<string>(StringComparer.Ordinal);
+            var coveredNames = new HashSet<string>(StringComparer.Ordinal);
+            var coveredMaterials = new HashSet<Material>();
+
             for (var i = 0; i < pairs.Count; i++)
             {
-                if (!string.IsNullOrEmpty(pairs[i]?.MaterialName))
+                var pair = pairs[i];
+                if (pair == null)
                 {
-                    existing.Add(pairs[i].MaterialName);
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(pair.MaterialName))
+                {
+                    coveredNames.Add(pair.MaterialName);
+                    if (TryGetDisambiguatedBaseName(pair.MaterialName, out var baseName))
+                    {
+                        coveredNames.Add(baseName);
+                    }
+
+                    foreach (var live in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
+                                 root, pair.MaterialName))
+                    {
+                        if (live != null)
+                        {
+                            coveredMaterials.Add(live);
+                        }
+                    }
+                }
+
+                if (pair.SourceMaterial != null)
+                {
+                    coveredMaterials.Add(pair.SourceMaterial);
                 }
             }
 
@@ -224,18 +252,53 @@ namespace UniVRMXT.MaterialsOverride
                         continue;
                     }
 
-                    var name = StripInstanceSuffix(material.name);
-                    if (string.IsNullOrEmpty(name) || !existing.Add(name))
+                    if (coveredMaterials.Contains(material))
                     {
                         continue;
                     }
 
+                    var name = StripInstanceSuffix(material.name);
+                    if (string.IsNullOrEmpty(name) || coveredNames.Contains(name))
+                    {
+                        continue;
+                    }
+
+                    coveredNames.Add(name);
+                    coveredMaterials.Add(material);
                     pairs.Add(new VrmxtMaterialsOverridePair(name, null)
                     {
                         SourceMaterial = material,
                     });
                 }
             }
+        }
+
+        /// <summary>
+        /// <c>Hair#2</c> → base <c>Hair</c>. Used so Populate does not add a plain-name
+        /// duplicate beside import disambiguated keys.
+        /// </summary>
+        private static bool TryGetDisambiguatedBaseName(string storeKey, out string baseName)
+        {
+            baseName = null;
+            if (string.IsNullOrEmpty(storeKey))
+            {
+                return false;
+            }
+
+            var hashIndex = storeKey.LastIndexOf('#');
+            if (hashIndex <= 0 || hashIndex == storeKey.Length - 1)
+            {
+                return false;
+            }
+
+            if (!int.TryParse(storeKey.Substring(hashIndex + 1), out var occurrence) ||
+                occurrence <= 0)
+            {
+                return false;
+            }
+
+            baseName = storeKey.Substring(0, hashIndex);
+            return !string.IsNullOrEmpty(baseName);
         }
 
         /// <summary>

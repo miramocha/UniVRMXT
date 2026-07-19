@@ -480,6 +480,75 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void PopulatePairsFromRenderers_DoesNotDuplicateExistingPlainName()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+
+            var stock = new Material(Shader.Find("Standard")) { name = "Hair" };
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = stock;
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.SetPairs(new[]
+            {
+                new VrmxtMaterialsOverridePair(
+                    "Hair",
+                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""X""}}]}")
+                {
+                    SourceMaterial = stock,
+                },
+            });
+
+            try
+            {
+                instance.PopulatePairsFromRenderers();
+                Assert.AreEqual(1, instance.Pairs.Count);
+                Assert.AreEqual("Hair", instance.Pairs[0].MaterialName);
+            }
+            finally
+            {
+                Object.DestroyImmediate(stock);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void PopulatePairsFromRenderers_DoesNotDuplicateDisambiguatedImportKey()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+
+            // Live mat keeps plain glTF name; store key is Name#N from import disambiguation.
+            var stock = new Material(Shader.Find("Standard")) { name = "Hair" };
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = stock;
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.SetPairs(new[]
+            {
+                new VrmxtMaterialsOverridePair(
+                    "Hair#1",
+                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""X""}}]}")
+                {
+                    SourceMaterial = stock,
+                },
+            });
+
+            try
+            {
+                instance.PopulatePairsFromRenderers();
+                Assert.AreEqual(1, instance.Pairs.Count, "plain Hair must not duplicate Hair#1");
+                Assert.AreEqual("Hair#1", instance.Pairs[0].MaterialName);
+            }
+            finally
+            {
+                Object.DestroyImmediate(stock);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void VrmxtInstance_EnsureOn_WiresMaterialsOverride()
         {
             var root = new GameObject("root");

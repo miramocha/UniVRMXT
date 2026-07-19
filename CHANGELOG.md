@@ -12,13 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Unreal format: `idType: resourcePath` + `id` + `variant` (no `materialSet` map)
 - `UnityOverrideSelector` / Applier / Generator: pick among multi-slot `unity` entries by active RP (exact variant, else single empty variant, else stock)
 - Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export; empty-variant siblings are kept even when the active typed slot already matched; empty-variant slots keep their content when the Override Material shader differs (do not fold into active RP)
-- Export `PrepareTextures` remaps textures only on the selector-chosen unity slot (exact variant, else single empty, else sole entry); sibling slots write through
+- Export `PrepareTextures` remaps textures only on the selector-chosen unity slot (exact variant, else single empty); typed foreign-RP slots write through (do not remap/drop against stock mesh mats)
 - Materials Override inspector: lists each unity/unreal variant slot in Status detail; Override Material assign reloads SerializedObject after Sync so multi-slot JSON is not stomped
 - Materials Override inspector: per-pair Status (`Stock` / `Imported` / `Authored` / `Imported + Authored`) with unity shader·variant summary; HelpBox clarifies empty Override Material after import is normal; per-pair **Clear** plus `ClearOverrideAt` / `ClearOverride`
 
 ### Fixed
 
 - Clear Material Overrides: inspector no longer re-applies stale Override via `ApplyModifiedProperties`; DontSave previews are never wired as `SourceMaterial`; restore matches `Name#N` store keys
+- Populate Pairs From Renderers: do not add a plain-name duplicate beside an existing import pair (including `Name#N` keys and materials already covered by Source / store-key lookup)
 - Sample URP override shader: move `PackageRequirements` inside `SubShader` (Shader-root placement → `TOK_PACKAGEREQUIREMENTS` parse error); Built-in projects still skip compiling missing URP includes
 - Materials Override `OnValidate` defers Apply while Editor is compiling/updating (avoids pink VRMXT shaders when Test Runner restores a scene with overrides)
 - Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
@@ -34,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `VrmxtInstance` — avatar-root facade with `Vfx` + `MaterialsOverride` props
-- Sample **Test Materials for Overrides** (`Samples~/TestMaterialsForOverrides`) — unlit `VRMXT/Samples/TestOverrideBuiltin` (green) and `VRMXT/Samples/TestOverrideURP` (yellow) with override property slots
+- Sample **Test Materials for Overrides** (`Samples~/TestMaterialsForOverrides`) — unlit `VRMXT/Samples/TestOverrideBuiltin` (green tint) and `VRMXT/Samples/TestOverrideURP` (yellow tint); fragment is `_MainTex` × `_Color` with shared `Textures/VrmxtTestTexture.png`
 - `VrmxtMaterialsOverride.TryParse` / `ToJson` / `ToUtf8Json` — full `VRMXT_materials_override` round-trip: selection-key uniqueness, Unity `idType: shaderName` (multi-slot variants), Unreal `idType: resourcePath`, `properties[]` (`scalar`/`vector`/`texture`/`shaderFeature`), `bindings[]` sourced from a sibling `VRMC_materials_mtoon`
 - `VrmxtMaterialsOverrideInstance` — per-material pairs (`MaterialName`, `SourceMaterial`, `OverrideMaterial`, verbatim `ExtensionJson`); CustomEditor keeps VRM/glTF side read-only; `OnValidate` syncs override Material → JSON + renderers
 - `VrmxtMaterialsOverrideAuthoring` — capture Unity override from Material (variant survival); apply override onto named slots

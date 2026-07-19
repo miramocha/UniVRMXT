@@ -262,8 +262,9 @@ namespace UniVRMXT.MaterialsOverride
         }
 
         /// <summary>
-        /// Same selection as <see cref="UnityOverrideSelector"/>: exact active variant,
-        /// else exactly one empty/omitted variant, else the sole unity entry (any variant).
+        /// Same selection as <see cref="UnityOverrideSelector"/> for texture remap:
+        /// exact active variant, else exactly one empty/omitted variant. Typed slots for
+        /// other pipelines are never remapped here (write-through).
         /// </summary>
         private static JObject FindUnitySlotForTextureRemap(JArray overrides, string activeVariant)
         {
@@ -274,9 +275,7 @@ namespace UniVRMXT.MaterialsOverride
 
             JObject exact = null;
             JObject emptyVariant = null;
-            JObject soleUnity = null;
             var emptyCount = 0;
-            var unityCount = 0;
 
             foreach (var overrideToken in overrides)
             {
@@ -287,9 +286,6 @@ namespace UniVRMXT.MaterialsOverride
                 {
                     continue;
                 }
-
-                unityCount++;
-                soleUnity = overrideObject;
 
                 string variant = null;
                 if (overrideObject.TryGetValue("material", StringComparison.Ordinal, out var materialToken) &&
@@ -323,8 +319,11 @@ namespace UniVRMXT.MaterialsOverride
                 return emptyVariant;
             }
 
-            // Single-slot file re-exported from a different RP: still remap that slot.
-            return unityCount == 1 ? soleUnity : null;
+            // Do not remap a typed slot for a different RP (e.g. builtin-only file exported
+            // from URP). Stock mesh materials on that host lack the override textures —
+            // remapping would drop properties[].texture and destroy the sibling slot.
+            // Leave foreign slots write-through (indices unchanged).
+            return null;
         }
 
         /// <summary>

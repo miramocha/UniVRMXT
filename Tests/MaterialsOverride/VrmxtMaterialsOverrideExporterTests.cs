@@ -166,6 +166,55 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void PrepareTextures_ForeignVariantOnly_DoesNotDropTextureProperties()
+        {
+            var root = new GameObject("root");
+            var meshGo = new GameObject("mesh");
+            meshGo.transform.SetParent(root.transform, false);
+            var shader = Shader.Find("Standard");
+            var material = new Material(shader) { name = "Hair" };
+
+            try
+            {
+                // Stock mesh mat has no _MainTex — old sole-slot fallback would remap the
+                // foreign variant against this mat and drop the texture property.
+                meshGo.AddComponent<MeshRenderer>().sharedMaterial = material;
+
+                var active = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
+                var foreignVariant = active == RenderPipelineVariant.Builtin ? "urp" : "builtin";
+                var foreignJson =
+                    "{\"specVersion\":\"1.0\",\"overrides\":[{\"engine\":\"unity\",\"material\":{" +
+                    "\"idType\":\"shaderName\",\"id\":\"Foreign/Shader\",\"variant\":\"" +
+                    foreignVariant +
+                    "\"},\"properties\":[{\"name\":\"_MainTex\",\"type\":\"texture\",\"texture\":3}," +
+                    "{\"name\":\"_Color\",\"type\":\"vector\",\"value\":[0,1,0,1]}]}]}";
+
+                Assert.IsTrue(VrmxtMaterialsOverride.TryParse(foreignJson, out _));
+
+                var store = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+                store.SetEntries(new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", foreignJson),
+                });
+
+                var pending = VrmxtMaterialsOverrideExporter.BuildPending(store);
+                VrmxtMaterialsOverrideExporter.PrepareTextures(pending, root, (tex, needsAlpha) => 7);
+
+                Assert.IsTrue(VrmxtMaterialsOverrideExporter.TryBuildUtf8Extension(pending, "Hair", out var utf8));
+                var json = Encoding.UTF8.GetString(utf8);
+
+                StringAssert.Contains("\"texture\":3", json);
+                StringAssert.Contains("\"variant\":\"" + foreignVariant + "\"", json);
+                StringAssert.Contains("_Color", json);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void PrepareTextures_RemapsOnlySelectedSlot_LeavesSiblingTextureIndex()
         {
             var root = new GameObject("root");
