@@ -321,6 +321,23 @@ namespace UniVRMXT.MaterialsOverride
                 return;
             }
 
+            // Resolve live mats for this store key (honors Name#N). Those are the slots
+            // currently showing stock or a DontSave preview that we need to replace.
+            var liveTargets = new HashSet<Material>();
+            foreach (var live in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
+                         root, materialName))
+            {
+                if (live != null)
+                {
+                    liveTargets.Add(live);
+                }
+            }
+
+            if (liveTargets.Count == 0)
+            {
+                return;
+            }
+
             var renderers = root.GetComponentsInChildren<Renderer>(true);
             for (var i = 0; i < renderers.Length; i++)
             {
@@ -335,7 +352,7 @@ namespace UniVRMXT.MaterialsOverride
                 for (var j = 0; j < shared.Length; j++)
                 {
                     var current = shared[j];
-                    if (current == null || !MaterialNameMatches(current.name, materialName))
+                    if (current == null || !liveTargets.Contains(current))
                     {
                         continue;
                     }

@@ -99,6 +99,100 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void ClearOverrides_RestoresSourceAndClearsOverrideFields()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+
+            var stock = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var overrideMat = new Material(Shader.Find("Standard")) { name = "Override" };
+            overrideMat.SetFloat("_Metallic", 0.77f);
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = stock;
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.SetPairs(new[]
+            {
+                new VrmxtMaterialsOverridePair("Hair", @"{""specVersion"":""1.0"",""overrides"":[]}")
+                {
+                    SourceMaterial = stock,
+                    OverrideMaterial = overrideMat,
+                },
+            });
+
+            try
+            {
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+                Assert.AreNotSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+
+                instance.ClearOverrides();
+
+                Assert.AreSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.IsNull(instance.Pairs[0].OverrideMaterial);
+                Assert.IsTrue(string.IsNullOrEmpty(instance.Pairs[0].ExtensionJson));
+                Assert.AreSame(stock, instance.Pairs[0].SourceMaterial);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+                Object.DestroyImmediate(stock);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ClearOverrideAt_ClearsOnlyTargetPair()
+        {
+            var root = new GameObject("root");
+            var meshA = new GameObject("meshA");
+            var meshB = new GameObject("meshB");
+            meshA.transform.SetParent(root.transform, false);
+            meshB.transform.SetParent(root.transform, false);
+
+            var stockA = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var stockB = new Material(Shader.Find("Standard")) { name = "Face" };
+            var overrideA = new Material(Shader.Find("Standard")) { name = "OverrideA" };
+            overrideA.SetFloat("_Metallic", 0.5f);
+            meshA.AddComponent<MeshRenderer>().sharedMaterial = stockA;
+            meshB.AddComponent<MeshRenderer>().sharedMaterial = stockB;
+
+            const string faceJson =
+                @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""X""}}]}";
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.SetPairs(new[]
+            {
+                new VrmxtMaterialsOverridePair("Hair", null)
+                {
+                    SourceMaterial = stockA,
+                    OverrideMaterial = overrideA,
+                },
+                new VrmxtMaterialsOverridePair("Face", faceJson)
+                {
+                    SourceMaterial = stockB,
+                },
+            });
+
+            try
+            {
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+                Assert.IsTrue(instance.ClearOverrideAt(0));
+
+                Assert.AreSame(stockA, meshA.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.IsNull(instance.Pairs[0].OverrideMaterial);
+                Assert.IsTrue(string.IsNullOrEmpty(instance.Pairs[0].ExtensionJson));
+                Assert.AreEqual(faceJson, instance.Pairs[1].ExtensionJson);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideA);
+                Object.DestroyImmediate(stockA);
+                Object.DestroyImmediate(stockB);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void VrmxtInstance_EnsureOn_WiresMaterialsOverride()
         {
             var root = new GameObject("root");

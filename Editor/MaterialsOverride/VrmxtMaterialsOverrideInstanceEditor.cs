@@ -1,3 +1,5 @@
+using System.Text;
+using UniVRMXT.Format;
 using UniVRMXT.MaterialsOverride;
 using UnityEditor;
 using UnityEngine;
@@ -6,6 +8,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
 {
     /// <summary>
     /// Hybrid pair inspector: read-only glTF name + source material; editable override.
+    /// Shows per-pair status so imported JSON overrides are visible without an Override Material.
     /// </summary>
     [CustomEditor(typeof(VrmxtMaterialsOverrideInstance))]
     public sealed class VrmxtMaterialsOverrideInstanceEditor : UnityEditor.Editor
@@ -24,7 +27,10 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             EditorGUILayout.LabelField("Material Override Pairs", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "VRM/glTF side is read-only (name + source material). Assign Override Material to author.",
+                "Override Material is optional authoring: assign one only when you want to " +
+                "rewrite the Unity override from that asset. Imported VRMs keep overrides in " +
+                "extension JSON — an empty Override Material after import is normal. See each " +
+                "pair's Status line.",
                 MessageType.Info);
 
             if (_pairs != null)
@@ -44,7 +50,10 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 Undo.RecordObject(instance, "Populate Materials Override Pairs");
                 instance.PopulatePairsFromRenderers();
                 EditorUtility.SetDirty(instance);
+                // Reload + exit: ApplyModifiedProperties below would otherwise write stale
+                // SerializedProperty values back over the mutated instance.
                 serializedObject.Update();
+                GUIUtility.ExitGUI();
             }
 
             if (GUILayout.Button("Clear Material Overrides"))
@@ -54,6 +63,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 instance.ClearOverrides();
                 EditorUtility.SetDirty(instance);
                 serializedObject.Update();
+                GUIUtility.ExitGUI();
             }
 
             EditorGUILayout.EndHorizontal();
@@ -77,13 +87,19 @@ namespace UniVRMXT.Editor.MaterialsOverride
             serializedObject.ApplyModifiedProperties();
         }
 
-        private static void DrawPair(SerializedProperty element, int index)
+        private void DrawPair(SerializedProperty element, int index)
         {
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
             var nameProp = element.FindPropertyRelative("MaterialName");
             var sourceProp = element.FindPropertyRelative("SourceMaterial");
             var overrideProp = element.FindPropertyRelative("OverrideMaterial");
+            var jsonProp = element.FindPropertyRelative("ExtensionJson");
+
+            var overrideMat = overrideProp?.objectReferenceValue as Material;
+            var json = jsonProp?.stringValue;
+            BuildPairStatus(json, overrideMat != null, out var statusLabel, out var detail);
+            var canClear = statusLabel != "Stock";
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.TextField("Material Name", nameProp?.stringValue ?? string.Empty);
@@ -94,12 +110,133 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 true);
             EditorGUI.EndDisabledGroup();
 
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Status", statusLabel, EditorStyles.boldLabel);
+            EditorGUI.BeginDisabledGroup(!canClear);
+            if (GUILayout.Button("Clear", GUILayout.Width(56f)))
+            {
+                var instance = (VrmxtMaterialsOverrideInstance)target;
+                var label = nameProp?.stringValue;
+                Undo.RecordObject(
+                    instance,
+                    string.IsNullOrEmpty(label)
+                        ? "Clear Material Override"
+                        : $"Clear Material Override ({label})");
+                instance.ClearOverrideAt(index);
+                EditorUtility.SetDirty(instance);
+                serializedObject.Update();
+                GUIUtility.ExitGUI();
+            }
+
+            EditorGUI.EndDisabledGroup();
+            EditorGUILayout.EndHorizontal();
+
+            if (!string.IsNullOrEmpty(detail))
+            {
+                EditorGUILayout.LabelField(detail, EditorStyles.wordWrappedMiniLabel);
+            }
+
             if (overrideProp != null)
             {
-                EditorGUILayout.PropertyField(overrideProp, new GUIContent("Override Material"));
+                EditorGUILayout.PropertyField(
+                    overrideProp,
+                    new GUIContent(
+                        "Override Material",
+                        "Optional. Assign to author/rewrite the Unity override from this asset. " +
+                        "Leave empty when using imported extension JSON only."));
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Stock | Imported | Authored | Imported + Authored, plus a one-line unity/engine summary.
+        /// </summary>
+        private static void BuildPairStatus(
+            string extensionJson,
+            bool hasOverrideMaterial,
+            out string statusLabel,
+            out string detail)
+        {
+            detail = null;
+            var hasFileJson = !string.IsNullOrWhiteSpace(extensionJson);
+            VrmxtMaterialsOverrideExtension extension = null;
+            var parsed = hasFileJson &&
+                         VrmxtMaterialsOverride.TryParse(extensionJson, out extension);
+            var hasFileOverride = parsed && extension != null && extension.Overrides.Count > 0;
+
+            if (hasFileOverride && hasOverrideMaterial)
+            {
+                statusLabel = "Imported + Authored";
+            }
+            else if (hasFileOverride)
+            {
+                statusLabel = "Imported";
+            }
+            else if (hasFileJson && !parsed)
+            {
+                statusLabel = "Invalid JSON";
+                detail = "Extension JSON present but failed to parse.";
+            }
+            else if (hasOverrideMaterial)
+            {
+                statusLabel = "Authored";
+                detail = "Local Override Material assigned; sync writes unity into extension JSON.";
+            }
+            else
+            {
+                statusLabel = "Stock";
+                detail = "No VRMXT_materials_override on this material.";
+                return;
+            }
+
+            if (!parsed)
+            {
+                return;
+            }
+
+            detail = BuildDetail(extension, hasOverrideMaterial);
+        }
+
+        private static string BuildDetail(
+            VrmxtMaterialsOverrideExtension extension,
+            bool hasOverrideMaterial)
+        {
+            var sb = new StringBuilder();
+
+            if (VrmxtMaterialsOverride.TryGetUnityOverride(extension, out var unity))
+            {
+                sb.Append("unity · ");
+                sb.Append(unity.ShaderName ?? unity.Id ?? "(no id)");
+                if (!string.IsNullOrEmpty(unity.Variant))
+                {
+                    sb.Append(" · ");
+                    sb.Append(unity.Variant);
+                }
+            }
+            else
+            {
+                sb.Append("no unity engine entry");
+            }
+
+            foreach (var entry in extension.Overrides)
+            {
+                if (entry == null ||
+                    string.Equals(entry.Engine, VrmxtMaterialsOverride.EngineUnity, System.StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                sb.Append(" · +");
+                sb.Append(entry.Engine);
+            }
+
+            if (hasOverrideMaterial)
+            {
+                sb.Append(" · local Override Material assigned (will rewrite unity on sync/export)");
+            }
+
+            return sb.ToString();
         }
     }
 }
