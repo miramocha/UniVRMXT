@@ -18,8 +18,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `DetectActivePipeline`: identify URP/HDRP via `Object.ToString()` instead of
   `GetType().Name` so Warudo/UMod can vendor Applier (code security bans Reflection)
-- Materials Override name match: strip ` (Instance)` on both store keys and live
-  material names (Warudo clone exports bake suffix into glTF `materials[].name`)
+- Materials Override name match: strip ` (Instance)` when comparing store keys to live
+  material names (keep suffix on store keys so `Hair` vs `Hair (Instance)` stay distinct)
+- Materials Override: store `GltfMaterialIndex` on pairs; sibling MToon lookup prefers index,
+  continues past same-name slots without MToon, honors `Name#N` among override-bearing slots
+- `RememberTexturesFromPairs` also decodes MToon binding texture indices when glTF JSON is
+  provided (Warudo/Editor release-ownership path)
 - Sample `TestOverrideURP`: drop URP package includes / `PackageRequirements`; use CG +
   `SRPDefaultUnlit` so Built-in-only hosts can ship a pass Warudo URP draws
   (`UniversalForward` without URP Core.hlsl still pinks)

@@ -218,7 +218,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     }",
                     out var store));
 
-                Assert.IsTrue(store.TryGetPair("Hair", out var pair));
+                Assert.IsTrue(store.TryGetPair("Hair (Instance)", out var pair));
                 pair.SourceMaterial = material;
 
                 var applied = VrmxtMaterialsOverrideApplier.Apply(
