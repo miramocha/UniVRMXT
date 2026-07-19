@@ -1,4 +1,3 @@
-using System;
 using NUnit.Framework;
 using UniVRMXT.MaterialsOverride;
 using UnityEngine;
@@ -123,7 +122,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
             try
             {
                 VrmxtMaterialsOverrideApplier.ShaderResolveProvider = name =>
-                    string.Equals(name, "Host/Only/PackagedShader", StringComparison.Ordinal)
+                    string.Equals(name, "Host/Only/PackagedShader", System.StringComparison.Ordinal)
                         ? replacement
                         : null;
 
