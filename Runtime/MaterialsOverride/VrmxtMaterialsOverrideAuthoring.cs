@@ -122,6 +122,11 @@ namespace UniVRMXT.MaterialsOverride
                     siblings.Add(StampEmptyUnityVariantForSibling(emptyVariantUnity, activeVariant));
                 }
             }
+            else if (emptyVariantUnity != null)
+            {
+                // Active typed slot already matched — still keep the empty sibling.
+                siblings.Add(StampEmptyUnityVariantForSibling(emptyVariantUnity, activeVariant));
+            }
 
             if (slotVariant == null)
             {

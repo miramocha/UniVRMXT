@@ -217,7 +217,66 @@ namespace UniVRMXT.MaterialsOverride
             var resolvedMaterial = false;
             var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
                 VrmxtMaterialsOverrideApplier.DetectActivePipeline());
-            var unityOverrideCount = CountUnityOverrides(overrides);
+            var activeUnitySlot = FindUnitySlotForTextureRemap(overrides, activeVariant);
+            if (activeUnitySlot == null)
+            {
+                return;
+            }
+
+            if (!activeUnitySlot.TryGetValue("properties", StringComparison.Ordinal, out var propertiesToken) ||
+                propertiesToken is not JArray properties)
+            {
+                return;
+            }
+
+            // Snapshot first: texture properties that fail to remap are removed from
+            // `properties` below, which would otherwise corrupt in-place iteration.
+            foreach (var propertyToken in new List<JToken>(properties))
+            {
+                if (propertyToken is not JObject propertyObject ||
+                    !propertyObject.TryGetValue("type", StringComparison.Ordinal, out var typeToken) ||
+                    typeToken.Type != JTokenType.String ||
+                    !string.Equals(typeToken.Value<string>(), "texture", StringComparison.Ordinal))
+                {
+                    // Not a texture property; nothing to remap or drop.
+                    continue;
+                }
+
+                if (!resolvedMaterial)
+                {
+                    liveMaterial = ResolveTextureSourceMaterial(root, entry.MaterialName, instance);
+                    resolvedMaterial = true;
+                }
+
+                if (!TryRemapTextureProperty(propertyObject, liveMaterial, registerSrgbTexture, out var newIndex))
+                {
+                    // No live material, missing name, missing property, null texture,
+                    // or a failed register call: never carry the stale imported glTF
+                    // texture index into a new export — drop the property entirely.
+                    propertyToken.Remove();
+                    continue;
+                }
+
+                propertyObject["texture"] = newIndex;
+            }
+        }
+
+        /// <summary>
+        /// Same selection as <see cref="UnityOverrideSelector"/>: exact active variant,
+        /// else exactly one empty/omitted variant, else the sole unity entry (any variant).
+        /// </summary>
+        private static JObject FindUnitySlotForTextureRemap(JArray overrides, string activeVariant)
+        {
+            if (overrides == null)
+            {
+                return null;
+            }
+
+            JObject exact = null;
+            JObject emptyVariant = null;
+            JObject soleUnity = null;
+            var emptyCount = 0;
+            var unityCount = 0;
 
             foreach (var overrideToken in overrides)
             {
@@ -229,109 +288,43 @@ namespace UniVRMXT.MaterialsOverride
                     continue;
                 }
 
-                // Remap textures only on the active (unity, variant) slot; sibling pipeline
-                // slots write through their stored texture indices unchanged. A lone unity
-                // entry (any variant) still remaps so single-slot re-export from any RP works.
-                if (!IsActiveUnitySlot(overrideObject, activeVariant, unityOverrideCount))
+                unityCount++;
+                soleUnity = overrideObject;
+
+                string variant = null;
+                if (overrideObject.TryGetValue("material", StringComparison.Ordinal, out var materialToken) &&
+                    materialToken is JObject materialObject &&
+                    materialObject.TryGetValue("variant", StringComparison.Ordinal, out var variantToken) &&
+                    variantToken.Type == JTokenType.String)
                 {
+                    variant = variantToken.Value<string>();
+                }
+
+                if (string.IsNullOrEmpty(variant))
+                {
+                    emptyCount++;
+                    emptyVariant = overrideObject;
                     continue;
                 }
 
-                if (!overrideObject.TryGetValue("properties", StringComparison.Ordinal, out var propertiesToken) ||
-                    propertiesToken is not JArray properties)
+                if (string.Equals(variant, activeVariant, StringComparison.Ordinal))
                 {
-                    continue;
-                }
-
-                // Snapshot first: texture properties that fail to remap are removed from
-                // `properties` below, which would otherwise corrupt in-place iteration.
-                foreach (var propertyToken in new List<JToken>(properties))
-                {
-                    if (propertyToken is not JObject propertyObject ||
-                        !propertyObject.TryGetValue("type", StringComparison.Ordinal, out var typeToken) ||
-                        typeToken.Type != JTokenType.String ||
-                        !string.Equals(typeToken.Value<string>(), "texture", StringComparison.Ordinal))
-                    {
-                        // Not a texture property; nothing to remap or drop.
-                        continue;
-                    }
-
-                    if (!resolvedMaterial)
-                    {
-                        liveMaterial = ResolveTextureSourceMaterial(root, entry.MaterialName, instance);
-                        resolvedMaterial = true;
-                    }
-
-                    if (!TryRemapTextureProperty(propertyObject, liveMaterial, registerSrgbTexture, out var newIndex))
-                    {
-                        // No live material, missing name, missing property, null texture,
-                        // or a failed register call: never carry the stale imported glTF
-                        // texture index into a new export — drop the property entirely.
-                        propertyToken.Remove();
-                        continue;
-                    }
-
-                    propertyObject["texture"] = newIndex;
-                }
-            }
-        }
-
-        private static int CountUnityOverrides(JArray overrides)
-        {
-            var count = 0;
-            if (overrides == null)
-            {
-                return 0;
-            }
-
-            foreach (var overrideToken in overrides)
-            {
-                if (overrideToken is JObject overrideObject &&
-                    overrideObject.TryGetValue("engine", StringComparison.Ordinal, out var engineToken) &&
-                    engineToken.Type == JTokenType.String &&
-                    string.Equals(engineToken.Value<string>(), "unity", StringComparison.Ordinal))
-                {
-                    count++;
+                    exact = overrideObject;
                 }
             }
 
-            return count;
-        }
-
-        /// <summary>
-        /// Active slot = exact variant match, empty/omitted variant, or the sole unity entry.
-        /// </summary>
-        private static bool IsActiveUnitySlot(
-            JObject overrideObject,
-            string activeVariant,
-            int unityOverrideCount)
-        {
-            if (overrideObject == null)
+            if (exact != null)
             {
-                return false;
+                return exact;
             }
 
-            string variant = null;
-            if (overrideObject.TryGetValue("material", StringComparison.Ordinal, out var materialToken) &&
-                materialToken is JObject materialObject &&
-                materialObject.TryGetValue("variant", StringComparison.Ordinal, out var variantToken) &&
-                variantToken.Type == JTokenType.String)
+            if (emptyCount == 1)
             {
-                variant = variantToken.Value<string>();
-            }
-
-            if (string.IsNullOrEmpty(variant))
-            {
-                return true;
-            }
-
-            if (string.Equals(variant, activeVariant, StringComparison.Ordinal))
-            {
-                return true;
+                return emptyVariant;
             }
 
             // Single-slot file re-exported from a different RP: still remap that slot.
-            return unityOverrideCount == 1;
+            return unityCount == 1 ? soleUnity : null;
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 using System.Text;
 using NUnit.Framework;
+using UniVRMXT.Format;
 using UniVRMXT.MaterialsOverride;
 using UnityEngine;
 
@@ -160,6 +161,109 @@ namespace UniVRMXT.Tests.MaterialsOverride
             finally
             {
                 Object.DestroyImmediate(overrideMat);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void PrepareTextures_RemapsOnlySelectedSlot_LeavesSiblingTextureIndex()
+        {
+            var root = new GameObject("root");
+            var meshGo = new GameObject("mesh");
+            meshGo.transform.SetParent(root.transform, false);
+            var texture = new Texture2D(2, 2);
+            var shader = Shader.Find("Standard");
+            var material = new Material(shader) { name = "Hair" };
+
+            try
+            {
+                material.SetTexture("_MainTex", texture);
+                meshGo.AddComponent<MeshRenderer>().sharedMaterial = material;
+
+                const string multiSlotJson = @"
+                    {
+                      ""specVersion"": ""1.0"",
+                      ""overrides"": [
+                        {
+                          ""engine"": ""unity"",
+                          ""material"": {
+                            ""idType"": ""shaderName"",
+                            ""id"": ""Builtin/Shader"",
+                            ""variant"": ""builtin""
+                          },
+                          ""properties"": [
+                            { ""name"": ""_MainTex"", ""type"": ""texture"", ""texture"": 3 }
+                          ]
+                        },
+                        {
+                          ""engine"": ""unity"",
+                          ""material"": {
+                            ""idType"": ""shaderName"",
+                            ""id"": ""Urp/Shader"",
+                            ""variant"": ""urp""
+                          },
+                          ""properties"": [
+                            { ""name"": ""_MainTex"", ""type"": ""texture"", ""texture"": 0 }
+                          ]
+                        },
+                        {
+                          ""engine"": ""unity"",
+                          ""material"": {
+                            ""idType"": ""shaderName"",
+                            ""id"": ""Empty/Shader""
+                          },
+                          ""properties"": [
+                            { ""name"": ""_MainTex"", ""type"": ""texture"", ""texture"": 9 }
+                          ]
+                        }
+                      ]
+                    }
+                    ";
+
+                // Three unity slots: typed builtin + urp + empty. Empty must not be remapped
+                // when a typed active match exists.
+                Assert.IsTrue(VrmxtMaterialsOverride.TryParse(multiSlotJson, out _));
+
+                var store = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+                store.SetEntries(new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", multiSlotJson),
+                });
+
+                var pending = VrmxtMaterialsOverrideExporter.BuildPending(store);
+                VrmxtMaterialsOverrideExporter.PrepareTextures(pending, root, (tex, needsAlpha) => 7);
+
+                Assert.IsTrue(VrmxtMaterialsOverrideExporter.TryBuildUtf8Extension(pending, "Hair", out var utf8));
+                var json = Encoding.UTF8.GetString(utf8);
+
+                // Sibling empty slot write-through keeps its original texture index when a
+                // typed active match exists (BIRP/URP hosts).
+                var active = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
+                if (active == RenderPipelineVariant.Builtin)
+                {
+                    StringAssert.Contains("\"texture\":7", json);
+                    StringAssert.Contains("\"texture\":0", json);
+                    StringAssert.Contains("\"texture\":9", json);
+                }
+                else if (active == RenderPipelineVariant.Urp)
+                {
+                    StringAssert.Contains("\"texture\":7", json);
+                    StringAssert.Contains("\"texture\":3", json);
+                    StringAssert.Contains("\"texture\":9", json);
+                }
+                else
+                {
+                    // HDRP: no exact typed match → empty selected; its index remaps to 7.
+                    StringAssert.Contains("\"texture\":7", json);
+                    StringAssert.Contains("\"texture\":3", json);
+                    StringAssert.Contains("\"texture\":0", json);
+                    StringAssert.DoesNotContain("\"texture\":9", json);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(material);
                 Object.DestroyImmediate(root);
             }
         }

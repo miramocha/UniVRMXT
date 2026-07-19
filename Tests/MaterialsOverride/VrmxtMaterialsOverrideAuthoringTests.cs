@@ -99,6 +99,68 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void SyncUnityOverrideFromMaterial_KeepsEmptySibling_WhenActiveTypedSlotMatched()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+
+            var overrideMat = new Material(shader) { name = "Override" };
+            try
+            {
+                var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline());
+
+                // Typed active slot + empty-variant sibling — Sync must keep the empty one.
+                var initialJson =
+                    "{\"specVersion\":\"1.0\",\"overrides\":[" +
+                    "{\"engine\":\"unity\",\"material\":{\"idType\":\"shaderName\",\"id\":\"Active/Shader\",\"variant\":\"" +
+                    activeVariant +
+                    "\"},\"properties\":[]}," +
+                    "{\"engine\":\"unity\",\"material\":{\"idType\":\"shaderName\",\"id\":\"Empty/Shader\"},\"properties\":[" +
+                    "{\"name\":\"_Color\",\"type\":\"vector\",\"value\":[0,1,0,1]}]}" +
+                    "]}";
+
+                // Duplicate (engine, empty variant) + typed is valid selection-key-wise.
+                Assert.IsTrue(VrmxtMaterialsOverride.TryParse(initialJson, out _), initialJson);
+
+                var pair = new VrmxtMaterialsOverridePair("Hair", initialJson)
+                {
+                    OverrideMaterial = overrideMat,
+                };
+                VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);
+
+                Assert.IsTrue(VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension));
+                Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverrides(extension, out var slots));
+                Assert.GreaterOrEqual(slots.Count, 2, pair.ExtensionJson);
+
+                var hasActive = false;
+                var hasPreservedEmptyContent = false;
+                foreach (var slot in slots)
+                {
+                    var unity = (UnityMaterialOverride)slot.Material;
+                    if (string.Equals(unity.Variant, activeVariant, System.StringComparison.Ordinal) &&
+                        unity.ShaderName == "Standard")
+                    {
+                        hasActive = true;
+                    }
+
+                    // Empty may be stamped to builtin when active is urp/hdrp.
+                    if (unity.ShaderName == "Empty/Shader")
+                    {
+                        hasPreservedEmptyContent = true;
+                    }
+                }
+
+                Assert.IsTrue(hasActive, pair.ExtensionJson);
+                Assert.IsTrue(hasPreservedEmptyContent, pair.ExtensionJson);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+            }
+        }
+
+        [Test]
         public void SyncUnityOverrideFromMaterial_KeepsBuiltinSibling_WhenShaderDiffers()
         {
             var shader = Shader.Find("Standard");

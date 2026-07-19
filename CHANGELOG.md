@@ -11,8 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Materials Override: selection-key uniqueness (`engine` + `material.variant` for Unity/Unreal) — multiple `unity` slots (`builtin` / `urp` / `hdrp`) and multiple `unreal` slots allowed; duplicate `(engine, variant)` rejected
 - Unreal format: `idType: resourcePath` + `id` + `variant` (no `materialSet` map)
 - `UnityOverrideSelector` / Applier / Generator: pick among multi-slot `unity` entries by active RP (exact variant, else single empty variant, else stock)
-- Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export; empty-variant slots keep their content when the Override Material shader differs (do not fold into active RP)
-- Export `PrepareTextures` remaps textures on the active unity slot only; sibling slots write through
+- Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export; empty-variant siblings are kept even when the active typed slot already matched; empty-variant slots keep their content when the Override Material shader differs (do not fold into active RP)
+- Export `PrepareTextures` remaps textures only on the selector-chosen unity slot (exact variant, else single empty, else sole entry); sibling slots write through
 - Materials Override inspector: lists each unity/unreal variant slot in Status detail; Override Material assign reloads SerializedObject after Sync so multi-slot JSON is not stomped
 - Materials Override inspector: per-pair Status (`Stock` / `Imported` / `Authored` / `Imported + Authored`) with unity shader·variant summary; HelpBox clarifies empty Override Material after import is normal; per-pair **Clear** plus `ClearOverrideAt` / `ClearOverride`
 
