@@ -76,9 +76,12 @@ namespace UniVRMXT.MaterialsOverride
         }
 
         /// <summary>
-        /// Re-snapshot <c>unity</c> <c>properties[].texture</c> entries from the live
-        /// <see cref="Material"/> on <paramref name="root"/> when the property's Unity
-        /// texture is not already tracked by the imported file (MVP re-snapshot path).
+        /// Re-snapshot <c>unity</c> <c>properties[].texture</c> entries for every unity
+        /// slot: the selector-chosen slot prefers the live
+        /// <see cref="Material"/> / OverrideMaterial; all slots (including foreign RP)
+        /// fall back to <see cref="VrmxtMaterialsOverrideInstance.ImportedTextures"/> so
+        /// images are re-registered into the new GLB. Stale write-through indices are never
+        /// kept — unresolvable texture properties are dropped.
         /// Mutates the cloned JSON in <paramref name="pending"/>, never the source
         /// <see cref="VrmxtMaterialsOverrideInstance"/> entry — the caller still owns whether
         /// to persist the rewritten extension back onto the store.
@@ -218,53 +221,78 @@ namespace UniVRMXT.MaterialsOverride
             var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
                 VrmxtMaterialsOverrideApplier.DetectActivePipeline());
             var activeUnitySlot = FindUnitySlotForTextureRemap(overrides, activeVariant);
-            if (activeUnitySlot == null)
-            {
-                return;
-            }
 
-            if (!activeUnitySlot.TryGetValue("properties", StringComparison.Ordinal, out var propertiesToken) ||
-                propertiesToken is not JArray properties)
+            foreach (var overrideToken in overrides)
             {
-                return;
-            }
-
-            // Snapshot first: texture properties that fail to remap are removed from
-            // `properties` below, which would otherwise corrupt in-place iteration.
-            foreach (var propertyToken in new List<JToken>(properties))
-            {
-                if (propertyToken is not JObject propertyObject ||
-                    !propertyObject.TryGetValue("type", StringComparison.Ordinal, out var typeToken) ||
-                    typeToken.Type != JTokenType.String ||
-                    !string.Equals(typeToken.Value<string>(), "texture", StringComparison.Ordinal))
+                if (overrideToken is not JObject overrideObject ||
+                    !overrideObject.TryGetValue("engine", StringComparison.Ordinal, out var engineToken) ||
+                    engineToken.Type != JTokenType.String ||
+                    !string.Equals(engineToken.Value<string>(), "unity", StringComparison.Ordinal))
                 {
-                    // Not a texture property; nothing to remap or drop.
                     continue;
                 }
 
-                if (!resolvedMaterial)
+                if (!overrideObject.TryGetValue("properties", StringComparison.Ordinal, out var propertiesToken) ||
+                    propertiesToken is not JArray properties)
                 {
-                    liveMaterial = ResolveTextureSourceMaterial(root, entry.MaterialName, instance);
-                    resolvedMaterial = true;
-                }
-
-                if (!TryRemapTextureProperty(propertyObject, liveMaterial, registerSrgbTexture, out var newIndex))
-                {
-                    // No live material, missing name, missing property, null texture,
-                    // or a failed register call: never carry the stale imported glTF
-                    // texture index into a new export — drop the property entirely.
-                    propertyToken.Remove();
                     continue;
                 }
 
-                propertyObject["texture"] = newIndex;
+                var isActiveSlot = ReferenceEquals(overrideObject, activeUnitySlot);
+
+                // Snapshot first: texture properties that fail to remap are removed from
+                // `properties` below, which would otherwise corrupt in-place iteration.
+                foreach (var propertyToken in new List<JToken>(properties))
+                {
+                    if (propertyToken is not JObject propertyObject ||
+                        !propertyObject.TryGetValue("type", StringComparison.Ordinal, out var typeToken) ||
+                        typeToken.Type != JTokenType.String ||
+                        !string.Equals(typeToken.Value<string>(), "texture", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var remapped = false;
+                    var newIndex = 0;
+
+                    if (isActiveSlot)
+                    {
+                        if (!resolvedMaterial)
+                        {
+                            liveMaterial = ResolveTextureSourceMaterial(root, entry.MaterialName, instance);
+                            resolvedMaterial = true;
+                        }
+
+                        remapped = TryRemapTextureProperty(
+                            propertyObject, liveMaterial, registerSrgbTexture, out newIndex);
+                    }
+
+                    if (!remapped &&
+                        TryGetTextureIndex(propertyObject, out var oldIndex) &&
+                        instance != null &&
+                        instance.TryGetImportedTexture(oldIndex, out var imported) &&
+                        TryRegisterTexture(imported, registerSrgbTexture, out newIndex))
+                    {
+                        remapped = true;
+                    }
+
+                    if (!remapped)
+                    {
+                        // Never carry a stale imported glTF texture index into a new export.
+                        propertyToken.Remove();
+                        continue;
+                    }
+
+                    propertyObject["texture"] = newIndex;
+                }
             }
         }
 
         /// <summary>
         /// Same selection as <see cref="UnityOverrideSelector"/> for texture remap:
-        /// exact active variant, else exactly one empty/omitted variant. Typed slots for
-        /// other pipelines are never remapped here (write-through).
+        /// exact active variant, else exactly one empty/omitted variant. Used to prefer
+        /// live OverrideMaterial / mesh textures for the selected slot; other unity slots
+        /// re-register from <see cref="VrmxtMaterialsOverrideInstance.ImportedTextures"/>.
         /// </summary>
         private static JObject FindUnitySlotForTextureRemap(JArray overrides, string activeVariant)
         {
@@ -319,11 +347,44 @@ namespace UniVRMXT.MaterialsOverride
                 return emptyVariant;
             }
 
-            // Do not remap a typed slot for a different RP (e.g. builtin-only file exported
-            // from URP). Stock mesh materials on that host lack the override textures —
-            // remapping would drop properties[].texture and destroy the sibling slot.
-            // Leave foreign slots write-through (indices unchanged).
             return null;
+        }
+
+        private static bool TryGetTextureIndex(JObject propertyObject, out int textureIndex)
+        {
+            textureIndex = 0;
+            if (propertyObject == null ||
+                !propertyObject.TryGetValue("texture", StringComparison.Ordinal, out var textureToken) ||
+                textureToken.Type != JTokenType.Integer)
+            {
+                return false;
+            }
+
+            textureIndex = textureToken.Value<int>();
+            return textureIndex >= 0;
+        }
+
+        private static bool TryRegisterTexture(
+            Texture texture,
+            Func<Texture, bool, int> registerSrgbTexture,
+            out int newIndex)
+        {
+            newIndex = 0;
+            if (texture == null || registerSrgbTexture == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                newIndex = registerSrgbTexture(texture, false);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            return newIndex >= 0;
         }
 
         /// <summary>
@@ -367,21 +428,7 @@ namespace UniVRMXT.MaterialsOverride
             }
 
             var texture = liveMaterial.GetTexture(propertyName);
-            if (texture == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                newIndex = registerSrgbTexture(texture, false);
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-
-            return newIndex >= 0;
+            return TryRegisterTexture(texture, registerSrgbTexture, out newIndex);
         }
 
         /// <summary>

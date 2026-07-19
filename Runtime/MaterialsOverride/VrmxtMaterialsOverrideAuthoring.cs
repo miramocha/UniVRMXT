@@ -119,13 +119,19 @@ namespace UniVRMXT.MaterialsOverride
                 }
                 else
                 {
-                    siblings.Add(StampEmptyUnityVariantForSibling(emptyVariantUnity, activeVariant));
+                    siblings.Add(StampEmptyUnityVariantForSibling(
+                        emptyVariantUnity,
+                        activeVariant,
+                        CollectOccupiedUnityVariants(siblings, activeVariant)));
                 }
             }
             else if (emptyVariantUnity != null)
             {
                 // Active typed slot already matched — still keep the empty sibling.
-                siblings.Add(StampEmptyUnityVariantForSibling(emptyVariantUnity, activeVariant));
+                siblings.Add(StampEmptyUnityVariantForSibling(
+                    emptyVariantUnity,
+                    activeVariant,
+                    CollectOccupiedUnityVariants(siblings, activeVariant)));
             }
 
             if (slotVariant == null)
@@ -159,12 +165,45 @@ namespace UniVRMXT.MaterialsOverride
         }
 
         /// <summary>
+        /// Variants already taken by sibling unity slots plus the active slot about to be
+        /// written — used so empty→builtin stamping cannot collide with an existing builtin.
+        /// </summary>
+        private static HashSet<string> CollectOccupiedUnityVariants(
+            IReadOnlyList<VrmxtMaterialEngineOverride> siblings,
+            string activeVariant)
+        {
+            var occupied = new HashSet<string>(StringComparer.Ordinal);
+            if (!string.IsNullOrEmpty(activeVariant))
+            {
+                occupied.Add(activeVariant);
+            }
+
+            if (siblings == null)
+            {
+                return occupied;
+            }
+
+            for (var i = 0; i < siblings.Count; i++)
+            {
+                if (siblings[i]?.Material is UnityMaterialOverride unity &&
+                    !string.IsNullOrEmpty(unity.Variant))
+                {
+                    occupied.Add(unity.Variant);
+                }
+            }
+
+            return occupied;
+        }
+
+        /// <summary>
         /// When keeping an empty-variant unity entry beside a new typed slot, give it a
         /// concrete variant so selection-key uniqueness stays valid (2+ unity entries).
+        /// Skips stamping when the preferred variant is already occupied (leave empty).
         /// </summary>
         private static VrmxtMaterialEngineOverride StampEmptyUnityVariantForSibling(
             VrmxtMaterialEngineOverride emptyEntry,
-            string activeVariant)
+            string activeVariant,
+            HashSet<string> occupiedVariants)
         {
             var emptyUnity = emptyEntry?.Material as UnityMaterialOverride;
             if (emptyUnity == null || !string.IsNullOrEmpty(emptyUnity.Variant))
@@ -176,8 +215,11 @@ namespace UniVRMXT.MaterialsOverride
             var stampedVariant = string.Equals(activeVariant, "builtin", StringComparison.Ordinal)
                 ? null
                 : "builtin";
-            if (string.IsNullOrEmpty(stampedVariant))
+            if (string.IsNullOrEmpty(stampedVariant) ||
+                (occupiedVariants != null && occupiedVariants.Contains(stampedVariant)))
             {
+                // Prefer leaving empty over duplicating (unity, builtin) — TryParse rejects
+                // duplicate selection keys.
                 return emptyEntry;
             }
 

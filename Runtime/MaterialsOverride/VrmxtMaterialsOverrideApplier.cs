@@ -53,6 +53,14 @@ namespace UniVRMXT.MaterialsOverride
                 return 0;
             }
 
+            // Prefer caller resolver; else use textures decoded/persisted on the Instance
+            // (Editor import hook path after GLB ReleaseOwnership).
+            if (resolveTexture == null)
+            {
+                resolveTexture = index =>
+                    store.TryGetImportedTexture(index, out var texture) ? texture : null;
+            }
+
             var gltfRoot = TryParseGltfRoot(gltfJson);
 
             var applied = 0;

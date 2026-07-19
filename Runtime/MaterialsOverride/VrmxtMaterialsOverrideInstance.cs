@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UniVRMXT.Format;
 using UnityEngine;
 
 namespace UniVRMXT.MaterialsOverride
@@ -15,10 +16,19 @@ namespace UniVRMXT.MaterialsOverride
         [SerializeField]
         private List<VrmxtMaterialsOverridePair> pairs = new();
 
+        /// <summary>
+        /// glTF <c>textures[]</c> decoded on import for override property/binding indices.
+        /// Survives as sub-assets so re-export can re-register foreign-RP slot textures.
+        /// </summary>
+        [SerializeField]
+        private List<VrmxtImportedGltfTexture> importedTextures = new();
+
         public IReadOnlyList<VrmxtMaterialsOverridePair> Pairs => pairs;
 
         /// <summary>Alias for callers migrating from the former Entries API.</summary>
         public IReadOnlyList<VrmxtMaterialsOverridePair> Entries => pairs;
+
+        public IReadOnlyList<VrmxtImportedGltfTexture> ImportedTextures => importedTextures;
 
         public void SetPairs(IEnumerable<VrmxtMaterialsOverridePair> values)
         {
@@ -34,9 +44,106 @@ namespace UniVRMXT.MaterialsOverride
         /// <summary>Alias for <see cref="SetPairs"/>.</summary>
         public void SetEntries(IEnumerable<VrmxtMaterialsOverridePair> values) => SetPairs(values);
 
+        public void ClearImportedTextures()
+        {
+            importedTextures.Clear();
+        }
+
+        /// <summary>
+        /// Remember a decoded glTF texture by its import-time index. Later indices for the
+        /// same slot overwrite. Null textures are ignored.
+        /// </summary>
+        public void RememberImportedTexture(int gltfIndex, Texture texture)
+        {
+            if (gltfIndex < 0 || texture == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < importedTextures.Count; i++)
+            {
+                if (importedTextures[i] != null && importedTextures[i].GltfIndex == gltfIndex)
+                {
+                    importedTextures[i] = new VrmxtImportedGltfTexture(gltfIndex, texture);
+                    return;
+                }
+            }
+
+            importedTextures.Add(new VrmxtImportedGltfTexture(gltfIndex, texture));
+        }
+
+        public bool TryGetImportedTexture(int gltfIndex, out Texture texture)
+        {
+            for (var i = 0; i < importedTextures.Count; i++)
+            {
+                var entry = importedTextures[i];
+                if (entry != null && entry.GltfIndex == gltfIndex && entry.Texture != null)
+                {
+                    texture = entry.Texture;
+                    return true;
+                }
+            }
+
+            texture = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Decode every texture index referenced by stored ExtensionJson via
+        /// <paramref name="resolveTexture"/> and keep the results for export remapping.
+        /// </summary>
+        public void RememberTexturesFromPairs(Func<int, Texture> resolveTexture)
+        {
+            if (resolveTexture == null)
+            {
+                return;
+            }
+
+            var indices = new HashSet<int>();
+            for (var i = 0; i < pairs.Count; i++)
+            {
+                CollectTextureIndicesFromExtensionJson(pairs[i]?.ExtensionJson, indices);
+            }
+
+            foreach (var index in indices)
+            {
+                RememberImportedTexture(index, resolveTexture(index));
+            }
+        }
+
+        private static void CollectTextureIndicesFromExtensionJson(
+            string extensionJson,
+            HashSet<int> indices)
+        {
+            if (string.IsNullOrEmpty(extensionJson) ||
+                !VrmxtMaterialsOverride.TryParse(extensionJson, out var extension))
+            {
+                return;
+            }
+
+            for (var i = 0; i < extension.Overrides.Count; i++)
+            {
+                var engineOverride = extension.Overrides[i];
+                if (engineOverride?.Properties == null)
+                {
+                    continue;
+                }
+
+                for (var p = 0; p < engineOverride.Properties.Count; p++)
+                {
+                    var property = engineOverride.Properties[p];
+                    if (property != null && property.TextureIndex.HasValue)
+                    {
+                        indices.Add(property.TextureIndex.Value);
+                    }
+                }
+            }
+        }
+
         public void Clear()
         {
             pairs.Clear();
+            importedTextures.Clear();
         }
 
         /// <summary>
@@ -411,6 +518,34 @@ namespace UniVRMXT.MaterialsOverride
             MaterialName = materialName;
             ExtensionJson = extensionJson;
         }
+    }
+
+    /// <summary>
+    /// Import-time glTF texture kept on the Instance so foreign-RP override slots can
+    /// re-register images on export (write-through indices alone omit images from a new GLB).
+    /// </summary>
+    [Serializable]
+    public sealed class VrmxtImportedGltfTexture
+    {
+        [SerializeField]
+        private int gltfIndex;
+
+        [SerializeField]
+        private Texture texture;
+
+        public VrmxtImportedGltfTexture()
+        {
+        }
+
+        public VrmxtImportedGltfTexture(int gltfIndex, Texture texture)
+        {
+            this.gltfIndex = gltfIndex;
+            this.texture = texture;
+        }
+
+        public int GltfIndex => gltfIndex;
+
+        public Texture Texture => texture;
     }
 
 }

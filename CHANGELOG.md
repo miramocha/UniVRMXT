@@ -12,12 +12,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Unreal format: `idType: resourcePath` + `id` + `variant` (no `materialSet` map)
 - `UnityOverrideSelector` / Applier / Generator: pick among multi-slot `unity` entries by active RP (exact variant, else single empty variant, else stock)
 - Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export; empty-variant siblings are kept even when the active typed slot already matched; empty-variant slots keep their content when the Override Material shader differs (do not fold into active RP)
-- Export `PrepareTextures` remaps textures only on the selector-chosen unity slot (exact variant, else single empty); typed foreign-RP slots write through (do not remap/drop against stock mesh mats)
+- Export `PrepareTextures` remaps textures on every unity slot: selector-chosen slot prefers live OverrideMaterial / mesh textures; all slots fall back to `ImportedTextures` (decoded on import) so foreign-RP images are re-registered into the new GLB (stale write-through indices are never kept)
 - Materials Override inspector: lists each unity/unreal variant slot in Status detail; Override Material assign reloads SerializedObject after Sync so multi-slot JSON is not stomped
 - Materials Override inspector: per-pair Status (`Stock` / `Imported` / `Authored` / `Imported + Authored`) with unity shader·variant summary; HelpBox clarifies empty Override Material after import is normal; per-pair **Clear** plus `ClearOverrideAt` / `ClearOverride`
 
 ### Fixed
 
+- Authoring `StampEmptyUnityVariantForSibling`: do not stamp empty→`builtin` when a typed `builtin` sibling already exists (avoids duplicate selection key / `TryParse` reject)
+- Materials Override import: second GLB read resolves `properties[].texture` (same pattern as VFX); textures persist as sub-assets on the Instance for re-export
+- Materials Override import: Apply resolves textures from `ImportedTextures` after GLB `ReleaseOwnership` (using the GLB resolver post-release re-decoded then `Dispose` destroyed live `SetTexture` refs)
+- Export `PrepareTextures`: re-register foreign-RP (and sibling) override textures from `ImportedTextures` so round-trip GLBs keep images, not only JSON indices
 - Clear Material Overrides: inspector no longer re-applies stale Override via `ApplyModifiedProperties`; DontSave previews are never wired as `SourceMaterial`; restore matches `Name#N` store keys
 - Populate Pairs From Renderers: do not add a plain-name duplicate beside an existing import pair (including `Name#N` keys and materials already covered by Source / store-key lookup)
 - Sample URP override shader: move `PackageRequirements` inside `SubShader` (Shader-root placement → `TOK_PACKAGEREQUIREMENTS` parse error); Built-in projects still skip compiling missing URP includes
