@@ -2,6 +2,9 @@ Shader "VRMXT/Samples/TestOverrideURP"
 {
     Properties
     {
+        // Visible unlit color — change in the Material inspector / properties[].
+        _Color ("Main Color", Color) = (1, 1, 0, 1)
+
         // Binding targets (Unity profile / VRMC_materials_mtoon sources).
         _ShadeColor ("Shade Color", Color) = (0.8, 0.8, 0.8, 1)
         _ShadeTex ("Shade Multiply", 2D) = "white" {}
@@ -17,7 +20,7 @@ Shader "VRMXT/Samples/TestOverrideURP"
     }
 
     // URP test material for VRMXT_materials_override.
-    // Same property slots as the Built-in sample; fragment outputs solid yellow.
+    // Same property slots as the Built-in sample; fragment outputs _Color (default yellow).
     // Requires Universal RP package in the importing project.
     SubShader
     {
@@ -42,6 +45,7 @@ Shader "VRMXT/Samples/TestOverrideURP"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
+                float4 _Color;
                 float4 _ShadeColor;
                 float4 _ShadeTex_ST;
                 float4 _ShadingShiftTex_ST;
@@ -93,7 +97,7 @@ Shader "VRMXT/Samples/TestOverrideURP"
 #endif
                 sink *= 0.0;
 
-                return half4(1.0, 1.0, 0.0, 1.0) + sink;
+                return (half4)_Color + sink;
             }
             ENDHLSL
         }

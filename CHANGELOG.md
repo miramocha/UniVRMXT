@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
+- Export restore of SourceMaterial on the throwaway copy does not `DestroyImmediate` DontSave preview mats (Instantiate may share them with the scene → pink after export)
 - Import Apply mutates host-built materials in place again — `DontSave` clones on imported assets do not serialize (pink / missing)
 - Missing `Shader.Find` on import restores `SourceMaterial` and leaves stock look (JSON kept on Instance)
 - `TryGetMaterialIndex` reflection unboxes boxed `int` correctly (`as int?` was always null)

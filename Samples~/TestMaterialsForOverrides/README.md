@@ -1,11 +1,12 @@
 # Test Materials for Overrides
 
-Unlit test shaders for `VRMXT_materials_override`. Same property slots on both pipelines; solid colors show that apply succeeded.
+Unlit test shaders for `VRMXT_materials_override`. Same property slots on both pipelines.
+Fragment color comes from `_Color` (Main Color) — edit the Material or `properties[]`.
 
-| Pipeline | Shader.Find name | Color |
-|----------|------------------|-------|
-| Built-in | `VRMXT/Samples/TestOverrideBuiltin` | green |
-| URP | `VRMXT/Samples/TestOverrideURP` | yellow |
+| Pipeline | Shader.Find name | Default `_Color` |
+|----------|------------------|------------------|
+| Built-in | `VRMXT/Samples/TestOverrideBuiltin` | green `(0,1,0,1)` |
+| URP | `VRMXT/Samples/TestOverrideURP` | yellow `(1,1,0,1)` |
 
 URP sample needs Universal RP in the project (`#include` of URP Core.hlsl).
 
@@ -23,10 +24,11 @@ URP sample needs Universal RP in the project (`#include` of URP Core.hlsl).
 
 Unbound samples for `properties[]`:
 
-| Property | Type |
-|----------|------|
-| `_OutlineWidth` | `scalar` |
-| `_USE_RIM_LIGHT` | `shaderFeature` |
+| Property | Type | Notes |
+|----------|------|--------|
+| `_Color` | `vector` | Main unlit color (visible) |
+| `_OutlineWidth` | `scalar` | |
+| `_USE_RIM_LIGHT` | `shaderFeature` | |
 
 ## Install
 
@@ -36,7 +38,7 @@ Unbound samples for `properties[]`:
 
 ## Example JSON
 
-- `example-override-builtin.json` — green Built-in override
-- `example-override-urp.json` — yellow URP override
+- `example-override-builtin.json` — Built-in override with green `_Color`
+- `example-override-urp.json` — URP override with yellow `_Color`
 
 Attach under `materials[i].extensions.VRMXT_materials_override` and list the extension in `extensionsUsed`.

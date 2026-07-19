@@ -163,7 +163,12 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             // Refresh JSON from OverrideMaterial before restoring slots.
             VrmxtMaterialsOverrideAuthoring.SyncAllFromOverrideMaterials(instance);
-            VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(root, instance);
+            // Export root is usually an Instantiate copy that may still share DontSave
+            // preview materials with the scene — never DestroyImmediate them here.
+            VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(
+                root,
+                instance,
+                destroyPreviewMaterials: false);
         }
 
         private static void OnPrepareTextures(object contextObj, Type type)

@@ -51,6 +51,11 @@
       ],
       "properties": [
         {
+          "name": "_Color",
+          "type": "vector",
+          "value": [1.0, 1.0, 0.0, 1.0]
+        },
+        {
           "name": "_OutlineWidth",
           "type": "scalar",
           "value": 0.05

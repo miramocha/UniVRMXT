@@ -135,11 +135,17 @@ namespace UniVRMXT.MaterialsOverride
 
         /// <summary>
         /// Put <see cref="VrmxtMaterialsOverridePair.SourceMaterial"/> back onto matching
-        /// renderer slots and destroy non-persistent preview instances. Used by Clear.
+        /// renderer slots and optionally destroy non-persistent preview instances.
         /// </summary>
+        /// <param name="destroyPreviewMaterials">
+        /// When false (export throwaway copy), do not <c>DestroyImmediate</c> DontSave
+        /// previews — <see cref="UnityEngine.Object.Instantiate"/> may still share them
+        /// with the scene original.
+        /// </param>
         public static void RestoreSourceMaterialsToRenderers(
             GameObject root,
-            VrmxtMaterialsOverrideInstance instance)
+            VrmxtMaterialsOverrideInstance instance,
+            bool destroyPreviewMaterials = true)
         {
             if (root == null || instance == null)
             {
@@ -153,25 +159,29 @@ namespace UniVRMXT.MaterialsOverride
                     continue;
                 }
 
-                RestoreSourceMaterial(root, pair.MaterialName, pair.SourceMaterial);
+                RestoreSourceMaterial(
+                    root,
+                    pair.MaterialName,
+                    pair.SourceMaterial,
+                    destroyPreviewMaterials);
             }
         }
 
         /// <summary>
-        /// Restore one material name's renderer slots to <paramref name="sourceMaterial"/>
-        /// and destroy <see cref="HideFlags.DontSave"/> preview clones.
+        /// Restore one material name's renderer slots to <paramref name="sourceMaterial"/>.
         /// </summary>
         public static void RestoreSourceMaterial(
             GameObject root,
             string materialName,
-            Material sourceMaterial)
+            Material sourceMaterial,
+            bool destroyPreviewMaterials = true)
         {
             if (root == null || string.IsNullOrEmpty(materialName) || sourceMaterial == null)
             {
                 return;
             }
 
-            RestoreSourceToNamedSlots(root, materialName, sourceMaterial);
+            RestoreSourceToNamedSlots(root, materialName, sourceMaterial, destroyPreviewMaterials);
         }
 
         /// <summary>
@@ -233,7 +243,8 @@ namespace UniVRMXT.MaterialsOverride
         private static void RestoreSourceToNamedSlots(
             GameObject root,
             string materialName,
-            Material sourceMaterial)
+            Material sourceMaterial,
+            bool destroyPreviewMaterials)
         {
             if (sourceMaterial == null)
             {
@@ -267,7 +278,8 @@ namespace UniVRMXT.MaterialsOverride
                     shared[j] = sourceMaterial;
                     changed = true;
 
-                    if ((current.hideFlags & HideFlags.DontSave) != 0)
+                    if (destroyPreviewMaterials &&
+                        (current.hideFlags & HideFlags.DontSave) != 0)
                     {
                         DestroyOwnedMaterial(current);
                     }

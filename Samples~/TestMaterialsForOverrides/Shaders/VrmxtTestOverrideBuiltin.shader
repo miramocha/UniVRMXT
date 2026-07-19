@@ -2,6 +2,9 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
 {
     Properties
     {
+        // Visible unlit color — change in the Material inspector / properties[].
+        _Color ("Main Color", Color) = (0, 1, 0, 1)
+
         // Binding targets (Unity profile / VRMC_materials_mtoon sources).
         _ShadeColor ("Shade Color", Color) = (0.8, 0.8, 0.8, 1)
         _ShadeTex ("Shade Multiply", 2D) = "white" {}
@@ -18,7 +21,7 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
 
     // Built-in RP test material for VRMXT_materials_override.
     // Declares override property names so Applier SetFloat/SetColor/SetTexture/keywords work.
-    // Fragment always outputs solid green so apply success is obvious.
+    // Fragment outputs _Color (default green).
     SubShader
     {
         Tags
@@ -41,6 +44,7 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
             #pragma shader_feature_local _USE_RIM_LIGHT
             #include "UnityCG.cginc"
 
+            float4 _Color;
             float4 _ShadeColor;
             sampler2D _ShadeTex;
             float4 _ShadeTex_ST;
@@ -75,6 +79,7 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
 
             fixed4 frag(v2f i) : SV_Target
             {
+                // Keep binding targets live so Unity does not strip unused uniforms.
                 float sink = _ShadeColor.r
                     + tex2D(_ShadeTex, i.uv).r
                     + _ShadingShiftFactor
@@ -88,7 +93,7 @@ Shader "VRMXT/Samples/TestOverrideBuiltin"
 #endif
                 sink *= 0.0;
 
-                return fixed4(0.0, 1.0, 0.0, 1.0) + sink;
+                return _Color + sink;
             }
             ENDCG
         }
