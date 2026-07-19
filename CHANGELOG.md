@@ -11,9 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Materials Override: selection-key uniqueness (`engine` + `material.variant` for Unity/Unreal) — multiple `unity` slots (`builtin` / `urp` / `hdrp`) and multiple `unreal` slots allowed; duplicate `(engine, variant)` rejected
 - Unreal format: `idType: resourcePath` + `id` + `variant` (no `materialSet` map)
 - `UnityOverrideSelector` / Applier / Generator: pick among multi-slot `unity` entries by active RP (exact variant, else single empty variant, else stock)
-- Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export
+- Authoring `SyncUnityOverrideFromMaterial` upserts only the active `(unity, variant)` slot; sibling pipeline slots survive sync/re-export; empty-variant slots keep their content when the Override Material shader differs (do not fold into active RP)
 - Export `PrepareTextures` remaps textures on the active unity slot only; sibling slots write through
-- Materials Override inspector: lists each unity/unreal variant slot in Status detail
+- Materials Override inspector: lists each unity/unreal variant slot in Status detail; Override Material assign reloads SerializedObject after Sync so multi-slot JSON is not stomped
 - Materials Override inspector: per-pair Status (`Stock` / `Imported` / `Authored` / `Imported + Authored`) with unity shader·variant summary; HelpBox clarifies empty Override Material after import is normal; per-pair **Clear** plus `ClearOverrideAt` / `ClearOverride`
 
 ### Fixed
@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Materials Override `OnValidate` defers Apply while Editor is compiling/updating (avoids pink VRMXT shaders when Test Runner restores a scene with overrides)
 - Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
 - Export restore of SourceMaterial on the throwaway copy does not `DestroyImmediate` DontSave preview mats (Instantiate may share them with the scene → pink after export)
-- Authoring `SyncUnityOverrideFromMaterial` upserts the active unity slot and keeps sibling variants
+- Authoring `SyncUnityOverrideFromMaterial` upserts the active unity slot and keeps sibling variants; empty-variant slots with a different shader are kept (not folded into the active RP)
 - Format `TryParse` uses `as JObject` casts instead of `is` patterns (Unity + Newtonsoft asmdef boundary safety)
 - `TryAttachFromGltfJson` tests expect instance attach even when all material extensions are invalid (invalid entries still skipped)
 - Import Apply mutates host-built materials in place again — `DontSave` clones on imported assets do not serialize (pink / missing)

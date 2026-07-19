@@ -138,12 +138,23 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             if (overrideProp != null)
             {
+                EditorGUI.BeginChangeCheck();
                 EditorGUILayout.PropertyField(
                     overrideProp,
                     new GUIContent(
                         "Override Material",
-                        "Optional. Assign to author/rewrite the Unity override from this asset. " +
+                        "Optional. Assign to author/rewrite the active unity slot from this asset. " +
+                        "Sibling pipeline slots in extension JSON are kept. " +
                         "Leave empty when using imported extension JSON only."));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    // Apply OverrideMaterial first so OnValidate Sync can read siblings from
+                    // ExtensionJson, then reload SO so a later ApplyModifiedProperties does
+                    // not stomp the multi-slot JSON Sync just wrote.
+                    serializedObject.ApplyModifiedProperties();
+                    serializedObject.Update();
+                    GUIUtility.ExitGUI();
+                }
             }
 
             EditorGUILayout.EndVertical();

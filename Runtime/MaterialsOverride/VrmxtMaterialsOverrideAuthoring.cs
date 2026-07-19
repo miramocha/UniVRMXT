@@ -36,8 +36,7 @@ namespace UniVRMXT.MaterialsOverride
         /// Upsert the active <c>(unity, variant)</c> slot from
         /// <see cref="VrmxtMaterialsOverridePair.OverrideMaterial"/>. Sibling unity variants
         /// and other engines stay intact. Fills <c>variant</c> from the active RP when creating
-        /// a new slot or updating a single empty-variant entry
-        /// (see <see cref="VrmxtMaterialsOverrideExporter.ResolveUnityVariant"/>).
+        /// a new slot (see <see cref="VrmxtMaterialsOverrideExporter.ResolveUnityVariant"/>).
         /// </summary>
         public static void SyncUnityOverrideFromMaterial(VrmxtMaterialsOverridePair pair)
         {
@@ -56,7 +55,7 @@ namespace UniVRMXT.MaterialsOverride
             string slotVariant = null;
             var siblings = new List<VrmxtMaterialEngineOverride>();
             VrmxtMaterialEngineOverride emptyVariantUnity = null;
-            var unityWithVariantCount = 0;
+            var typedUnityCount = 0;
 
             if (VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var existing))
             {
@@ -95,27 +94,33 @@ namespace UniVRMXT.MaterialsOverride
                         continue;
                     }
 
-                    unityWithVariantCount++;
+                    typedUnityCount++;
                     siblings.Add(entry);
                 }
             }
 
-            // Single empty-variant unity: update in place and fill variant from RP.
-            if (slotVariant == null &&
-                emptyVariantUnity != null &&
-                unityWithVariantCount == 0)
+            if (slotVariant == null && emptyVariantUnity != null)
             {
                 var emptyUnity = emptyVariantUnity.Material as UnityMaterialOverride;
-                existingProvider = emptyUnity?.Provider;
-                existingBindings = emptyVariantUnity.Bindings;
-                slotVariant = VrmxtMaterialsOverrideExporter.ResolveUnityVariant(
-                    emptyUnity?.Variant,
-                    activePipeline);
-                emptyVariantUnity = null;
-            }
-            else if (emptyVariantUnity != null)
-            {
-                siblings.Add(emptyVariantUnity);
+                var sameShader = emptyUnity != null &&
+                                 string.Equals(emptyUnity.Id, shaderName, StringComparison.Ordinal);
+
+                // Only fold an empty-variant slot into the active RP when it is the sole
+                // unity entry and the shader matches (in-place single-slot edit). A different
+                // shader means a new pipeline slot — keep the empty entry so BIRP/URP
+                // siblings survive (stamp builtin when adding urp/hdrp for a conforming key).
+                if (sameShader && typedUnityCount == 0)
+                {
+                    existingProvider = emptyUnity.Provider;
+                    existingBindings = emptyVariantUnity.Bindings;
+                    slotVariant = VrmxtMaterialsOverrideExporter.ResolveUnityVariant(
+                        emptyUnity.Variant,
+                        activePipeline);
+                }
+                else
+                {
+                    siblings.Add(StampEmptyUnityVariantForSibling(emptyVariantUnity, activeVariant));
+                }
             }
 
             if (slotVariant == null)
@@ -146,6 +151,41 @@ namespace UniVRMXT.MaterialsOverride
 
             pair.ExtensionJson = VrmxtMaterialsOverride.ToJson(
                 new VrmxtMaterialsOverrideExtension(overrides));
+        }
+
+        /// <summary>
+        /// When keeping an empty-variant unity entry beside a new typed slot, give it a
+        /// concrete variant so selection-key uniqueness stays valid (2+ unity entries).
+        /// </summary>
+        private static VrmxtMaterialEngineOverride StampEmptyUnityVariantForSibling(
+            VrmxtMaterialEngineOverride emptyEntry,
+            string activeVariant)
+        {
+            var emptyUnity = emptyEntry?.Material as UnityMaterialOverride;
+            if (emptyUnity == null || !string.IsNullOrEmpty(emptyUnity.Variant))
+            {
+                return emptyEntry;
+            }
+
+            // Most common sibling when authoring urp/hdrp on top of an unlabeled slot.
+            var stampedVariant = string.Equals(activeVariant, "builtin", StringComparison.Ordinal)
+                ? null
+                : "builtin";
+            if (string.IsNullOrEmpty(stampedVariant))
+            {
+                return emptyEntry;
+            }
+
+            var stampedMaterial = new UnityMaterialOverride(
+                emptyUnity.IdType,
+                emptyUnity.Id,
+                stampedVariant,
+                emptyUnity.Provider);
+            return new VrmxtMaterialEngineOverride(
+                emptyEntry.Engine,
+                stampedMaterial,
+                emptyEntry.Bindings,
+                emptyEntry.Properties);
         }
 
         public static void ApplyOverrideMaterialsToRenderers(

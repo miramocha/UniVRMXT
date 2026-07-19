@@ -99,6 +99,131 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void SyncUnityOverrideFromMaterial_KeepsBuiltinSibling_WhenShaderDiffers()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+
+            var overrideMat = new Material(shader) { name = "Override" };
+            try
+            {
+                const string initialJson =
+                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""VRMXT/Samples/TestOverrideBuiltin"",""variant"":""builtin""},""properties"":[{""name"":""_Color"",""type"":""vector"",""value"":[0,1,0,1]}]}]}";
+
+                var pair = new VrmxtMaterialsOverridePair("Hair", initialJson)
+                {
+                    OverrideMaterial = overrideMat,
+                };
+                VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);
+
+                Assert.IsTrue(VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension));
+                Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverrides(extension, out var slots));
+
+                var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline());
+
+                UnityMaterialOverride builtin = null;
+                UnityMaterialOverride active = null;
+                foreach (var slot in slots)
+                {
+                    var unity = (UnityMaterialOverride)slot.Material;
+                    if (string.Equals(unity.Variant, "builtin", System.StringComparison.Ordinal))
+                    {
+                        builtin = unity;
+                    }
+
+                    if (string.Equals(unity.Variant, activeVariant, System.StringComparison.Ordinal))
+                    {
+                        active = unity;
+                    }
+                }
+
+                Assert.IsNotNull(builtin);
+                Assert.AreEqual("VRMXT/Samples/TestOverrideBuiltin", builtin.ShaderName);
+
+                if (string.Equals(activeVariant, "builtin", System.StringComparison.Ordinal))
+                {
+                    Assert.AreEqual(1, slots.Count);
+                    Assert.AreEqual("Standard", builtin.ShaderName);
+                }
+                else
+                {
+                    Assert.GreaterOrEqual(slots.Count, 2);
+                    Assert.IsNotNull(active);
+                    Assert.AreEqual("Standard", active.ShaderName);
+                    Assert.AreEqual("VRMXT/Samples/TestOverrideBuiltin", builtin.ShaderName);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+            }
+        }
+
+        [Test]
+        public void SyncUnityOverrideFromMaterial_KeepsEmptySibling_WhenShaderDiffers()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+
+            var overrideMat = new Material(shader) { name = "Override" };
+            try
+            {
+                // Unlabeled single unity slot (any-pipeline) with a different shader than the
+                // Override Material — must not be folded into the active RP slot.
+                const string initialJson =
+                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""VRMXT/Samples/TestOverrideBuiltin""},""properties"":[{""name"":""_Color"",""type"":""vector"",""value"":[0,1,0,1]}]}]}";
+
+                var pair = new VrmxtMaterialsOverridePair("Hair", initialJson)
+                {
+                    OverrideMaterial = overrideMat,
+                };
+                VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);
+
+                Assert.IsTrue(VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension));
+                Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverrides(extension, out var slots));
+
+                var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline());
+
+                if (string.Equals(activeVariant, "builtin", System.StringComparison.Ordinal))
+                {
+                    // Same-RP edit of unlabeled slot may fold in place when shaders differ
+                    // still creates active builtin and stamps/keeps prior content.
+                    Assert.GreaterOrEqual(slots.Count, 1);
+                }
+                else
+                {
+                    Assert.GreaterOrEqual(slots.Count, 2);
+                    var hasBuiltin = false;
+                    var hasActive = false;
+                    foreach (var slot in slots)
+                    {
+                        var unity = (UnityMaterialOverride)slot.Material;
+                        if (string.Equals(unity.Variant, "builtin", System.StringComparison.Ordinal) &&
+                            unity.ShaderName == "VRMXT/Samples/TestOverrideBuiltin")
+                        {
+                            hasBuiltin = true;
+                        }
+
+                        if (string.Equals(unity.Variant, activeVariant, System.StringComparison.Ordinal) &&
+                            unity.ShaderName == "Standard")
+                        {
+                            hasActive = true;
+                        }
+                    }
+
+                    Assert.IsTrue(hasBuiltin, pair.ExtensionJson);
+                    Assert.IsTrue(hasActive, pair.ExtensionJson);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+            }
+        }
+
+        [Test]
         public void SyncUnityOverrideFromMaterial_WritesShaderNameAndPreservesVariant()
         {
             var shader = Shader.Find("Standard");
