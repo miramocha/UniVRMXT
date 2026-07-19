@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `GetType().Name` so Warudo/UMod can vendor Applier (code security bans Reflection)
 - Materials Override name match: strip ` (Instance)` on both store keys and live
   material names (Warudo clone exports bake suffix into glTF `materials[].name`)
+- Sample `TestOverrideURP`: drop URP package includes / `PackageRequirements`; use CG +
+  `SRPDefaultUnlit` so Built-in-only hosts can ship a pass Warudo URP draws
+  (`UniversalForward` without URP Core.hlsl still pinks)
 
 ### Changed
 
