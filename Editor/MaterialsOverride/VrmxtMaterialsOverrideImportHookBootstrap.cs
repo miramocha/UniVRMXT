@@ -151,10 +151,14 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             try
             {
+                // Always drop prior-import images before pairing with this file's JSON.
+                // Skip/fail of the second GLB read must not leave stale ImportedTextures for
+                // Apply's Instance fallback to resolve against the new indices.
+                store.ClearImportedTextures();
+
                 if (!string.IsNullOrEmpty(assetPath) &&
                     TryLoadGlbTextures(assetPath, out glbTextures))
                 {
-                    store.ClearImportedTextures();
                     // Decode into Instance first. Apply must not use glbTextures.AsResolver()
                     // after ReleaseOwnership — Get() would re-decode, then Dispose() would
                     // DestroyImmediate those live SetTexture refs (missing on reimport).

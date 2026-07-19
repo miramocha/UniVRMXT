@@ -258,10 +258,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 }
 
                 Assert.IsNotNull(builtin);
-                Assert.AreEqual("VRMXT/Samples/TestOverrideBuiltin", builtin.ShaderName);
 
                 if (string.Equals(activeVariant, "builtin", System.StringComparison.Ordinal))
                 {
+                    // Active slot is builtin — Sync upserts Standard in place (single slot).
                     Assert.AreEqual(1, slots.Count);
                     Assert.AreEqual("Standard", builtin.ShaderName);
                 }

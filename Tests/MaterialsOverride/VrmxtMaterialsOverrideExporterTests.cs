@@ -495,10 +495,20 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var renderer = meshGo.AddComponent<MeshRenderer>();
                 renderer.sharedMaterial = material;
 
+                // Slot variant must match the host RP so PrepareTextures selects it for
+                // live-material remap (a typed foreign-only slot drops without ImportedTextures).
+                var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline());
+                var extensionJson =
+                    "{\"specVersion\":\"1.0\",\"overrides\":[{\"engine\":\"unity\",\"material\":{" +
+                    "\"idType\":\"shaderName\",\"id\":\"Example/SkinToon\",\"variant\":\"" +
+                    activeVariant +
+                    "\"},\"properties\":[{\"name\":\"_MainTex\",\"type\":\"texture\",\"texture\":0}]}]}";
+
                 var store = root.AddComponent<VrmxtMaterialsOverrideInstance>();
                 store.SetEntries(new[]
                 {
-                    new VrmxtMaterialsOverridePair("Hair", StoredExtensionJson),
+                    new VrmxtMaterialsOverridePair("Hair", extensionJson),
                 });
 
                 var pending = VrmxtMaterialsOverrideExporter.BuildPending(store);
@@ -508,7 +518,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var json = Encoding.UTF8.GetString(utf8);
 
                 StringAssert.Contains("\"texture\":7", json);
-                StringAssert.Contains("\"variant\":\"urp\"", json);
+                StringAssert.Contains("\"variant\":\"" + activeVariant + "\"", json);
             }
             finally
             {

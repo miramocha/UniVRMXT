@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Authoring `StampEmptyUnityVariantForSibling`: do not stamp empty→`builtin` when a typed `builtin` sibling already exists (avoids duplicate selection key / `TryParse` reject)
 - Materials Override import: second GLB read resolves `properties[].texture` (same pattern as VFX); textures persist as sub-assets on the Instance for re-export
 - Materials Override import: Apply resolves textures from `ImportedTextures` after GLB `ReleaseOwnership` (using the GLB resolver post-release re-decoded then `Dispose` destroyed live `SetTexture` refs)
+- Materials Override import: always `ClearImportedTextures` before the second GLB read so a skipped/failed decode cannot leave prior-import images for Apply's Instance fallback
 - Export `PrepareTextures`: re-register foreign-RP (and sibling) override textures from `ImportedTextures` so round-trip GLBs keep images, not only JSON indices
 - Clear Material Overrides: inspector no longer re-applies stale Override via `ApplyModifiedProperties`; DontSave previews are never wired as `SourceMaterial`; restore matches `Name#N` store keys
 - Populate Pairs From Renderers: do not add a plain-name duplicate beside an existing import pair (including `Name#N` keys and materials already covered by Source / store-key lookup)
