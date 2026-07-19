@@ -88,6 +88,20 @@ namespace UniVRMXT.MaterialsOverride
             GameObject root,
             Func<Texture, bool, int> registerSrgbTexture)
         {
+            PrepareTextures(pending, root, registerSrgbTexture, instance: null);
+        }
+
+        /// <summary>
+        /// Prefer <see cref="VrmxtMaterialsOverridePair.OverrideMaterial"/> for texture
+        /// remap when present (export PreHierarchy may have restored SourceMaterial onto
+        /// renderers for UniVRM mesh export).
+        /// </summary>
+        public static void PrepareTextures(
+            IReadOnlyList<VrmxtMaterialsOverridePendingEntry> pending,
+            GameObject root,
+            Func<Texture, bool, int> registerSrgbTexture,
+            VrmxtMaterialsOverrideInstance instance)
+        {
             if (pending == null || root == null || registerSrgbTexture == null)
             {
                 return;
@@ -95,7 +109,7 @@ namespace UniVRMXT.MaterialsOverride
 
             for (var i = 0; i < pending.Count; i++)
             {
-                RemapLiveTextureProperties(pending[i], root, registerSrgbTexture);
+                RemapLiveTextureProperties(pending[i], root, registerSrgbTexture, instance);
                 pending[i].MarkTexturesPrepared();
             }
         }
@@ -197,7 +211,8 @@ namespace UniVRMXT.MaterialsOverride
         private static void RemapLiveTextureProperties(
             VrmxtMaterialsOverridePendingEntry entry,
             GameObject root,
-            Func<Texture, bool, int> registerSrgbTexture)
+            Func<Texture, bool, int> registerSrgbTexture,
+            VrmxtMaterialsOverrideInstance instance)
         {
             if (entry?.Json == null ||
                 !entry.Json.TryGetValue("overrides", StringComparison.Ordinal, out var overridesToken) ||
@@ -240,7 +255,7 @@ namespace UniVRMXT.MaterialsOverride
 
                     if (!resolvedMaterial)
                     {
-                        liveMaterial = ResolveFirstMaterial(root, entry.MaterialName);
+                        liveMaterial = ResolveTextureSourceMaterial(root, entry.MaterialName, instance);
                         resolvedMaterial = true;
                     }
 
@@ -256,6 +271,24 @@ namespace UniVRMXT.MaterialsOverride
                     propertyObject["texture"] = newIndex;
                 }
             }
+        }
+
+        /// <summary>
+        /// Prefer authored OverrideMaterial when export restored Source onto renderers.
+        /// </summary>
+        private static Material ResolveTextureSourceMaterial(
+            GameObject root,
+            string materialName,
+            VrmxtMaterialsOverrideInstance instance)
+        {
+            if (instance != null &&
+                instance.TryGetPair(materialName, out var pair) &&
+                pair.OverrideMaterial != null)
+            {
+                return pair.OverrideMaterial;
+            }
+
+            return ResolveFirstMaterial(root, materialName);
         }
 
         private static bool TryRemapTextureProperty(

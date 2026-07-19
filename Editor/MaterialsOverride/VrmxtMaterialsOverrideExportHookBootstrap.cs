@@ -203,7 +203,8 @@ namespace UniVRMXT.Editor.MaterialsOverride
             VrmxtMaterialsOverrideExporter.PrepareTextures(
                 pending,
                 root,
-                (texture, needsAlpha) => (int)register.Invoke(contextObj, new object[] { texture, needsAlpha }));
+                (texture, needsAlpha) => (int)register.Invoke(contextObj, new object[] { texture, needsAlpha }),
+                VrmxtInstance.FindMaterialsOverride(root));
         }
 
         private static void OnWriteExtensions(object contextObj, Type type)
@@ -313,7 +314,14 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             if (tryGetMaterialIndex != null)
             {
-                return tryGetMaterialIndex.Invoke(contextObj, new object[] { material }) as int?;
+                var boxed = tryGetMaterialIndex.Invoke(contextObj, new object[] { material });
+                if (boxed == null)
+                {
+                    return null;
+                }
+
+                // Reflection boxes int as System.Int32; `as int?` always fails on boxed int.
+                return boxed is int index ? index : null;
             }
 
             return TryGetMaterialIndexFromConverter(contextObj, type, material);

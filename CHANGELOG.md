@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
+- Import/authoring apply uses `HideFlags.DontSave` clones — does not mutate imported shared materials
+- `TryGetMaterialIndex` reflection unboxes boxed `int` correctly (`as int?` was always null)
+- Authoring preview clones: update existing `DontSave` instances in place (no leak when Source unset)
+
 ### Added
 
 - `VrmxtInstance` — avatar-root facade with `Vfx` + `MaterialsOverride` props

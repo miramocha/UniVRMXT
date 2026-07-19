@@ -85,22 +85,111 @@ namespace UniVRMXT.MaterialsOverride
                 var engineOverride = FindEngineOverride(extension, VrmxtMaterialsOverride.EngineUnity);
                 var hasMtoon = TryFindSiblingMtoon(gltfRoot, entry.MaterialName, out var mtoon);
 
-                var appliedToAny = false;
-                foreach (var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(root, entry.MaterialName))
-                {
-                    material.shader = shader;
-                    ApplyProperties(material, engineOverride?.Properties, resolveTexture);
-                    ApplyBindings(material, engineOverride?.Bindings, hasMtoon, mtoon, resolveTexture);
-                    appliedToAny = true;
-                }
-
-                if (appliedToAny)
+                if (ApplyUnityOverrideForStoreKey(
+                        root,
+                        entry.MaterialName,
+                        shader,
+                        engineOverride?.Properties,
+                        engineOverride?.Bindings,
+                        hasMtoon,
+                        mtoon,
+                        resolveTexture))
                 {
                     applied++;
                 }
             }
 
             return applied;
+        }
+
+        /// <summary>
+        /// Apply override for one store key via DontSave clones — never mutate imported /
+        /// shared stock materials in place. Honors <c>Name#N</c> disambiguation.
+        /// </summary>
+        private static bool ApplyUnityOverrideForStoreKey(
+            GameObject root,
+            string storeKey,
+            Shader shader,
+            IReadOnlyList<VrmxtMaterialProperty> properties,
+            IReadOnlyList<VrmxtMaterialBinding> bindings,
+            bool hasMtoon,
+            JObject mtoon,
+            Func<int, Texture> resolveTexture)
+        {
+            var appliedToAny = false;
+            foreach (var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(root, storeKey))
+            {
+                if (material == null)
+                {
+                    continue;
+                }
+
+                Material target;
+                if ((material.hideFlags & HideFlags.DontSave) != 0)
+                {
+                    target = material;
+                }
+                else
+                {
+                    var displayName = material.name;
+                    const string instanceSuffix = " (Instance)";
+                    if (displayName != null &&
+                        displayName.EndsWith(instanceSuffix, StringComparison.Ordinal))
+                    {
+                        displayName = displayName.Substring(
+                            0,
+                            displayName.Length - instanceSuffix.Length);
+                    }
+
+                    target = new Material(material)
+                    {
+                        name = displayName,
+                        hideFlags = HideFlags.DontSave,
+                    };
+                    ReplaceMaterialReferences(root, material, target);
+                }
+
+                target.shader = shader;
+                ApplyProperties(target, properties, resolveTexture);
+                ApplyBindings(target, bindings, hasMtoon, mtoon, resolveTexture);
+                appliedToAny = true;
+            }
+
+            return appliedToAny;
+        }
+
+        private static void ReplaceMaterialReferences(
+            GameObject root,
+            Material from,
+            Material to)
+        {
+            var renderers = root.GetComponentsInChildren<Renderer>(true);
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                var renderer = renderers[i];
+                if (renderer is ParticleSystemRenderer)
+                {
+                    continue;
+                }
+
+                var shared = renderer.sharedMaterials;
+                var changed = false;
+                for (var j = 0; j < shared.Length; j++)
+                {
+                    if (!ReferenceEquals(shared[j], from))
+                    {
+                        continue;
+                    }
+
+                    shared[j] = to;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    renderer.sharedMaterials = shared;
+                }
+            }
         }
 
         /// <summary>

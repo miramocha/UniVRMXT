@@ -129,7 +129,6 @@ namespace UniVRMXT.MaterialsOverride
                 ApplyOverrideToNamedSlots(
                     root,
                     pair.MaterialName,
-                    pair.SourceMaterial,
                     source);
             }
         }
@@ -166,7 +165,6 @@ namespace UniVRMXT.MaterialsOverride
         private static void ApplyOverrideToNamedSlots(
             GameObject root,
             string materialName,
-            Material sourceMaterial,
             Material overrideMaterial)
         {
             var renderers = root.GetComponentsInChildren<Renderer>(true);
@@ -188,11 +186,9 @@ namespace UniVRMXT.MaterialsOverride
                         continue;
                     }
 
-                    var isSourceOrOverrideAsset =
-                        ReferenceEquals(current, overrideMaterial) ||
-                        (sourceMaterial != null && ReferenceEquals(current, sourceMaterial));
+                    var previousIsPreview = (current.hideFlags & HideFlags.DontSave) != 0;
 
-                    if (sourceMaterial != null && !isSourceOrOverrideAsset)
+                    if (previousIsPreview)
                     {
                         // Prior scene preview instance — update in place.
                         CopyMaterialState(overrideMaterial, current);
@@ -200,10 +196,11 @@ namespace UniVRMXT.MaterialsOverride
                         continue;
                     }
 
-                    // Stock / override assets (or Source not wired): never mutate — clone.
+                    // Stock / override assets: never mutate — swap slot to a DontSave clone.
                     var preview = new Material(overrideMaterial)
                     {
                         name = materialName,
+                        hideFlags = HideFlags.DontSave,
                     };
                     shared[j] = preview;
                     changed = true;
@@ -253,7 +250,7 @@ namespace UniVRMXT.MaterialsOverride
                     shared[j] = sourceMaterial;
                     changed = true;
 
-                    if (!ReferenceEquals(current, sourceMaterial))
+                    if ((current.hideFlags & HideFlags.DontSave) != 0)
                     {
                         DestroyOwnedMaterial(current);
                     }

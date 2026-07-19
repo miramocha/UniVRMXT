@@ -62,6 +62,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
             return root;
         }
 
+        private static Material LiveMaterial(GameObject root)
+        {
+            return root.GetComponentInChildren<MeshRenderer>(true).sharedMaterial;
+        }
+
         [Test]
         public void Apply_SetsShaderAndPropertiesAndBindings_BindingSourceFromSiblingMtoon()
         {
@@ -74,11 +79,13 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     RenderPipelineVariant.Builtin);
 
                 Assert.AreEqual(1, applied);
-                Assert.AreEqual("Standard", material.shader.name);
+                var live = LiveMaterial(root);
+                Assert.AreNotSame(material, live);
+                Assert.AreEqual("Standard", live.shader.name);
 
-                Assert.AreEqual(new Color(1f, 0f, 0f, 1f), material.GetColor("_Color"));
-                Assert.AreEqual(0.42f, material.GetFloat("_Metallic"), 1e-4f);
-                Assert.AreEqual(0.25f, material.GetFloat("_Glossiness"), 1e-4f);
+                Assert.AreEqual(new Color(1f, 0f, 0f, 1f), live.GetColor("_Color"));
+                Assert.AreEqual(0.42f, live.GetFloat("_Metallic"), 1e-4f);
+                Assert.AreEqual(0.25f, live.GetFloat("_Glossiness"), 1e-4f);
             }
             finally
             {
@@ -124,8 +131,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
 
                 Assert.AreEqual(1, applied);
+                var live = LiveMaterial(root);
+                Assert.AreEqual(defaultColor, live.GetColor("_Color"));
+                Assert.AreEqual(0.6f, live.GetFloat("_Glossiness"), 1e-4f);
+                // Stock asset color unchanged (bindings skipped without mtoon).
                 Assert.AreEqual(defaultColor, material.GetColor("_Color"));
-                Assert.AreEqual(0.6f, material.GetFloat("_Glossiness"), 1e-4f);
             }
             finally
             {
@@ -279,8 +289,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
 
                 Assert.AreEqual(2, applied);
-                Assert.AreEqual(0.1f, firstMaterial.GetFloat("_Glossiness"), 1e-4f);
-                Assert.AreEqual(0.9f, secondMaterial.GetFloat("_Glossiness"), 1e-4f);
+                var live = renderer.sharedMaterials;
+                Assert.AreEqual(0.1f, live[0].GetFloat("_Glossiness"), 1e-4f);
+                Assert.AreEqual(0.9f, live[1].GetFloat("_Glossiness"), 1e-4f);
+                Assert.AreNotSame(firstMaterial, live[0]);
+                Assert.AreNotSame(secondMaterial, live[1]);
             }
             finally
             {
