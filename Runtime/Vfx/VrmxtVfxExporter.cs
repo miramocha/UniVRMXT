@@ -64,7 +64,7 @@ namespace UniVRMXT.Vfx
                 pending.Add(new VrmxtVfxPendingEmitter(emitter, texture));
             }
 
-            instance.ClearParticleSystems();
+            instance.ClearParticleSystems(destroyOwnedMaterials: false);
             return pending;
         }
 

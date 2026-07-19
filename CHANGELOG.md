@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Materials override NUnit tests under `Tests/Format/` and `Tests/MaterialsOverride/`
 - `VrmxtVfxInstance` runtime component and `VrmxtVfxRuntime.TryAttach` for post-load VFX data
 - `VrmxtVfxInstance.OnValidate` / `SyncParticleSystemsFromEmitters` — Instance field edits refresh bound preview ParticleSystems
+- `VrmxtVfxInstance` `[ExecuteAlways]` pull — preview ParticleSystem edits sync back into emitter fields
 - `VrmxtVfxImporter` Transform / node-list overloads that skip unresolved emitters
 - `VrmxtVfxParticleSystemMapper` — portable particle → Unity `ParticleSystem` (local +Y velocity, billboard, BIRP/URP material + `_MainTex`/`_BaseMap` texture / solid-tint fallback)
 - `VrmxtVfxRuntime.TryAttach` overloads that build `ParticleSystem` children via texture resolver

@@ -69,13 +69,21 @@ namespace UniVRMXT.Tests.MaterialsOverride
             var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
             instance.SetPairs(new[]
             {
-                new VrmxtMaterialsOverridePair("Hair", null) { OverrideMaterial = overrideMat },
+                new VrmxtMaterialsOverridePair("Hair", null)
+                {
+                    SourceMaterial = stock,
+                    OverrideMaterial = overrideMat,
+                },
             });
 
             try
             {
                 VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
-                Assert.AreEqual(0.77f, stock.GetFloat("_Metallic"), 1e-4f);
+                var live = mesh.GetComponent<MeshRenderer>().sharedMaterial;
+                Assert.AreEqual(0.77f, live.GetFloat("_Metallic"), 1e-4f);
+                // Stock asset must stay untouched (scene uses a clone).
+                Assert.AreNotSame(stock, live);
+                Assert.AreNotEqual(0.77f, stock.GetFloat("_Metallic"));
             }
             finally
             {

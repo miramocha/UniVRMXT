@@ -39,6 +39,30 @@ namespace UniVRMXT.MaterialsOverride
             pairs.Clear();
         }
 
+        /// <summary>
+        /// Clear authored overrides (Override Material + Extension JSON) but keep glTF
+        /// material name / source rows for re-authoring. Restores
+        /// <see cref="VrmxtMaterialsOverridePair.SourceMaterial"/> onto matching renderer
+        /// slots and destroys scene preview clones.
+        /// </summary>
+        [ContextMenu("Clear Material Overrides")]
+        public void ClearOverrides()
+        {
+            VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(gameObject, this);
+
+            for (var i = 0; i < pairs.Count; i++)
+            {
+                var pair = pairs[i];
+                if (pair == null)
+                {
+                    continue;
+                }
+
+                pair.OverrideMaterial = null;
+                pair.ExtensionJson = null;
+            }
+        }
+
         public bool TryGetPair(string materialName, out VrmxtMaterialsOverridePair pair)
         {
             for (var i = 0; i < pairs.Count; i++)
@@ -98,7 +122,9 @@ namespace UniVRMXT.MaterialsOverride
                     break;
                 }
 
-                if (pair.SourceMaterial != resolved)
+                // Keep the first wired stock reference. After authoring apply, slots hold
+                // scene clones with the same name — do not replace Source with those.
+                if (pair.SourceMaterial == null && resolved != null)
                 {
                     pair.SourceMaterial = resolved;
                 }

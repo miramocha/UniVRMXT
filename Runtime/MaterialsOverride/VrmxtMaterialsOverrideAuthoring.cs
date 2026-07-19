@@ -126,11 +126,180 @@ namespace UniVRMXT.MaterialsOverride
                     continue;
                 }
 
-                foreach (var target in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
-                             root, pair.MaterialName))
+                ApplyOverrideToNamedSlots(
+                    root,
+                    pair.MaterialName,
+                    pair.SourceMaterial,
+                    source);
+            }
+        }
+
+        /// <summary>
+        /// Put <see cref="VrmxtMaterialsOverridePair.SourceMaterial"/> back onto matching
+        /// renderer slots and destroy non-persistent preview instances. Used by Clear.
+        /// </summary>
+        public static void RestoreSourceMaterialsToRenderers(
+            GameObject root,
+            VrmxtMaterialsOverrideInstance instance)
+        {
+            if (root == null || instance == null)
+            {
+                return;
+            }
+
+            foreach (var pair in instance.Pairs)
+            {
+                if (pair == null || string.IsNullOrEmpty(pair.MaterialName))
                 {
-                    CopyMaterialState(source, target);
+                    continue;
                 }
+
+                RestoreSourceToNamedSlots(root, pair.MaterialName, pair.SourceMaterial);
+            }
+        }
+
+        /// <summary>
+        /// Swap matching renderer slots to a scene-owned clone of
+        /// <paramref name="overrideMaterial"/> (never mutate imported asset materials).
+        /// Clone keeps <paramref name="materialName"/> so export/applier name lookup still works.
+        /// </summary>
+        private static void ApplyOverrideToNamedSlots(
+            GameObject root,
+            string materialName,
+            Material sourceMaterial,
+            Material overrideMaterial)
+        {
+            var renderers = root.GetComponentsInChildren<Renderer>(true);
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                var renderer = renderers[i];
+                if (renderer is ParticleSystemRenderer)
+                {
+                    continue;
+                }
+
+                var shared = renderer.sharedMaterials;
+                var changed = false;
+                for (var j = 0; j < shared.Length; j++)
+                {
+                    var current = shared[j];
+                    if (current == null || !MaterialNameMatches(current.name, materialName))
+                    {
+                        continue;
+                    }
+
+                    var isSourceOrOverrideAsset =
+                        ReferenceEquals(current, overrideMaterial) ||
+                        (sourceMaterial != null && ReferenceEquals(current, sourceMaterial));
+
+                    if (sourceMaterial != null && !isSourceOrOverrideAsset)
+                    {
+                        // Prior scene preview instance — update in place.
+                        CopyMaterialState(overrideMaterial, current);
+                        current.name = materialName;
+                        continue;
+                    }
+
+                    // Stock / override assets (or Source not wired): never mutate — clone.
+                    var preview = new Material(overrideMaterial)
+                    {
+                        name = materialName,
+                    };
+                    shared[j] = preview;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    renderer.sharedMaterials = shared;
+                }
+            }
+        }
+
+        private static void RestoreSourceToNamedSlots(
+            GameObject root,
+            string materialName,
+            Material sourceMaterial)
+        {
+            if (sourceMaterial == null)
+            {
+                return;
+            }
+
+            var renderers = root.GetComponentsInChildren<Renderer>(true);
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                var renderer = renderers[i];
+                if (renderer is ParticleSystemRenderer)
+                {
+                    continue;
+                }
+
+                var shared = renderer.sharedMaterials;
+                var changed = false;
+                for (var j = 0; j < shared.Length; j++)
+                {
+                    var current = shared[j];
+                    if (current == null || !MaterialNameMatches(current.name, materialName))
+                    {
+                        continue;
+                    }
+
+                    if (ReferenceEquals(current, sourceMaterial))
+                    {
+                        continue;
+                    }
+
+                    shared[j] = sourceMaterial;
+                    changed = true;
+
+                    if (!ReferenceEquals(current, sourceMaterial))
+                    {
+                        DestroyOwnedMaterial(current);
+                    }
+                }
+
+                if (changed)
+                {
+                    renderer.sharedMaterials = shared;
+                }
+            }
+        }
+
+        private static bool MaterialNameMatches(string unityMaterialName, string gltfMaterialName)
+        {
+            if (string.Equals(unityMaterialName, gltfMaterialName, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            const string instanceSuffix = " (Instance)";
+            if (unityMaterialName != null &&
+                unityMaterialName.EndsWith(instanceSuffix, StringComparison.Ordinal))
+            {
+                var trimmed = unityMaterialName.Substring(
+                    0,
+                    unityMaterialName.Length - instanceSuffix.Length);
+                return string.Equals(trimmed, gltfMaterialName, StringComparison.Ordinal);
+            }
+
+            return false;
+        }
+
+        private static void DestroyOwnedMaterial(Material material)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(material);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(material);
             }
         }
 

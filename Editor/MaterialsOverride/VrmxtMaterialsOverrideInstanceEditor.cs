@@ -37,6 +37,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
             }
 
             EditorGUILayout.Space();
+            EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Populate Pairs From Renderers"))
             {
                 var instance = (VrmxtMaterialsOverrideInstance)target;
@@ -45,6 +46,17 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 EditorUtility.SetDirty(instance);
                 serializedObject.Update();
             }
+
+            if (GUILayout.Button("Clear Material Overrides"))
+            {
+                var instance = (VrmxtMaterialsOverrideInstance)target;
+                Undo.RecordObject(instance, "Clear Material Overrides");
+                instance.ClearOverrides();
+                EditorUtility.SetDirty(instance);
+                serializedObject.Update();
+            }
+
+            EditorGUILayout.EndHorizontal();
 
             _showAdvancedJson = EditorGUILayout.Foldout(_showAdvancedJson, "Advanced: Extension JSON", true);
             if (_showAdvancedJson && _pairs != null)

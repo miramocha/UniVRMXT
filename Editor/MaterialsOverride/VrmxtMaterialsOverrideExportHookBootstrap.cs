@@ -130,6 +130,9 @@ namespace UniVRMXT.Editor.MaterialsOverride
             var phaseName = phaseObj.ToString();
             switch (phaseName)
             {
+                case "PreHierarchy":
+                    OnPreHierarchy(contextObj, type);
+                    break;
                 case "PrepareTextures":
                     OnPrepareTextures(contextObj, type);
                     break;
@@ -137,6 +140,30 @@ namespace UniVRMXT.Editor.MaterialsOverride
                     OnWriteExtensions(contextObj, type);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Put stock SourceMaterial back on the export root (usually a throwaway copy)
+        /// so UniVRM mesh export / validation does not see VRMXT preview override shaders.
+        /// Override JSON is still written later from the Instance.
+        /// </summary>
+        private static void OnPreHierarchy(object contextObj, Type type)
+        {
+            var root = type.GetProperty("Root")?.GetValue(contextObj) as GameObject;
+            if (root == null)
+            {
+                return;
+            }
+
+            var instance = VrmxtInstance.FindMaterialsOverride(root);
+            if (instance == null)
+            {
+                return;
+            }
+
+            // Refresh JSON from OverrideMaterial before restoring slots.
+            VrmxtMaterialsOverrideAuthoring.SyncAllFromOverrideMaterials(instance);
+            VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(root, instance);
         }
 
         private static void OnPrepareTextures(object contextObj, Type type)
