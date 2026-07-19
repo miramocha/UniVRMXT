@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UniVRMXT.Format;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -35,7 +37,8 @@ namespace UniVRMXT.MaterialsOverride
         /// <summary>
         /// Merge a <c>unity</c> engine block from <see cref="VrmxtMaterialsOverridePair.OverrideMaterial"/>
         /// into <see cref="VrmxtMaterialsOverridePair.ExtensionJson"/>. Preserves other engines
-        /// and existing <c>bindings[]</c>. Fills <c>variant</c> only when missing.
+        /// and existing <c>bindings[]</c>. Fills <c>variant</c> only when missing
+        /// (variant survival — see <see cref="VrmxtMaterialsOverrideExporter.ResolveUnityVariant"/>).
         /// </summary>
         public static void SyncUnityOverrideFromMaterial(VrmxtMaterialsOverridePair pair)
         {
@@ -46,9 +49,11 @@ namespace UniVRMXT.MaterialsOverride
 
             var material = pair.OverrideMaterial;
             var shaderName = material.shader.name;
-            var properties = CaptureProperties(material);
 
-            var existingVariant = (string)null;
+            // Peek variant from raw JSON first so survival does not depend on the typed
+            // Material cast succeeding after TryParse (same assembly, but defensive).
+            TryPeekUnityVariant(pair.ExtensionJson, out var existingVariant);
+
             MaterialProvider existingProvider = null;
             IReadOnlyList<VrmxtMaterialBinding> existingBindings = Array.Empty<VrmxtMaterialBinding>();
             var otherOverrides = new List<VrmxtMaterialEngineOverride>();
@@ -59,9 +64,14 @@ namespace UniVRMXT.MaterialsOverride
                 {
                     if (string.Equals(entry.Engine, VrmxtMaterialsOverride.EngineUnity, StringComparison.Ordinal))
                     {
-                        if (entry.Material is UnityMaterialOverride unity)
+                        var unity = entry.Material as UnityMaterialOverride;
+                        if (unity != null)
                         {
-                            existingVariant = unity.Variant;
+                            if (!string.IsNullOrEmpty(unity.Variant))
+                            {
+                                existingVariant = unity.Variant;
+                            }
+
                             existingProvider = unity.Provider;
                         }
 
@@ -74,16 +84,15 @@ namespace UniVRMXT.MaterialsOverride
                 }
             }
 
-            var variant = existingVariant;
-            if (string.IsNullOrEmpty(variant))
-            {
-                variant = VrmxtMaterialsOverrideExporter.RenderPipelineVariantToVariantString(
-                    VrmxtMaterialsOverrideApplier.DetectActivePipeline());
-            }
+            var variant = VrmxtMaterialsOverrideExporter.ResolveUnityVariant(
+                existingVariant,
+                VrmxtMaterialsOverrideApplier.DetectActivePipeline());
 
             var provider = existingProvider ?? new MaterialProvider(
                 DefaultProviderId,
                 ResolvePackageVersion());
+
+            var properties = CaptureProperties(material);
 
             var unityMaterial = new UnityMaterialOverride(
                 VrmxtMaterialsOverride.UnityMaterialIdTypeShaderName,
@@ -102,6 +111,67 @@ namespace UniVRMXT.MaterialsOverride
 
             pair.ExtensionJson = VrmxtMaterialsOverride.ToJson(
                 new VrmxtMaterialsOverrideExtension(overrides));
+        }
+
+        /// <summary>
+        /// Best-effort read of <c>overrides[engine=unity].material.variant</c> without full
+        /// schema validation, so authoring sync can keep an existing variant when a sibling
+        /// engine entry prevents <see cref="VrmxtMaterialsOverride.TryParse"/>.
+        /// </summary>
+        internal static bool TryPeekUnityVariant(string extensionJson, out string variant)
+        {
+            variant = null;
+            if (string.IsNullOrWhiteSpace(extensionJson))
+            {
+                return false;
+            }
+
+            try
+            {
+                // Use `as` casts (not `is` pattern) — Unity + Newtonsoft type identity has
+                // historically broken pattern matching against JObject across asmdef boundaries.
+                var root = JToken.Parse(extensionJson) as JObject;
+                var overrides = root?["overrides"] as JArray;
+                if (overrides == null)
+                {
+                    return false;
+                }
+
+                foreach (var overrideToken in overrides)
+                {
+                    var overrideObject = overrideToken as JObject;
+                    if (overrideObject == null)
+                    {
+                        continue;
+                    }
+
+                    var engine = overrideObject["engine"]?.Value<string>();
+                    if (!string.Equals(engine, VrmxtMaterialsOverride.EngineUnity, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    var materialObject = overrideObject["material"] as JObject;
+                    var peeked = materialObject?["variant"]?.Value<string>();
+                    if (string.IsNullOrEmpty(peeked))
+                    {
+                        return false;
+                    }
+
+                    variant = peeked;
+                    return true;
+                }
+            }
+            catch (JsonReaderException)
+            {
+                return false;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+
+            return false;
         }
 
         public static void ApplyOverrideMaterialsToRenderers(

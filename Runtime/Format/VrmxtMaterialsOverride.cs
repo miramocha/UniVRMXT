@@ -325,25 +325,37 @@ namespace UniVRMXT.Format
         private static bool TryGetExtensionObject(JToken root, out JObject extension)
         {
             extension = null;
-            if (root is not JObject rootObject)
+            // Prefer `as` over `is` pattern — Unity asmdefs + Newtonsoft can break
+            // pattern matching against JObject across assembly boundaries.
+            var rootObject = root as JObject;
+            if (rootObject == null)
             {
                 return false;
             }
 
-            if (TryGetProperty(rootObject, ExtensionName, out var direct) &&
-                direct is JObject directObject)
+            if (TryGetProperty(rootObject, ExtensionName, out var direct))
             {
-                extension = directObject;
-                return true;
+                var directObject = direct as JObject;
+                if (directObject != null)
+                {
+                    extension = directObject;
+                    return true;
+                }
             }
 
-            if (TryGetProperty(rootObject, "extensions", out var extensionsToken) &&
-                extensionsToken is JObject extensions &&
-                TryGetProperty(extensions, ExtensionName, out var nested) &&
-                nested is JObject nestedObject)
+            if (TryGetProperty(rootObject, "extensions", out var extensionsToken))
             {
-                extension = nestedObject;
-                return true;
+                var extensions = extensionsToken as JObject;
+                if (extensions != null &&
+                    TryGetProperty(extensions, ExtensionName, out var nested))
+                {
+                    var nestedObject = nested as JObject;
+                    if (nestedObject != null)
+                    {
+                        extension = nestedObject;
+                        return true;
+                    }
+                }
             }
 
             // Bare extension object (already extracted from a material extensions map).
@@ -373,7 +385,8 @@ namespace UniVRMXT.Format
         {
             engineOverride = null;
 
-            if (overrideToken is not JObject overrideObject)
+            var overrideObject = overrideToken as JObject;
+            if (overrideObject == null)
             {
                 return false;
             }
@@ -390,8 +403,13 @@ namespace UniVRMXT.Format
                 return false;
             }
 
-            if (!TryGetProperty(overrideObject, "material", out var materialToken) ||
-                materialToken is not JObject materialObject)
+            if (!TryGetProperty(overrideObject, "material", out var materialToken))
+            {
+                return false;
+            }
+
+            var materialObject = materialToken as JObject;
+            if (materialObject == null)
             {
                 return false;
             }
@@ -508,8 +526,13 @@ namespace UniVRMXT.Format
                     return false;
                 }
 
-                if (!TryGetProperty(materialObject, "variants", out var variantsToken) ||
-                    variantsToken is not JObject variantsObject)
+                if (!TryGetProperty(materialObject, "variants", out var variantsToken))
+                {
+                    return false;
+                }
+
+                var variantsObject = variantsToken as JObject;
+                if (variantsObject == null)
                 {
                     return false;
                 }
@@ -547,7 +570,8 @@ namespace UniVRMXT.Format
         private static bool TryParseProvider(JToken providerToken, out MaterialProvider provider)
         {
             provider = null;
-            if (providerToken is not JObject providerObject)
+            var providerObject = providerToken as JObject;
+            if (providerObject == null)
             {
                 return false;
             }
@@ -578,7 +602,8 @@ namespace UniVRMXT.Format
         private static bool TryParseBinding(JToken bindingToken, out VrmxtMaterialBinding binding)
         {
             binding = null;
-            if (bindingToken is not JObject bindingObject)
+            var bindingObject = bindingToken as JObject;
+            if (bindingObject == null)
             {
                 return false;
             }
@@ -621,7 +646,8 @@ namespace UniVRMXT.Format
         private static bool TryParseProperty(JToken propertyToken, out VrmxtMaterialProperty property)
         {
             property = null;
-            if (propertyToken is not JObject propertyObject)
+            var propertyObject = propertyToken as JObject;
+            if (propertyObject == null)
             {
                 return false;
             }

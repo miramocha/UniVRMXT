@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
 - Export restore of SourceMaterial on the throwaway copy does not `DestroyImmediate` DontSave preview mats (Instantiate may share them with the scene → pink after export)
+- Authoring `SyncUnityOverrideFromMaterial` peeks `material.variant` from raw JSON before merge so variant survival holds when typed parse/cast is incomplete
+- Format `TryParse` uses `as JObject` casts instead of `is` patterns (Unity + Newtonsoft asmdef boundary safety)
+- `TryAttachFromGltfJson` tests expect instance attach even when all material extensions are invalid (invalid entries still skipped)
 - Import Apply mutates host-built materials in place again — `DontSave` clones on imported assets do not serialize (pink / missing)
 - Missing `Shader.Find` on import restores `SourceMaterial` and leaves stock look (JSON kept on Instance)
 - `TryGetMaterialIndex` reflection unboxes boxed `int` correctly (`as int?` was always null)

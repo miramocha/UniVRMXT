@@ -18,9 +18,14 @@ namespace UniVRMXT.Tests.MaterialsOverride
             {
                 overrideMat.SetFloat("_Metallic", 0.3f);
 
-                var pair = new VrmxtMaterialsOverridePair(
-                    "Hair",
-                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Shader"",""variant"":""urp""},""bindings"":[{""source"":""shadeColorFactor"",""target"":""_Color"",""targetType"":""vector""}],""properties"":[]},{""engine"":""unreal"",""material"":{""idType"":""materialSet"",""variants"":{""default"":""/Game/M""}}]}");
+                const string initialJson =
+                    @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Shader"",""variant"":""urp""},""bindings"":[{""source"":""shadeColorFactor"",""target"":""_Color"",""targetType"":""vector""}],""properties"":[]},{""engine"":""unreal"",""material"":{""idType"":""materialSet"",""variants"":{""default"":""/Game/M""}}}]}";
+
+                Assert.IsTrue(
+                    VrmxtMaterialsOverride.TryParse(initialJson, out _),
+                    "fixture JSON must parse before Sync");
+
+                var pair = new VrmxtMaterialsOverridePair("Hair", initialJson);
 
                 pair.OverrideMaterial = overrideMat;
                 VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);

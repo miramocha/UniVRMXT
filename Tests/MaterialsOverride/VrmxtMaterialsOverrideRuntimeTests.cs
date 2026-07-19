@@ -210,8 +210,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     }
                     ";
 
-                Assert.IsFalse(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store));
-                Assert.IsNull(store);
+                // Instance is always attached for authoring; invalid extensions are not stored.
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store));
+                Assert.IsNotNull(store);
+                Assert.IsFalse(store.TryGetEntry("Broken", out _));
+                Assert.AreEqual(0, store.Pairs.Count);
             }
             finally
             {

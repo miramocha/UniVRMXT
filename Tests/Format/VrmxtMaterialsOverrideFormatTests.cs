@@ -118,6 +118,19 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
+        public void TryParse_ParsesUnityAndUnrealTogether_PreservesUnityVariant()
+        {
+            const string json =
+                @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Shader"",""variant"":""urp""},""bindings"":[{""source"":""shadeColorFactor"",""target"":""_Color"",""targetType"":""vector""}],""properties"":[]},{""engine"":""unreal"",""material"":{""idType"":""materialSet"",""variants"":{""default"":""/Game/M""}}}]}";
+
+            Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var extension));
+            Assert.AreEqual(2, extension.Overrides.Count);
+            Assert.IsTrue(VrmxtMaterialsOverride.TryGetUnityOverride(extension, out var unity));
+            Assert.AreEqual("urp", unity.Variant);
+            Assert.IsNotNull(extension.Overrides[1].Material as UnrealMaterialOverride);
+        }
+
+        [Test]
         public void TryParse_AcceptsShaderFeatureBindingTargetType()
         {
             const string json = @"
