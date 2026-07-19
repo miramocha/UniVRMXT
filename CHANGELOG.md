@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Materials Override inspector: per-pair Status (`Stock` / `Imported` / `Authored` / `Imported + Authored`) with unity shader·variant summary; HelpBox clarifies empty Override Material after import is normal; per-pair **Clear** plus `ClearOverrideAt` / `ClearOverride`
+
 ### Fixed
 
+- Clear Material Overrides: inspector no longer re-applies stale Override via `ApplyModifiedProperties`; DontSave previews are never wired as `SourceMaterial`; restore matches `Name#N` store keys
+- Sample URP override shader uses `PackageRequirements` so Built-in projects do not compile-error missing URP includes after tests / domain reload
+- Materials Override `OnValidate` defers Apply while Editor is compiling/updating (avoids pink VRMXT shaders when Test Runner restores a scene with overrides)
 - Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
 - Export restore of SourceMaterial on the throwaway copy does not `DestroyImmediate` DontSave preview mats (Instantiate may share them with the scene → pink after export)
 - Authoring `SyncUnityOverrideFromMaterial` peeks `material.variant` from raw JSON before merge so variant survival holds when typed parse/cast is incomplete

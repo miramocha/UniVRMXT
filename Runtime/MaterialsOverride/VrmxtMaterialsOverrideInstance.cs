@@ -48,19 +48,67 @@ namespace UniVRMXT.MaterialsOverride
         [ContextMenu("Clear Material Overrides")]
         public void ClearOverrides()
         {
-            VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(gameObject, this);
+            for (var i = 0; i < pairs.Count; i++)
+            {
+                ClearOverrideAt(i);
+            }
+        }
+
+        /// <summary>
+        /// Clear one pair by list index: restore Source onto matching slots, then clear
+        /// Override Material + Extension JSON. Keeps the pair row for re-authoring.
+        /// </summary>
+        public bool ClearOverrideAt(int index)
+        {
+            if (index < 0 || index >= pairs.Count)
+            {
+                return false;
+            }
+
+            var pair = pairs[index];
+            if (pair == null)
+            {
+                return false;
+            }
+
+            if (IsPreviewMaterial(pair.SourceMaterial))
+            {
+                pair.SourceMaterial = null;
+            }
+
+            if (!string.IsNullOrEmpty(pair.MaterialName) && pair.SourceMaterial != null)
+            {
+                VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
+                    gameObject,
+                    pair.MaterialName,
+                    pair.SourceMaterial);
+            }
+
+            pair.OverrideMaterial = null;
+            pair.ExtensionJson = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Clear the first pair whose <see cref="VrmxtMaterialsOverridePair.MaterialName"/>
+        /// matches <paramref name="materialName"/>.
+        /// </summary>
+        public bool ClearOverride(string materialName)
+        {
+            if (string.IsNullOrEmpty(materialName))
+            {
+                return false;
+            }
 
             for (var i = 0; i < pairs.Count; i++)
             {
-                var pair = pairs[i];
-                if (pair == null)
+                if (string.Equals(pairs[i]?.MaterialName, materialName, StringComparison.Ordinal))
                 {
-                    continue;
+                    return ClearOverrideAt(i);
                 }
-
-                pair.OverrideMaterial = null;
-                pair.ExtensionJson = null;
             }
+
+            return false;
         }
 
         public bool TryGetPair(string materialName, out VrmxtMaterialsOverridePair pair)
@@ -118,12 +166,22 @@ namespace UniVRMXT.MaterialsOverride
                 foreach (var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
                              root, pair.MaterialName))
                 {
+                    if (IsPreviewMaterial(material))
+                    {
+                        continue;
+                    }
+
                     resolved = material;
                     break;
                 }
 
                 // Keep the first wired stock reference. After authoring apply, slots hold
                 // scene clones with the same name — do not replace Source with those.
+                if (IsPreviewMaterial(pair.SourceMaterial))
+                {
+                    pair.SourceMaterial = null;
+                }
+
                 if (pair.SourceMaterial == null && resolved != null)
                 {
                     pair.SourceMaterial = resolved;
@@ -161,7 +219,7 @@ namespace UniVRMXT.MaterialsOverride
                 for (var j = 0; j < shared.Length; j++)
                 {
                     var material = shared[j];
-                    if (material == null)
+                    if (material == null || IsPreviewMaterial(material))
                     {
                         continue;
                     }
@@ -197,8 +255,64 @@ namespace UniVRMXT.MaterialsOverride
                 return;
             }
 
+#if UNITY_EDITOR
+            // Domain reload / Test Runner / asset refresh: skip Apply while compiling or
+            // updating so DontSave preview mats are not created against half-ready shaders
+            // (pink / "VRMXT shader" errors after scene restore). Re-run once settled.
+            if (UnityEditor.EditorApplication.isCompiling ||
+                UnityEditor.EditorApplication.isUpdating)
+            {
+                ScheduleValidateFlush();
+                return;
+            }
+#endif
+
+            FlushValidate();
+        }
+
+#if UNITY_EDITOR
+        [System.NonSerialized]
+        private bool validateFlushScheduled;
+
+        private void ScheduleValidateFlush()
+        {
+            if (validateFlushScheduled)
+            {
+                return;
+            }
+
+            validateFlushScheduled = true;
+            UnityEditor.EditorApplication.delayCall += FlushValidateFromDelayCall;
+        }
+
+        private void FlushValidateFromDelayCall()
+        {
+            validateFlushScheduled = false;
+            if (this == null)
+            {
+                return;
+            }
+
+            if (UnityEditor.EditorApplication.isCompiling ||
+                UnityEditor.EditorApplication.isUpdating)
+            {
+                ScheduleValidateFlush();
+                return;
+            }
+
+            FlushValidate();
+        }
+#endif
+
+        private void FlushValidate()
+        {
             RefreshSourceMaterials();
             SyncFromOverrideMaterials();
+        }
+
+        private static bool IsPreviewMaterial(Material material)
+        {
+            return material != null && (material.hideFlags & HideFlags.DontSave) != 0;
         }
 
         private static string StripInstanceSuffix(string unityMaterialName)
