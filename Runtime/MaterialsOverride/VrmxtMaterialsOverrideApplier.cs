@@ -76,7 +76,18 @@ namespace UniVRMXT.MaterialsOverride
                 var shader = Shader.Find(unityOverride.ShaderName);
                 if (shader == null)
                 {
-                    // Shader not present in this build; leave stock material untouched.
+                    // Shader not present in this build — keep / restore stock import.
+                    Debug.LogWarning(
+                        $"VRMXT_materials_override: Shader.Find('{unityOverride.ShaderName}') failed for " +
+                        $"material '{entry.MaterialName}'. Leaving stock material.");
+                    if (entry.SourceMaterial != null)
+                    {
+                        VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
+                            root,
+                            entry.MaterialName,
+                            entry.SourceMaterial);
+                    }
+
                     continue;
                 }
 
@@ -85,111 +96,40 @@ namespace UniVRMXT.MaterialsOverride
                 var engineOverride = FindEngineOverride(extension, VrmxtMaterialsOverride.EngineUnity);
                 var hasMtoon = TryFindSiblingMtoon(gltfRoot, entry.MaterialName, out var mtoon);
 
-                if (ApplyUnityOverrideForStoreKey(
+                // Drop stale DontSave authoring previews so we apply onto stock import mats.
+                if (entry.SourceMaterial != null)
+                {
+                    VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
                         root,
                         entry.MaterialName,
-                        shader,
-                        engineOverride?.Properties,
-                        engineOverride?.Bindings,
-                        hasMtoon,
-                        mtoon,
-                        resolveTexture))
+                        entry.SourceMaterial);
+                }
+
+                var appliedToAny = false;
+                foreach (var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
+                             root, entry.MaterialName))
+                {
+                    if (material == null || (material.hideFlags & HideFlags.DontSave) != 0)
+                    {
+                        continue;
+                    }
+
+                    // Import / runtime: mutate materials the host already built. Scene
+                    // authoring uses DontSave clones via Authoring instead — those must not
+                    // be written onto imported assets (they do not serialize → pink/missing).
+                    material.shader = shader;
+                    ApplyProperties(material, engineOverride?.Properties, resolveTexture);
+                    ApplyBindings(material, engineOverride?.Bindings, hasMtoon, mtoon, resolveTexture);
+                    appliedToAny = true;
+                }
+
+                if (appliedToAny)
                 {
                     applied++;
                 }
             }
 
             return applied;
-        }
-
-        /// <summary>
-        /// Apply override for one store key via DontSave clones — never mutate imported /
-        /// shared stock materials in place. Honors <c>Name#N</c> disambiguation.
-        /// </summary>
-        private static bool ApplyUnityOverrideForStoreKey(
-            GameObject root,
-            string storeKey,
-            Shader shader,
-            IReadOnlyList<VrmxtMaterialProperty> properties,
-            IReadOnlyList<VrmxtMaterialBinding> bindings,
-            bool hasMtoon,
-            JObject mtoon,
-            Func<int, Texture> resolveTexture)
-        {
-            var appliedToAny = false;
-            foreach (var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(root, storeKey))
-            {
-                if (material == null)
-                {
-                    continue;
-                }
-
-                Material target;
-                if ((material.hideFlags & HideFlags.DontSave) != 0)
-                {
-                    target = material;
-                }
-                else
-                {
-                    var displayName = material.name;
-                    const string instanceSuffix = " (Instance)";
-                    if (displayName != null &&
-                        displayName.EndsWith(instanceSuffix, StringComparison.Ordinal))
-                    {
-                        displayName = displayName.Substring(
-                            0,
-                            displayName.Length - instanceSuffix.Length);
-                    }
-
-                    target = new Material(material)
-                    {
-                        name = displayName,
-                        hideFlags = HideFlags.DontSave,
-                    };
-                    ReplaceMaterialReferences(root, material, target);
-                }
-
-                target.shader = shader;
-                ApplyProperties(target, properties, resolveTexture);
-                ApplyBindings(target, bindings, hasMtoon, mtoon, resolveTexture);
-                appliedToAny = true;
-            }
-
-            return appliedToAny;
-        }
-
-        private static void ReplaceMaterialReferences(
-            GameObject root,
-            Material from,
-            Material to)
-        {
-            var renderers = root.GetComponentsInChildren<Renderer>(true);
-            for (var i = 0; i < renderers.Length; i++)
-            {
-                var renderer = renderers[i];
-                if (renderer is ParticleSystemRenderer)
-                {
-                    continue;
-                }
-
-                var shared = renderer.sharedMaterials;
-                var changed = false;
-                for (var j = 0; j < shared.Length; j++)
-                {
-                    if (!ReferenceEquals(shared[j], from))
-                    {
-                        continue;
-                    }
-
-                    shared[j] = to;
-                    changed = true;
-                }
-
-                if (changed)
-                {
-                    renderer.sharedMaterials = shared;
-                }
-            }
         }
 
         /// <summary>

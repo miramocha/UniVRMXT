@@ -62,9 +62,52 @@ namespace UniVRMXT.Tests.MaterialsOverride
             return root;
         }
 
-        private static Material LiveMaterial(GameObject root)
+        [Test]
+        public void Apply_MissingShader_LeavesStockAndDoesNotApply()
         {
-            return root.GetComponentInChildren<MeshRenderer>(true).sharedMaterial;
+            var root = CreateRootWithNamedMaterial("Hair", out var material);
+            var originalShader = material.shader;
+            try
+            {
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                    root,
+                    @"{
+                      ""materials"": [{
+                        ""name"": ""Hair"",
+                        ""extensions"": {
+                          ""VRMXT_materials_override"": {
+                            ""specVersion"": ""1.0"",
+                            ""overrides"": [{
+                              ""engine"": ""unity"",
+                              ""material"": {
+                                ""idType"": ""shaderName"",
+                                ""id"": ""Definitely/Missing/OverrideShader""
+                              }
+                            }]
+                          }
+                        }
+                      }]
+                    }",
+                    out var store));
+
+                store.TryGetPair("Hair", out var pair);
+                pair.SourceMaterial = material;
+
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    store,
+                    "{}",
+                    RenderPipelineVariant.Builtin);
+
+                Assert.AreEqual(0, applied);
+                Assert.AreSame(originalShader, material.shader);
+                Assert.AreSame(material, root.GetComponentInChildren<MeshRenderer>().sharedMaterial);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
         }
 
         [Test]
@@ -79,13 +122,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     RenderPipelineVariant.Builtin);
 
                 Assert.AreEqual(1, applied);
-                var live = LiveMaterial(root);
-                Assert.AreNotSame(material, live);
-                Assert.AreEqual("Standard", live.shader.name);
+                Assert.AreEqual("Standard", material.shader.name);
 
-                Assert.AreEqual(new Color(1f, 0f, 0f, 1f), live.GetColor("_Color"));
-                Assert.AreEqual(0.42f, live.GetFloat("_Metallic"), 1e-4f);
-                Assert.AreEqual(0.25f, live.GetFloat("_Glossiness"), 1e-4f);
+                Assert.AreEqual(new Color(1f, 0f, 0f, 1f), material.GetColor("_Color"));
+                Assert.AreEqual(0.42f, material.GetFloat("_Metallic"), 1e-4f);
+                Assert.AreEqual(0.25f, material.GetFloat("_Glossiness"), 1e-4f);
             }
             finally
             {
@@ -131,11 +172,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
 
                 Assert.AreEqual(1, applied);
-                var live = LiveMaterial(root);
-                Assert.AreEqual(defaultColor, live.GetColor("_Color"));
-                Assert.AreEqual(0.6f, live.GetFloat("_Glossiness"), 1e-4f);
-                // Stock asset color unchanged (bindings skipped without mtoon).
                 Assert.AreEqual(defaultColor, material.GetColor("_Color"));
+                Assert.AreEqual(0.6f, material.GetFloat("_Glossiness"), 1e-4f);
             }
             finally
             {
@@ -289,11 +327,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
 
                 Assert.AreEqual(2, applied);
-                var live = renderer.sharedMaterials;
-                Assert.AreEqual(0.1f, live[0].GetFloat("_Glossiness"), 1e-4f);
-                Assert.AreEqual(0.9f, live[1].GetFloat("_Glossiness"), 1e-4f);
-                Assert.AreNotSame(firstMaterial, live[0]);
-                Assert.AreNotSame(secondMaterial, live[1]);
+                Assert.AreEqual(0.1f, firstMaterial.GetFloat("_Glossiness"), 1e-4f);
+                Assert.AreEqual(0.9f, secondMaterial.GetFloat("_Glossiness"), 1e-4f);
             }
             finally
             {

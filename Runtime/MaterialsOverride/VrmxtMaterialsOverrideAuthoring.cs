@@ -153,8 +153,25 @@ namespace UniVRMXT.MaterialsOverride
                     continue;
                 }
 
-                RestoreSourceToNamedSlots(root, pair.MaterialName, pair.SourceMaterial);
+                RestoreSourceMaterial(root, pair.MaterialName, pair.SourceMaterial);
             }
+        }
+
+        /// <summary>
+        /// Restore one material name's renderer slots to <paramref name="sourceMaterial"/>
+        /// and destroy <see cref="HideFlags.DontSave"/> preview clones.
+        /// </summary>
+        public static void RestoreSourceMaterial(
+            GameObject root,
+            string materialName,
+            Material sourceMaterial)
+        {
+            if (root == null || string.IsNullOrEmpty(materialName) || sourceMaterial == null)
+            {
+                return;
+            }
+
+            RestoreSourceToNamedSlots(root, materialName, sourceMaterial);
         }
 
         /// <summary>

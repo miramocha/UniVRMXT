@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - Export `PrepareTextures` remaps textures from authored `OverrideMaterial` after PreHierarchy restores Source onto mesh slots
-- Import/authoring apply uses `HideFlags.DontSave` clones — does not mutate imported shared materials
+- Import Apply mutates host-built materials in place again — `DontSave` clones on imported assets do not serialize (pink / missing)
+- Missing `Shader.Find` on import restores `SourceMaterial` and leaves stock look (JSON kept on Instance)
 - `TryGetMaterialIndex` reflection unboxes boxed `int` correctly (`as int?` was always null)
 - Authoring preview clones: update existing `DontSave` instances in place (no leak when Source unset)
 
