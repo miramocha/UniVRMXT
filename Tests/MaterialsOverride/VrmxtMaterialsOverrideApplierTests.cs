@@ -111,6 +111,61 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void Apply_ShaderResolveProvider_UsedWhenShaderFindWouldMiss()
+        {
+            var root = CreateRootWithNamedMaterial("Hair", out var material);
+            var originalShader = material.shader;
+            var replacement = Shader.Find("Standard");
+            Assert.IsNotNull(replacement);
+
+            var previous = VrmxtMaterialsOverrideApplier.ShaderResolveProvider;
+            try
+            {
+                VrmxtMaterialsOverrideApplier.ShaderResolveProvider = name =>
+                    string.Equals(name, "Host/Only/PackagedShader", StringComparison.Ordinal)
+                        ? replacement
+                        : null;
+
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                    root,
+                    @"{
+                      ""materials"": [{
+                        ""name"": ""Hair"",
+                        ""extensions"": {
+                          ""VRMXT_materials_override"": {
+                            ""specVersion"": ""1.0"",
+                            ""overrides"": [{
+                              ""engine"": ""unity"",
+                              ""material"": {
+                                ""idType"": ""shaderName"",
+                                ""id"": ""Host/Only/PackagedShader""
+                              }
+                            }]
+                          }
+                        }
+                      }]
+                    }",
+                    out var store));
+
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    store,
+                    "{}",
+                    RenderPipelineVariant.Builtin);
+
+                Assert.AreEqual(1, applied);
+                Assert.AreSame(replacement, material.shader);
+                Assert.AreNotSame(originalShader, material.shader);
+            }
+            finally
+            {
+                VrmxtMaterialsOverrideApplier.ShaderResolveProvider = previous;
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void Apply_SetsShaderAndPropertiesAndBindings_BindingSourceFromSiblingMtoon()
         {
             var root = CreateRootWithNamedMaterial("Hair", out var material);

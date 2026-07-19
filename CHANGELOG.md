@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can
+  supply shaders when `Shader.Find` misses (Warudo/uMod ModHost cache); optional
+  `resolveShader` arg on `Apply`
+
 ### Fixed
 
 - `DetectActivePipeline`: identify URP/HDRP via `Object.ToString()` instead of
