@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using UniVRMXT.Format;
 using UnityEngine;
+// VrmxtInstance facade lives in root namespace UniVRMXT.
 
 namespace UniVRMXT.Vfx
 {
@@ -27,7 +28,7 @@ namespace UniVRMXT.Vfx
                 return pending;
             }
 
-            var instance = root.GetComponentInChildren<VrmxtVfxInstance>(true);
+            var instance = VrmxtInstance.FindVfx(root);
             if (instance == null)
             {
                 return pending;

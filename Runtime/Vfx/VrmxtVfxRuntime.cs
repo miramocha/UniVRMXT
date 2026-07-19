@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UniVRMXT.Format;
 using UnityEngine;
+// VrmxtInstance facade lives in root namespace UniVRMXT.
 
 namespace UniVRMXT.Vfx
 {
@@ -172,14 +173,19 @@ namespace UniVRMXT.Vfx
         private static VrmxtVfxInstance EnsureInstance(GameObject root)
         {
             var instance = root.GetComponent<VrmxtVfxInstance>();
-            if (instance != null)
+            if (instance == null)
             {
-                return instance;
+                // ScriptedImporter main assets reject AddComponent during AssetPostprocessor
+                // (returns null). Callers must Instantiate / use a companion prefab first.
+                instance = root.AddComponent<VrmxtVfxInstance>();
             }
 
-            // ScriptedImporter main assets reject AddComponent during AssetPostprocessor
-            // (returns null). Callers must Instantiate / use a companion prefab first.
-            return root.AddComponent<VrmxtVfxInstance>();
+            if (instance != null)
+            {
+                VrmxtInstance.BindVfx(root, instance);
+            }
+
+            return instance;
         }
     }
 }

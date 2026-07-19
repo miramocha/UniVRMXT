@@ -27,6 +27,9 @@ emitter data. Albedo is taken from `VrmxtVfxParticleData.Texture` (set on import
 material sync) so export still embeds textures after preview systems are cleared.
 Editing only `VrmxtVfxInstance` fields also works when no PS child exists.
 
+`VrmxtVfxInstance.OnValidate` pushes emitter fields onto existing preview ParticleSystems
+via `SyncParticleSystemsFromEmitters` (no destroy/rebuild).
+
 ## Texture / material policy (BIRP + URP)
 
 1. Mapper creates an owned unlit particle material:

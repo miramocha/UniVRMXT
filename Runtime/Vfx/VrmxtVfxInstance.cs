@@ -177,6 +177,38 @@ namespace UniVRMXT.Vfx
             particleSystems.Clear();
         }
 
+        /// <summary>
+        /// Push emitter portable fields onto existing preview <see cref="ParticleSystem"/>
+        /// children. Does not create or destroy systems.
+        /// </summary>
+        public void SyncParticleSystemsFromEmitters()
+        {
+            for (var i = 0; i < emitters.Count; i++)
+            {
+                var emitter = emitters[i];
+                if (emitter?.Particle == null)
+                {
+                    continue;
+                }
+
+                var particleSystem = FindParticleSystemChild(emitter);
+                if (particleSystem == null)
+                {
+                    continue;
+                }
+
+                VrmxtVfxParticleSystemMapper.Apply(
+                    particleSystem,
+                    emitter.Particle,
+                    emitter.Particle.Texture);
+            }
+        }
+
+        private void OnValidate()
+        {
+            SyncParticleSystemsFromEmitters();
+        }
+
         private void OnDestroy()
         {
             ClearParticleSystems();

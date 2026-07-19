@@ -13,8 +13,13 @@ namespace UniVRMXT.Format
         public const string EngineUnity = "unity";
         public const string EngineUnreal = "unreal";
 
-        public const string UnityMaterialKindShader = "shader";
-        public const string UnrealMaterialKindMaterialSet = "materialSet";
+        public const string UnityMaterialIdTypeShaderName = "shaderName";
+        public const string UnrealMaterialIdTypeMaterialSet = "materialSet";
+
+        public const string TargetTypeScalar = "scalar";
+        public const string TargetTypeVector = "vector";
+        public const string TargetTypeTexture = "texture";
+        public const string TargetTypeShaderFeature = "shaderFeature";
 
         public static bool TryParse(string json, out VrmxtMaterialsOverrideExtension result)
         {
@@ -107,6 +112,214 @@ namespace UniVRMXT.Format
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Serialize a portable extension object to compact JSON (UTF-8).
+        /// </summary>
+        public static string ToJson(VrmxtMaterialsOverrideExtension extension)
+        {
+            if (extension == null)
+            {
+                throw new ArgumentNullException(nameof(extension));
+            }
+
+            return BuildExtensionObject(extension).ToString(Formatting.None);
+        }
+
+        /// <summary>
+        /// UTF-8 JSON bytes suitable for glTF <c>materials[i].extensions.VRMXT_materials_override</c>.
+        /// </summary>
+        public static byte[] ToUtf8Json(VrmxtMaterialsOverrideExtension extension)
+        {
+            var json = ToJson(extension);
+            return System.Text.Encoding.UTF8.GetBytes(json);
+        }
+
+        private static JObject BuildExtensionObject(VrmxtMaterialsOverrideExtension extension)
+        {
+            var overrides = new JArray();
+            foreach (var entry in extension.Overrides)
+            {
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                overrides.Add(BuildOverrideObject(entry));
+            }
+
+            return new JObject
+            {
+                ["specVersion"] = SpecVersionValue,
+                ["overrides"] = overrides,
+            };
+        }
+
+        private static JObject BuildOverrideObject(VrmxtMaterialEngineOverride entry)
+        {
+            var obj = new JObject
+            {
+                ["engine"] = entry.Engine,
+                ["material"] = BuildMaterialObject(entry.Material),
+            };
+
+            if (entry.Bindings.Count > 0)
+            {
+                var bindings = new JArray();
+                foreach (var binding in entry.Bindings)
+                {
+                    bindings.Add(BuildBindingObject(binding));
+                }
+
+                obj["bindings"] = bindings;
+            }
+
+            if (entry.Properties.Count > 0)
+            {
+                var properties = new JArray();
+                foreach (var property in entry.Properties)
+                {
+                    properties.Add(BuildPropertyObject(property));
+                }
+
+                obj["properties"] = properties;
+            }
+
+            return obj;
+        }
+
+        private static JObject BuildMaterialObject(IVrmxtMaterialDefinition material)
+        {
+            if (material is UnityMaterialOverride unity)
+            {
+                var obj = new JObject
+                {
+                    ["idType"] = unity.IdType,
+                    ["id"] = unity.Id,
+                };
+
+                if (!string.IsNullOrEmpty(unity.Variant))
+                {
+                    obj["variant"] = unity.Variant;
+                }
+
+                AddProviderObject(obj, unity.Provider);
+                return obj;
+            }
+
+            if (material is UnrealMaterialOverride unreal)
+            {
+                var obj = new JObject
+                {
+                    ["idType"] = unreal.IdType,
+                    ["variants"] = BuildVariantsObject(unreal.Variants),
+                };
+
+                AddProviderObject(obj, unreal.Provider);
+                return obj;
+            }
+
+            var fallback = new JObject();
+            if (material is UnknownMaterialOverride unknown && !string.IsNullOrEmpty(unknown.IdType))
+            {
+                fallback["idType"] = unknown.IdType;
+            }
+
+            AddProviderObject(fallback, material?.Provider);
+            return fallback;
+        }
+
+        private static JObject BuildVariantsObject(IReadOnlyDictionary<string, string> variants)
+        {
+            var obj = new JObject();
+            if (variants == null)
+            {
+                return obj;
+            }
+
+            foreach (var variant in variants)
+            {
+                obj[variant.Key] = variant.Value;
+            }
+
+            return obj;
+        }
+
+        private static void AddProviderObject(JObject obj, MaterialProvider provider)
+        {
+            if (provider == null)
+            {
+                return;
+            }
+
+            var providerObj = new JObject
+            {
+                ["id"] = provider.Id,
+            };
+
+            if (!string.IsNullOrEmpty(provider.Version))
+            {
+                providerObj["version"] = provider.Version;
+            }
+
+            obj["provider"] = providerObj;
+        }
+
+        private static JObject BuildBindingObject(VrmxtMaterialBinding binding)
+        {
+            return new JObject
+            {
+                ["source"] = binding.Source,
+                ["target"] = binding.Target,
+                ["targetType"] = binding.TargetType,
+            };
+        }
+
+        private static JObject BuildPropertyObject(VrmxtMaterialProperty property)
+        {
+            var obj = new JObject
+            {
+                ["name"] = property.Name,
+                ["type"] = property.Type,
+            };
+
+            if (string.Equals(property.Type, TargetTypeTexture, StringComparison.Ordinal))
+            {
+                obj["texture"] = property.TextureIndex ?? 0;
+                return obj;
+            }
+
+            if (string.Equals(property.Type, TargetTypeVector, StringComparison.Ordinal))
+            {
+                obj["value"] = ToJArray(property.VectorValue);
+                return obj;
+            }
+
+            if (string.Equals(property.Type, TargetTypeShaderFeature, StringComparison.Ordinal))
+            {
+                obj["value"] = property.BoolValue ?? false;
+                return obj;
+            }
+
+            obj["value"] = property.ScalarValue ?? 0f;
+            return obj;
+        }
+
+        private static JArray ToJArray(IReadOnlyList<float> values)
+        {
+            var array = new JArray();
+            if (values == null)
+            {
+                return array;
+            }
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                array.Add(values[i]);
+            }
+
+            return array;
         }
 
         private static bool TryGetExtensionObject(JToken root, out JObject extension)
@@ -207,7 +420,26 @@ namespace UniVRMXT.Format
                 }
             }
 
-            engineOverride = new VrmxtMaterialEngineOverride(engine, material, bindings);
+            var properties = new List<VrmxtMaterialProperty>();
+            if (TryGetProperty(overrideObject, "properties", out var propertiesToken))
+            {
+                if (propertiesToken.Type != JTokenType.Array)
+                {
+                    return false;
+                }
+
+                foreach (var propertyToken in (JArray)propertiesToken)
+                {
+                    if (!TryParseProperty(propertyToken, out var property))
+                    {
+                        return false;
+                    }
+
+                    properties.Add(property);
+                }
+            }
+
+            engineOverride = new VrmxtMaterialEngineOverride(engine, material, bindings, properties);
             return true;
         }
 
@@ -215,13 +447,21 @@ namespace UniVRMXT.Format
         {
             material = null;
 
-            if (!TryGetProperty(materialObject, "kind", out var kindToken) ||
-                kindToken.Type != JTokenType.String)
+            string idType = null;
+            if (TryGetProperty(materialObject, "idType", out var idTypeToken))
             {
-                return false;
+                if (idTypeToken.Type != JTokenType.String)
+                {
+                    return false;
+                }
+
+                idType = idTypeToken.Value<string>();
+                if (string.IsNullOrEmpty(idType))
+                {
+                    return false;
+                }
             }
 
-            var kind = kindToken.Value<string>();
             MaterialProvider provider = null;
             if (TryGetProperty(materialObject, "provider", out var providerToken))
             {
@@ -233,19 +473,19 @@ namespace UniVRMXT.Format
 
             if (string.Equals(engine, EngineUnity, StringComparison.Ordinal))
             {
-                if (!string.Equals(kind, UnityMaterialKindShader, StringComparison.Ordinal))
+                if (!string.Equals(idType, UnityMaterialIdTypeShaderName, StringComparison.Ordinal))
                 {
                     return false;
                 }
 
-                if (!TryGetProperty(materialObject, "name", out var nameToken) ||
-                    nameToken.Type != JTokenType.String)
+                if (!TryGetProperty(materialObject, "id", out var idToken) ||
+                    idToken.Type != JTokenType.String)
                 {
                     return false;
                 }
 
-                var shaderName = nameToken.Value<string>();
-                if (string.IsNullOrEmpty(shaderName))
+                var id = idToken.Value<string>();
+                if (string.IsNullOrEmpty(id))
                 {
                     return false;
                 }
@@ -257,13 +497,13 @@ namespace UniVRMXT.Format
                     variant = variantToken.Value<string>();
                 }
 
-                material = new UnityMaterialOverride(kind, shaderName, variant, provider);
+                material = new UnityMaterialOverride(idType, id, variant, provider);
                 return true;
             }
 
             if (string.Equals(engine, EngineUnreal, StringComparison.Ordinal))
             {
-                if (!string.Equals(kind, UnrealMaterialKindMaterialSet, StringComparison.Ordinal))
+                if (!string.Equals(idType, UnrealMaterialIdTypeMaterialSet, StringComparison.Ordinal))
                 {
                     return false;
                 }
@@ -296,11 +536,11 @@ namespace UniVRMXT.Format
                     return false;
                 }
 
-                material = new UnrealMaterialOverride(kind, variants, provider);
+                material = new UnrealMaterialOverride(idType, variants, provider);
                 return true;
             }
 
-            material = new UnknownMaterialOverride(kind, provider);
+            material = new UnknownMaterialOverride(idType, provider);
             return true;
         }
 
@@ -378,17 +618,153 @@ namespace UniVRMXT.Format
             return true;
         }
 
+        private static bool TryParseProperty(JToken propertyToken, out VrmxtMaterialProperty property)
+        {
+            property = null;
+            if (propertyToken is not JObject propertyObject)
+            {
+                return false;
+            }
+
+            if (!TryGetProperty(propertyObject, "name", out var nameToken) ||
+                nameToken.Type != JTokenType.String)
+            {
+                return false;
+            }
+
+            var name = nameToken.Value<string>();
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            if (!TryGetProperty(propertyObject, "type", out var typeToken) ||
+                typeToken.Type != JTokenType.String)
+            {
+                return false;
+            }
+
+            var type = typeToken.Value<string>();
+            if (!IsKnownTargetType(type))
+            {
+                return false;
+            }
+
+            if (string.Equals(type, TargetTypeTexture, StringComparison.Ordinal))
+            {
+                if (!TryGetProperty(propertyObject, "texture", out var textureToken) ||
+                    !TryGetInt32(textureToken, out var textureIndex) ||
+                    textureIndex < 0)
+                {
+                    return false;
+                }
+
+                property = new VrmxtMaterialProperty(name, type, null, null, null, textureIndex);
+                return true;
+            }
+
+            if (!TryGetProperty(propertyObject, "value", out var valueToken))
+            {
+                return false;
+            }
+
+            if (string.Equals(type, TargetTypeVector, StringComparison.Ordinal))
+            {
+                if (valueToken.Type != JTokenType.Array)
+                {
+                    return false;
+                }
+
+                var values = new List<float>();
+                foreach (var item in (JArray)valueToken)
+                {
+                    if (!TryGetDouble(item, out var number) || !IsFinite(number))
+                    {
+                        return false;
+                    }
+
+                    values.Add((float)number);
+                }
+
+                if (values.Count == 0)
+                {
+                    return false;
+                }
+
+                property = new VrmxtMaterialProperty(name, type, null, values, null, null);
+                return true;
+            }
+
+            if (string.Equals(type, TargetTypeShaderFeature, StringComparison.Ordinal))
+            {
+                if (valueToken.Type != JTokenType.Boolean)
+                {
+                    return false;
+                }
+
+                property = new VrmxtMaterialProperty(name, type, null, null, valueToken.Value<bool>(), null);
+                return true;
+            }
+
+            // Remaining known type is TargetTypeScalar.
+            if (!TryGetDouble(valueToken, out var scalar) || !IsFinite(scalar))
+            {
+                return false;
+            }
+
+            property = new VrmxtMaterialProperty(name, type, (float)scalar, null, null, null);
+            return true;
+        }
+
         private static bool TryGetProperty(JObject parent, string propertyName, out JToken token)
         {
             return parent.TryGetValue(propertyName, StringComparison.Ordinal, out token);
         }
 
+        private static bool TryGetInt32(JToken token, out int value)
+        {
+            value = 0;
+            if (token == null || (token.Type != JTokenType.Integer && token.Type != JTokenType.Float))
+            {
+                return false;
+            }
+
+            var number = token.Value<double>();
+            if (!IsFinite(number) || number != Math.Truncate(number) ||
+                number < int.MinValue || number > int.MaxValue)
+            {
+                return false;
+            }
+
+            value = (int)number;
+            return true;
+        }
+
+        private static bool TryGetDouble(JToken token, out double value)
+        {
+            value = 0d;
+            if (token == null || (token.Type != JTokenType.Integer && token.Type != JTokenType.Float))
+            {
+                return false;
+            }
+
+            value = token.Value<double>();
+            return true;
+        }
+
+        private static bool IsFinite(double value)
+        {
+            return !double.IsNaN(value) && !double.IsInfinity(value);
+        }
+
+        // Shared vocabulary: binding targetType and property type both draw from the
+        // same scalar/vector/texture/shaderFeature set.
         private static bool IsKnownTargetType(string targetType)
         {
-            return string.Equals(targetType, "scalar", StringComparison.Ordinal) ||
-                   string.Equals(targetType, "vector", StringComparison.Ordinal) ||
-                   string.Equals(targetType, "texture", StringComparison.Ordinal) ||
-                   string.Equals(targetType, "staticSwitch", StringComparison.Ordinal);
+            return string.Equals(targetType, TargetTypeScalar, StringComparison.Ordinal) ||
+                   string.Equals(targetType, TargetTypeVector, StringComparison.Ordinal) ||
+                   string.Equals(targetType, TargetTypeTexture, StringComparison.Ordinal) ||
+                   string.Equals(targetType, TargetTypeShaderFeature, StringComparison.Ordinal);
         }
     }
 
@@ -407,35 +783,40 @@ namespace UniVRMXT.Format
         public VrmxtMaterialEngineOverride(
             string engine,
             IVrmxtMaterialDefinition material,
-            IReadOnlyList<VrmxtMaterialBinding> bindings)
+            IReadOnlyList<VrmxtMaterialBinding> bindings,
+            IReadOnlyList<VrmxtMaterialProperty> properties)
         {
             Engine = engine;
             Material = material;
             Bindings = bindings ?? Array.Empty<VrmxtMaterialBinding>();
+            Properties = properties ?? Array.Empty<VrmxtMaterialProperty>();
         }
 
         public string Engine { get; }
         public IVrmxtMaterialDefinition Material { get; }
         public IReadOnlyList<VrmxtMaterialBinding> Bindings { get; }
+        public IReadOnlyList<VrmxtMaterialProperty> Properties { get; }
     }
 
     public interface IVrmxtMaterialDefinition
     {
-        string Kind { get; }
+        string IdType { get; }
         MaterialProvider Provider { get; }
     }
 
     public sealed class UnityMaterialOverride : IVrmxtMaterialDefinition
     {
-        public UnityMaterialOverride(string kind, string shaderName, string variant, MaterialProvider provider)
+        public UnityMaterialOverride(string idType, string id, string variant, MaterialProvider provider)
         {
-            Kind = kind;
-            ShaderName = shaderName;
+            IdType = idType;
+            Id = id;
+            ShaderName = id;
             Variant = variant;
             Provider = provider;
         }
 
-        public string Kind { get; }
+        public string IdType { get; }
+        public string Id { get; }
         public string ShaderName { get; }
         public string Variant { get; }
         public MaterialProvider Provider { get; }
@@ -444,29 +825,29 @@ namespace UniVRMXT.Format
     public sealed class UnrealMaterialOverride : IVrmxtMaterialDefinition
     {
         public UnrealMaterialOverride(
-            string kind,
+            string idType,
             IReadOnlyDictionary<string, string> variants,
             MaterialProvider provider)
         {
-            Kind = kind;
+            IdType = idType;
             Variants = variants;
             Provider = provider;
         }
 
-        public string Kind { get; }
+        public string IdType { get; }
         public IReadOnlyDictionary<string, string> Variants { get; }
         public MaterialProvider Provider { get; }
     }
 
     public sealed class UnknownMaterialOverride : IVrmxtMaterialDefinition
     {
-        public UnknownMaterialOverride(string kind, MaterialProvider provider)
+        public UnknownMaterialOverride(string idType, MaterialProvider provider)
         {
-            Kind = kind;
+            IdType = idType;
             Provider = provider;
         }
 
-        public string Kind { get; }
+        public string IdType { get; }
         public MaterialProvider Provider { get; }
     }
 
@@ -494,5 +875,31 @@ namespace UniVRMXT.Format
         public string Source { get; }
         public string Target { get; }
         public string TargetType { get; }
+    }
+
+    public sealed class VrmxtMaterialProperty
+    {
+        public VrmxtMaterialProperty(
+            string name,
+            string type,
+            float? scalarValue,
+            IReadOnlyList<float> vectorValue,
+            bool? boolValue,
+            int? textureIndex)
+        {
+            Name = name;
+            Type = type;
+            ScalarValue = scalarValue;
+            VectorValue = vectorValue;
+            BoolValue = boolValue;
+            TextureIndex = textureIndex;
+        }
+
+        public string Name { get; }
+        public string Type { get; }
+        public float? ScalarValue { get; }
+        public IReadOnlyList<float> VectorValue { get; }
+        public bool? BoolValue { get; }
+        public int? TextureIndex { get; }
     }
 }
