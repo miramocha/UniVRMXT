@@ -580,6 +580,73 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void Apply_ShaderChange_ClearsMainTex_WhenTextureBindingSkippedWithoutMtoon()
+        {
+            var root = CreateRootWithNamedMaterial("Hair", out var material);
+            var stockTexture = new Texture2D(2, 2);
+            var targetShader = Shader.Find("Unlit/Texture");
+            Assert.IsNotNull(targetShader, "Unlit/Texture required for shader-swap texture clear test");
+
+            try
+            {
+                material.SetTexture("_MainTex", stockTexture);
+
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                    root,
+                    @"{
+                      ""materials"": [{
+                        ""name"": ""Hair"",
+                        ""extensions"": {
+                          ""VRMXT_materials_override"": {
+                            ""specVersion"": ""1.0"",
+                            ""overrides"": [{
+                              ""engine"": ""unity"",
+                              ""material"": {
+                                ""idType"": ""shaderName"",
+                                ""id"": ""Unlit/Texture""
+                              },
+                              ""bindings"": [
+                                {
+                                  ""source"": ""shadeMultiplyTexture"",
+                                  ""target"": ""_MainTex"",
+                                  ""targetType"": ""texture""
+                                }
+                              ],
+                              ""properties"": [
+                                { ""name"": ""_Color"", ""type"": ""vector"", ""value"": [0.0, 1.0, 0.0, 1.0] }
+                              ]
+                            }]
+                          }
+                        }
+                      }]
+                    }",
+                    out var store));
+
+                store.TryGetPair("Hair", out var pair);
+                pair.SourceMaterial = material;
+
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    store,
+                    "{}",
+                    RenderPipelineVariant.Builtin);
+
+                Assert.AreEqual(1, applied);
+                Assert.AreSame(targetShader, material.shader);
+                Assert.IsNull(
+                    material.GetTexture("_MainTex"),
+                    "Skipped binding must not block clear of stock-import texture");
+                Assert.AreEqual(new Color(0f, 1f, 0f, 1f), material.GetColor("_Color"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(stockTexture);
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void Apply_ShaderChange_KeepsListedTextureProperty()
         {
             var root = CreateRootWithNamedMaterial("Hair", out var material);
