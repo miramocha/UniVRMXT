@@ -13,7 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   are not read. Removed emitter `localPosition` / `localRotation`, nested `particle`, `type`,
   `startSize`, and `startColor`.
 - `VrmxtVfxParticleSystemMapper`: identity local TR on resolved node; world-space rectangular
-  size via `startSize3D` / `startSizeX` / `startSizeY` with parent scale compensation;
+  size via `startSize3D` / `startSizeX` / `startSizeY` with `scalingMode = Local`
+  on an identity-scale particle child (no hierarchy scale inheritance);
   native billboard mode; local +Y velocity unchanged.
 - Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
   `extensionsUsed` once (never `extensionsRequired`).

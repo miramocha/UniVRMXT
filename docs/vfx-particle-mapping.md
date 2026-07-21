@@ -11,7 +11,7 @@ JSON omits a property (`VrmxtVfx.Default*`).
 | `emissionRate` | `ParticleSystem.emission.rateOverTime` | Particles per second |
 | `maxParticles` | `main.maxParticles` | Clamped to ≥ 1 |
 | `lifetime` | `main.startLifetime` | Seconds |
-| `size[0]` / `size[1]` | `main.startSizeX` / `main.startSizeY` (3D mode) | World meters; divided by parent `lossyScale` so sprite dimensions do not inherit node scale |
+| `size[0]` / `size[1]` | `main.startSizeX` / `main.startSizeY` (3D mode) | World meters; `scalingMode = Local` on identity-scale PS child so size does not inherit node scale |
 | `startSpeed` | `velocityOverLifetime.y` (local) | `main.startSpeed` forced to `0`; velocity along emitter local **+Y** |
 | `color` | `main.startColor` | Linear RGBA; export reads live PS value back |
 | `texture` | Owned particle material `_MainTex` + `_BaseMap` | Index into glTF `textures[]` via caller `resolveTexture`; structurally invalid index skips emitter; decode failure → white solid × `color` |

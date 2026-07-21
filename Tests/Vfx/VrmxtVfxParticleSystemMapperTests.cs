@@ -72,6 +72,7 @@ namespace UniVRMXT.Tests.Vfx
                 var main = ps.main;
                 Assert.AreEqual(32, main.maxParticles);
                 Assert.AreEqual(0.8f, main.startLifetime.constant);
+                Assert.AreEqual(ParticleSystemScalingMode.Local, main.scalingMode);
                 Assert.IsTrue(main.startSize3D);
                 Assert.AreEqual(0.04f, main.startSizeX.constant);
                 Assert.AreEqual(0.06f, main.startSizeY.constant);
@@ -122,8 +123,9 @@ namespace UniVRMXT.Tests.Vfx
                 VrmxtVfxParticleSystemMapper.ApplyWorldSpaceSize(main, child, 0.1f, 0.2f);
 
                 Assert.IsTrue(main.startSize3D);
-                Assert.AreEqual(0.05f, main.startSizeX.constant, 1e-4f);
-                Assert.AreEqual(0.05f, main.startSizeY.constant, 1e-4f);
+                // Local scalingMode + identity PS scale ⇒ start sizes are world meters.
+                Assert.AreEqual(0.1f, main.startSizeX.constant, 1e-4f);
+                Assert.AreEqual(0.2f, main.startSizeY.constant, 1e-4f);
 
                 VrmxtVfxParticleSystemMapper.ReadWorldSpaceSize(
                     main,
