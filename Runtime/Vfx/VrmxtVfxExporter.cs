@@ -8,7 +8,8 @@ using UnityEngine;
 namespace UniVRMXT.Vfx
 {
     /// <summary>
-    /// Builds portable <c>VRMXT_vfx</c> JSON from <see cref="VrmxtVfxInstance"/> for export.
+    /// Builds portable <c>VRMXT_sprite_particle</c> JSON from
+    /// <see cref="VrmxtVfxInstance"/> for export.
     /// Does not reference UniGLTF/VRM10; the export hook supplies node/texture registration.
     /// </summary>
     public static class VrmxtVfxExporter
@@ -34,8 +35,6 @@ namespace UniVRMXT.Vfx
                 return pending;
             }
 
-            // Ensure Particle.Texture is populated before PS clear (import may only have
-            // HasTexture + material slots until Sync / Bind runs).
             instance.SyncTexturesFromParticleMaterials();
 
             var emitters = instance.Emitters;
@@ -50,7 +49,6 @@ namespace UniVRMXT.Vfx
                 var particleSystem = FindParticleSystem(emitter, instance);
                 if (particleSystem != null)
                 {
-                    // Inspector edits live on ParticleSystem; fold them back before clear.
                     VrmxtVfxParticleSystemMapper.ReadFromParticleSystem(particleSystem, emitter);
                 }
 
@@ -68,9 +66,6 @@ namespace UniVRMXT.Vfx
             return pending;
         }
 
-        /// <summary>
-        /// Register captured textures and assign export-time texture indices.
-        /// </summary>
         public static void RegisterTextures(
             IList<VrmxtVfxPendingEmitter> pending,
             Func<Texture, int> registerSRgbTexture)
@@ -92,10 +87,6 @@ namespace UniVRMXT.Vfx
             }
         }
 
-        /// <summary>
-        /// Build extension JSON using current node indices from
-        /// <paramref name="resolveNodeIndex"/>.
-        /// </summary>
         public static bool TryBuildUtf8Json(
             IList<VrmxtVfxPendingEmitter> pending,
             Func<Transform, int?> resolveNodeIndex,
@@ -218,37 +209,23 @@ namespace UniVRMXT.Vfx
             }
             else if (particle.HasTexture && particle.TextureIndex >= 0 && particle.Texture == null)
             {
-                // No live texture to re-embed; omit texture field rather than write a stale index.
                 texture = null;
             }
 
-            var startColor = particle.StartColor;
+            var color = particle.Color;
             return new VrmxtVfxEmitter(
                 emitter.Name,
-                string.IsNullOrEmpty(emitter.Type) ? "particle" : emitter.Type,
                 nodeIndex,
-                new[] { emitter.LocalPosition.x, emitter.LocalPosition.y, emitter.LocalPosition.z },
-                new[]
-                {
-                    emitter.LocalRotation.x,
-                    emitter.LocalRotation.y,
-                    emitter.LocalRotation.z,
-                    emitter.LocalRotation.w,
-                },
-                new VrmxtVfxParticle(
-                    texture,
-                    particle.EmissionRate,
-                    particle.MaxParticles,
-                    particle.Lifetime,
-                    particle.StartSize,
-                    particle.StartSpeed,
-                    new[] { startColor.r, startColor.g, startColor.b, startColor.a }));
+                texture,
+                new[] { particle.SizeX, particle.SizeY },
+                new[] { color.r, color.g, color.b, color.a },
+                particle.EmissionRate,
+                particle.MaxParticles,
+                particle.Lifetime,
+                particle.StartSpeed);
         }
     }
 
-    /// <summary>
-    /// One emitter staged for export between PreHierarchy and WriteExtensions.
-    /// </summary>
     public sealed class VrmxtVfxPendingEmitter
     {
         public VrmxtVfxPendingEmitter(VrmxtVfxResolvedEmitter emitter, Texture texture)

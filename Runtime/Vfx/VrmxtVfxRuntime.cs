@@ -7,7 +7,7 @@ using UnityEngine;
 namespace UniVRMXT.Vfx
 {
     /// <summary>
-    /// Attach parsed <c>VRMXT_vfx</c> data to a loaded avatar without referencing UniVRM types.
+    /// Attach parsed <c>VRMXT_sprite_particle</c> data to a loaded avatar without referencing UniVRM types.
     /// Call after stock <c>Vrm10.LoadGltfDataAsync</c> (or equivalent) with glTF JSON and
     /// <c>RuntimeGltfInstance.Nodes</c>. Prefer <see cref="TryAttachFromGlb"/> when particle
     /// textures are not imported by UniVRM (extension-only <c>textures[]</c>).
@@ -111,7 +111,7 @@ namespace UniVRMXT.Vfx
         }
 
         /// <summary>
-        /// Re-read GLB bytes: parse <c>VRMXT_vfx</c>, decode extension textures, build particles.
+        /// Re-read GLB bytes: parse <c>VRMXT_sprite_particle</c>, decode extension textures, build particles.
         /// Caller owns <paramref name="textures"/> until disposed (or
         /// <see cref="VrmxtVfxGlbTextures.ReleaseOwnership"/> after saving into an asset).
         /// </summary>

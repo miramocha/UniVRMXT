@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking (unreleased):** Root extension renamed to `VRMXT_sprite_particle` with flat
+  emitter fields (`texture`, `size`, `color`, …). Legacy `VRMXT_vfx` / `VRMXT_particle`
+  are not read. Removed emitter `localPosition` / `localRotation`, nested `particle`, `type`,
+  `startSize`, and `startColor`.
+- `VrmxtVfxParticleSystemMapper`: identity local TR on resolved node; world-space rectangular
+  size via `startSize3D` / `startSizeX` / `startSizeY` with parent scale compensation;
+  native billboard mode; local +Y velocity unchanged.
+- Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
+  `extensionsUsed` once (never `extensionsRequired`).
+
 ### Added
 
 - `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can

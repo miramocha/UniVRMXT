@@ -17,17 +17,9 @@ and does not reference UniGLTF types, so format tests stay free of UniVRM load A
 
 ## Extensions (v0.1.0)
 
-### VRMXT_vfx
+### VRMXT_sprite_particle
 
-- Root extension: `extensions.VRMXT_vfx`
-- Spec: [vrmxt-vfx.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/vrmxt-vfx.md)
-- `VrmxtVfx.TryParse` validates `specVersion` `1.0`, applies particle defaults, and skips invalid emitters.
-- `VrmxtVfxImporter.TryImport` maps emitters to Unity data; Transform overloads skip unresolved nodes.
-- `VrmxtVfxRuntime.TryAttach` adds `VrmxtVfxInstance` on the avatar root after stock UniVRM load (also wires `VrmxtInstance.Vfx`).
-- Editing `VrmxtVfxInstance` emitter fields refreshes bound preview `ParticleSystem`s via `OnValidate` → `SyncParticleSystemsFromEmitters` (no rebuild).
-- `VrmxtVfxParticleSystemMapper` maps portable fields onto Unity `ParticleSystem` (billboard + local +Y velocity; BIRP/URP unlit material).
-- `VrmxtVfx.ToJson` / `VrmxtVfxExporter` + `VrmxtVfxExportHookBootstrap` re-write `VRMXT_vfx` on Extended-UniVRM VRM export.
-- Field table: [vfx-particle-mapping.md](vfx-particle-mapping.md).
+- Root extension: `extensions.VRMXT_sprite_particle` (legacy `VRMXT_vfx` / `VRMXT_particle` not read)
 
 Runtime attach after UniVRM load (caller owns UniGLTF/VRM references):
 
@@ -64,7 +56,7 @@ VrmxtVfxRuntime.TryAttach(
 - `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` — walks `materials[]`, validates each extension through the Format layer, and populates the instance (wires `VrmxtInstance`). No UniGLTF/VRM10 reference, same design as the VFX runtime attach.
 - `VrmxtMaterialsOverrideApplier.Apply` — shared logic for Editor and Warudo-style hosts: resolves the selected `unity` override per material, sets `shader`, then writes that slot's `properties` and `bindings` (bindings win on overlap, per base-spec rule 23). Bindings apply only when a sibling `VRMC_materials_mtoon` extension exists; an unresolved shader or a missing/mismatched variant leaves that material on stock import untouched.
 - `VrmxtMaterialsOverrideExporter` — `BuildPending` clones each stored entry for export; `PrepareTextures` re-registers textures for every unity slot (selector-chosen slot prefers live OverrideMaterial / mesh textures; all slots fall back to `VrmxtMaterialsOverrideInstance.ImportedTextures` decoded on import — never write-through stale glTF indices); `TryBuildUtf8Extension` / `BuildAllUtf8Extensions` produce per-material UTF-8 JSON for the `WriteExtensions` phase, written via `Vrm10ExportExtensionContext.AddMaterialExtension` (material index resolved with `TryGetMaterialIndex`). `ResolveUnityVariant` implements variant survival: an existing `material.variant` always wins; only a brand-new `unity` entry without one is filled from the active pipeline.
-- Host integration uses the same soft-detected `Vrm10Import/ExportExtensionRegistry` design as `VRMXT_vfx` (Editor + Extended-UniVRM) or a direct post-load JSON re-read for hosts without generator inject (e.g. Warudo Character load): [Warudo Materials Override](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/warudo-materials-override.md). Per-material `AddMaterialExtension` / `TryGetMaterialIndex` design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
+- Host integration uses the same soft-detected `Vrm10Import/ExportExtensionRegistry` design as `VRMXT_sprite_particle` (Editor + Extended-UniVRM) or a direct post-load JSON re-read for hosts without generator inject (e.g. Warudo Character load): [Warudo Materials Override](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/warudo-materials-override.md). Per-material `AddMaterialExtension` / `TryGetMaterialIndex` design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
 - Full `IMaterialDescriptorGenerator` wrapping (Editor import-time shader swap ahead of first render) still requires UniVRM at consumption time; see `VrmxtMaterialsOverrideGenerator` and `Editor/MaterialsOverride/VrmxtMaterialDescriptorGeneratorFactory.cs`.
 - Unity↔Blender uses the current `idType` / `id` schema. Remaining Blender gap: Unreal `idType: "resourcePath"` + per-entry `variant` format/UI — see [Blender Materials Override](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/blender-materials-override.md).
 
@@ -79,7 +71,7 @@ VrmxtVfxRuntime.TryAttach(
     writes sibling **`*.vrmxt.prefab`** via `TryAttachFromGlb` (name-based node resolve + second-read textures).
   - Detection: registry type in `VRM10.Editor` plus `IsEnabled` (project setting); no hard `VRM10.Editor` asmdef reference.
   - **Export (Extended-UniVRM):** `VrmxtVfxExportHookBootstrap` soft-detects Runtime
-    `Vrm10ExportExtensionRegistry` and writes `VRMXT_vfx` from `VrmxtVfxInstance`
+    `Vrm10ExportExtensionRegistry` and writes `VRMXT_sprite_particle` from `VrmxtVfxInstance`
     (Project Settings → Enable VRM Export Extensions).
   - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` (unchanged).
   - Design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).

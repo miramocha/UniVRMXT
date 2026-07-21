@@ -4,7 +4,7 @@ Optional Unity package for [Extended VRM](https://github.com/miramocha/Extended-
 
 Version `0.1.0` provides foundation parsers and VFX runtime hooks for:
 
-- `VRMXT_vfx` — parse emitters, resolve glTF nodes after UniVRM load, store on `VrmxtVfxInstance`, optional `ParticleSystem` mapping
+- `VRMXT_sprite_particle` — parse flat emitters, resolve glTF nodes after UniVRM load, store on `VrmxtVfxInstance`, optional `ParticleSystem` mapping
 - `VRMXT_materials_override` — per-material engine override metadata
 
 See [docs/architecture.md](docs/architecture.md) for runtime attach + AssetDatabase dual path

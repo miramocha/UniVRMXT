@@ -10,7 +10,7 @@ namespace UniVRMXT.Editor.Vfx
 {
     /// <summary>
     /// Soft-detect Extended-UniVRM <c>Vrm10ExportExtensionRegistry</c> and write
-    /// <c>VRMXT_vfx</c> on VRM 1.0 export from <see cref="VrmxtVfxInstance"/>.
+    /// <c>VRMXT_sprite_particle</c> on VRM 1.0 export from <see cref="VrmxtVfxInstance"/>.
     /// </summary>
     [InitializeOnLoad]
     public static class VrmxtVfxExportHookBootstrap

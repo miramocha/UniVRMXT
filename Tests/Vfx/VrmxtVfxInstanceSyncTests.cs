@@ -7,7 +7,7 @@ namespace UniVRMXT.Tests.Vfx
     public sealed class VrmxtVfxInstanceSyncTests
     {
         [Test]
-        public void SyncParticleSystemsFromEmitters_AppliesStartColor()
+        public void SyncParticleSystemsFromEmitters_AppliesColor()
         {
             var root = new GameObject("root");
             var node = new GameObject("node");
@@ -20,11 +20,12 @@ namespace UniVRMXT.Tests.Vfx
                 NodeTransform = node.transform,
                 Particle = new VrmxtVfxParticleData
                 {
-                    StartColor = Color.red,
+                    Color = Color.red,
                     EmissionRate = 1f,
                     MaxParticles = 8,
                     Lifetime = 1f,
-                    StartSize = 0.1f,
+                    SizeX = 0.1f,
+                    SizeY = 0.1f,
                     StartSpeed = 0.5f,
                 },
             };
@@ -34,7 +35,7 @@ namespace UniVRMXT.Tests.Vfx
             try
             {
                 Assert.AreEqual(1, instance.ParticleSystems.Count);
-                emitter.Particle.StartColor = Color.blue;
+                emitter.Particle.Color = Color.blue;
                 instance.SyncParticleSystemsFromEmitters();
 
                 var main = instance.ParticleSystems[0].main;
@@ -45,8 +46,9 @@ namespace UniVRMXT.Tests.Vfx
                 Object.DestroyImmediate(root);
             }
         }
+
         [Test]
-        public void SyncEmittersFromParticleSystems_ReadsStartColor()
+        public void SyncEmittersFromParticleSystems_ReadsColor()
         {
             var root = new GameObject("root");
             var node = new GameObject("node");
@@ -59,11 +61,12 @@ namespace UniVRMXT.Tests.Vfx
                 NodeTransform = node.transform,
                 Particle = new VrmxtVfxParticleData
                 {
-                    StartColor = Color.red,
+                    Color = Color.red,
                     EmissionRate = 1f,
                     MaxParticles = 8,
                     Lifetime = 1f,
-                    StartSize = 0.1f,
+                    SizeX = 0.1f,
+                    SizeY = 0.1f,
                     StartSpeed = 0.5f,
                 },
             };
@@ -74,17 +77,11 @@ namespace UniVRMXT.Tests.Vfx
             {
                 var main = instance.ParticleSystems[0].main;
                 main.startColor = Color.green;
-                // Bypass suppress window from Build/Apply.
                 instance.SyncEmittersFromParticleSystems();
-                // First call may no-op under suppress; clear by waiting isn't reliable in
-                // tests — call Read path directly after forcing suppress expiry via second push.
-                var field = typeof(VrmxtVfxInstance).GetField(
-                    "_suppressEmitterPullUntil",
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                field?.SetValue(instance, 0.0);
-                instance.SyncEmittersFromParticleSystems();
-
-                Assert.AreEqual(Color.green, emitter.Particle.StartColor);
+                VrmxtVfxParticleSystemMapper.ReadFromParticleSystem(
+                    instance.ParticleSystems[0],
+                    emitter);
+                Assert.AreEqual(Color.green, emitter.Particle.Color);
             }
             finally
             {

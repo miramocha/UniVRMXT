@@ -10,25 +10,19 @@ namespace UniVRMXT.Tests.Vfx
         private const string TwoEmittersJson = @"
             {
               ""extensions"": {
-                ""VRMXT_vfx"": {
+                ""VRMXT_sprite_particle"": {
                   ""specVersion"": ""1.0"",
                   ""emitters"": [
                     {
                       ""name"": ""Keep"",
-                      ""type"": ""particle"",
                       ""node"": 1,
-                      ""localPosition"": [0.1, 0.2, 0.3],
-                      ""particle"": {
-                        ""emissionRate"": 17.5,
-                        ""maxParticles"": 42,
-                        ""texture"": 0
-                      }
+                      ""emissionRate"": 17.5,
+                      ""maxParticles"": 42,
+                      ""texture"": 0
                     },
                     {
                       ""name"": ""Skip"",
-                      ""type"": ""particle"",
-                      ""node"": 99,
-                      ""particle"": {}
+                      ""node"": 99
                     }
                   ]
                 }
@@ -57,7 +51,6 @@ namespace UniVRMXT.Tests.Vfx
                 Assert.AreEqual(42, emitters[0].Particle.MaxParticles);
                 Assert.IsTrue(emitters[0].Particle.HasTexture);
                 Assert.AreEqual(0, emitters[0].Particle.TextureIndex);
-                Assert.AreEqual(new Vector3(0.1f, 0.2f, 0.3f), emitters[0].LocalPosition);
             }
             finally
             {
@@ -65,6 +58,43 @@ namespace UniVRMXT.Tests.Vfx
                 {
                     Object.DestroyImmediate(node.gameObject);
                 }
+            }
+        }
+
+        [Test]
+        public void TryImport_SkipsOutOfRangeTextureIndex()
+        {
+            const string json = @"
+                {
+                  ""asset"": { ""version"": ""2.0"" },
+                  ""textures"": [],
+                  ""extensions"": {
+                    ""VRMXT_sprite_particle"": {
+                      ""specVersion"": ""1.0"",
+                      ""emitters"": [
+                        {
+                          ""node"": 0,
+                          ""texture"": 0
+                        },
+                        {
+                          ""node"": 0
+                        }
+                      ]
+                    }
+                  }
+                }
+                ";
+
+            var nodes = new List<Transform> { new GameObject("n0").transform };
+            try
+            {
+                Assert.IsTrue(VrmxtVfxImporter.TryImport(json, nodes, out var emitters));
+                Assert.AreEqual(1, emitters.Count);
+                Assert.IsFalse(emitters[0].Particle.HasTexture);
+            }
+            finally
+            {
+                Object.DestroyImmediate(nodes[0].gameObject);
             }
         }
 
@@ -98,6 +128,33 @@ namespace UniVRMXT.Tests.Vfx
                     json,
                     new List<Transform>(),
                     out List<VrmxtVfxResolvedEmitter> _));
+        }
+
+        [Test]
+        public void TryImport_IgnoresLegacyVfxRoot()
+        {
+            const string json = @"
+                {
+                  ""extensions"": {
+                    ""VRMXT_vfx"": {
+                      ""specVersion"": ""1.0"",
+                      ""emitters"": [
+                        {
+                          ""type"": ""particle"",
+                          ""node"": 0,
+                          ""particle"": {}
+                        }
+                      ]
+                    }
+                  }
+                }
+                ";
+
+            Assert.IsFalse(
+                VrmxtVfxImporter.TryImport(
+                    json,
+                    new List<Transform> { new GameObject("n0").transform },
+                    out _));
         }
 
         [Test]

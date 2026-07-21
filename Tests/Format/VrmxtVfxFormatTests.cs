@@ -11,12 +11,9 @@ namespace UniVRMXT.Tests.Format
               ""emitters"": [
                 {
                   ""name"": ""HandSpark"",
-                  ""type"": ""particle"",
                   ""node"": 2,
-                  ""particle"": {
-                    ""emissionRate"": 20.0,
-                    ""maxParticles"": 32
-                  }
+                  ""emissionRate"": 20.0,
+                  ""maxParticles"": 32
                 }
               ]
             }
@@ -29,51 +26,48 @@ namespace UniVRMXT.Tests.Format
             Assert.AreEqual(1, extension.Emitters.Count);
             Assert.AreEqual("HandSpark", extension.Emitters[0].Name);
             Assert.AreEqual(2, extension.Emitters[0].Node);
-            Assert.AreEqual(20f, extension.Emitters[0].Particle.EmissionRate);
-            Assert.AreEqual(32, extension.Emitters[0].Particle.MaxParticles);
+            Assert.AreEqual(20f, extension.Emitters[0].EmissionRate);
+            Assert.AreEqual(32, extension.Emitters[0].MaxParticles);
         }
 
         [Test]
-        public void TryParse_AppliesParticleDefaults()
+        public void TryParse_AppliesDefaults()
         {
             const string json = @"
                 {
                   ""specVersion"": ""1.0"",
                   ""emitters"": [
                     {
-                      ""type"": ""particle"",
-                      ""node"": 0,
-                      ""particle"": {}
+                      ""node"": 0
                     }
                   ]
                 }
                 ";
 
             Assert.IsTrue(VrmxtVfx.TryParse(json, out var extension));
-            var particle = extension.Emitters[0].Particle;
-            Assert.AreEqual(VrmxtVfx.DefaultEmissionRate, particle.EmissionRate);
-            Assert.AreEqual(VrmxtVfx.DefaultMaxParticles, particle.MaxParticles);
-            Assert.AreEqual(VrmxtVfx.DefaultLifetime, particle.Lifetime);
-            Assert.AreEqual(VrmxtVfx.DefaultStartSize, particle.StartSize);
-            Assert.AreEqual(VrmxtVfx.DefaultStartSpeed, particle.StartSpeed);
-            Assert.AreEqual(1f, particle.StartColor[3]);
+            var emitter = extension.Emitters[0];
+            Assert.AreEqual(VrmxtVfx.DefaultEmissionRate, emitter.EmissionRate);
+            Assert.AreEqual(VrmxtVfx.DefaultMaxParticles, emitter.MaxParticles);
+            Assert.AreEqual(VrmxtVfx.DefaultLifetime, emitter.Lifetime);
+            Assert.AreEqual(VrmxtVfx.DefaultStartSpeed, emitter.StartSpeed);
+            Assert.AreEqual(VrmxtVfx.DefaultSize[0], emitter.Size[0]);
+            Assert.AreEqual(VrmxtVfx.DefaultSize[1], emitter.Size[1]);
+            Assert.AreEqual(1f, emitter.Color[3]);
         }
 
         [Test]
-        public void TryParse_SkipsUnknownType()
+        public void TryParse_SkipsInvalidEmitterValues()
         {
             const string json = @"
                 {
                   ""specVersion"": ""1.0"",
                   ""emitters"": [
                     {
-                      ""type"": ""ribbon"",
-                      ""node"": 0
+                      ""node"": 0,
+                      ""maxParticles"": 0
                     },
                     {
-                      ""type"": ""particle"",
-                      ""node"": 1,
-                      ""particle"": {}
+                      ""node"": 1
                     }
                   ]
                 }
@@ -98,31 +92,47 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
-        public void TryParse_SkipsInvalidParticleValues()
+        public void TryParse_IgnoresLegacyVfxRoot()
         {
             const string json = @"
                 {
-                  ""specVersion"": ""1.0"",
-                  ""emitters"": [
-                    {
-                      ""type"": ""particle"",
-                      ""node"": 0,
-                      ""particle"": {
-                        ""maxParticles"": 0
-                      }
-                    },
-                    {
-                      ""type"": ""particle"",
-                      ""node"": 1,
-                      ""particle"": {}
+                  ""extensions"": {
+                    ""VRMXT_vfx"": {
+                      ""specVersion"": ""1.0"",
+                      ""emitters"": [
+                        {
+                          ""type"": ""particle"",
+                          ""node"": 0,
+                          ""particle"": {}
+                        }
+                      ]
                     }
-                  ]
+                  }
                 }
                 ";
 
-            Assert.IsTrue(VrmxtVfx.TryParse(json, out var extension));
-            Assert.AreEqual(1, extension.Emitters.Count);
-            Assert.AreEqual(1, extension.Emitters[0].Node);
+            Assert.IsFalse(VrmxtVfx.TryParse(json, out _));
+        }
+
+        [Test]
+        public void TryParse_IgnoresLegacyParticleRoot()
+        {
+            const string json = @"
+                {
+                  ""extensions"": {
+                    ""VRMXT_particle"": {
+                      ""specVersion"": ""1.0"",
+                      ""emitters"": [
+                        {
+                          ""node"": 0
+                        }
+                      ]
+                    }
+                  }
+                }
+                ";
+
+            Assert.IsFalse(VrmxtVfx.TryParse(json, out _));
         }
 
         [Test]
@@ -134,36 +144,41 @@ namespace UniVRMXT.Tests.Format
             Assert.AreEqual(1, again.Emitters.Count);
             Assert.AreEqual("HandSpark", again.Emitters[0].Name);
             Assert.AreEqual(2, again.Emitters[0].Node);
-            Assert.AreEqual(20f, again.Emitters[0].Particle.EmissionRate);
-            Assert.AreEqual(32, again.Emitters[0].Particle.MaxParticles);
+            Assert.AreEqual(20f, again.Emitters[0].EmissionRate);
+            Assert.AreEqual(32, again.Emitters[0].MaxParticles);
         }
 
         [Test]
-        public void ToJson_IncludesTextureAndNonDefaultFields()
+        public void ToJson_OmitsLegacyKeys()
         {
             var extension = new VrmxtVfxExtension(new[]
             {
                 new VrmxtVfxEmitter(
                     "Spark",
-                    "particle",
                     3,
-                    new[] { 0.1f, 0.2f, 0.3f },
-                    VrmxtVfx.DefaultLocalRotation,
-                    new VrmxtVfxParticle(
-                        5,
-                        VrmxtVfx.DefaultEmissionRate,
-                        VrmxtVfx.DefaultMaxParticles,
-                        VrmxtVfx.DefaultLifetime,
-                        VrmxtVfx.DefaultStartSize,
-                        VrmxtVfx.DefaultStartSpeed,
-                        new[] { 1f, 0f, 0f, 0.5f })),
+                    5,
+                    new[] { 0.04f, 0.06f },
+                    new[] { 1f, 0f, 0f, 0.5f },
+                    VrmxtVfx.DefaultEmissionRate,
+                    VrmxtVfx.DefaultMaxParticles,
+                    VrmxtVfx.DefaultLifetime,
+                    VrmxtVfx.DefaultStartSpeed),
             });
 
             var json = VrmxtVfx.ToJson(extension);
+            Assert.IsFalse(json.Contains("type"));
+            Assert.IsFalse(json.Contains("particle"));
+            Assert.IsFalse(json.Contains("localPosition"));
+            Assert.IsFalse(json.Contains("localRotation"));
+            Assert.IsFalse(json.Contains("startSize"));
+            Assert.IsFalse(json.Contains("startColor"));
+            Assert.IsFalse(json.Contains("billboard"));
+            Assert.IsFalse(json.Contains("facing"));
+
             Assert.IsTrue(VrmxtVfx.TryParse(json, out var parsed));
-            Assert.AreEqual(5, parsed.Emitters[0].Particle.Texture);
-            Assert.AreEqual(0.1f, parsed.Emitters[0].LocalPosition[0], 1e-5f);
-            Assert.AreEqual(0.5f, parsed.Emitters[0].Particle.StartColor[3], 1e-5f);
+            Assert.AreEqual(5, parsed.Emitters[0].Texture);
+            Assert.AreEqual(0.04f, parsed.Emitters[0].Size[0], 1e-5f);
+            Assert.AreEqual(0.5f, parsed.Emitters[0].Color[3], 1e-5f);
         }
     }
 }
