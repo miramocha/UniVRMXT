@@ -5,7 +5,7 @@ using UnityEngine;
 namespace UniVRMXT.Vfx
 {
     /// <summary>
-    /// Runtime holder for portable <c>VRMXT_vfx</c> emitters on a loaded avatar root.
+    /// Runtime holder for portable <c>VRMXT_sprite_particle</c> emitters on a loaded avatar root.
     /// Optional <see cref="BuildParticleSystems"/> maps fields onto Unity
     /// <see cref="ParticleSystem"/> children under each resolved node.
     /// </summary>
@@ -43,7 +43,7 @@ namespace UniVRMXT.Vfx
         /// <summary>
         /// Spawn <see cref="ParticleSystem"/> children for current emitters.
         /// <paramref name="resolveTexture"/> maps glTF <c>textures[]</c> indices; null or
-        /// unresolved indices use the solid tint fallback (<see cref="VrmxtVfxParticleData.StartColor"/>).
+        /// unresolved indices use the solid tint fallback (<see cref="VrmxtVfxParticleData.Color"/>).
         /// </summary>
         public void BuildParticleSystems(Func<int, Texture> resolveTexture = null)
         {
@@ -313,16 +313,15 @@ namespace UniVRMXT.Vfx
             if (!Mathf.Approximately(a.EmissionRate, b.EmissionRate) ||
                 a.MaxParticles != b.MaxParticles ||
                 !Mathf.Approximately(a.Lifetime, b.Lifetime) ||
-                !Mathf.Approximately(a.StartSize, b.StartSize) ||
+                !Mathf.Approximately(a.SizeX, b.SizeX) ||
+                !Mathf.Approximately(a.SizeY, b.SizeY) ||
                 !Mathf.Approximately(a.StartSpeed, b.StartSpeed) ||
-                !ColorsApproximatelyEqual(a.StartColor, b.StartColor))
+                !ColorsApproximatelyEqual(a.Color, b.Color))
             {
                 return true;
             }
 
-            var transform = particleSystem.transform;
-            return transform.localPosition != emitter.LocalPosition ||
-                   transform.localRotation != emitter.LocalRotation;
+            return false;
         }
 
         private static bool ColorsApproximatelyEqual(Color a, Color b)
@@ -378,11 +377,8 @@ namespace UniVRMXT.Vfx
     public sealed class VrmxtVfxResolvedEmitter
     {
         public string Name;
-        public string Type = "particle";
         public int Node;
         public Transform NodeTransform;
-        public Vector3 LocalPosition;
-        public Quaternion LocalRotation = Quaternion.identity;
         public VrmxtVfxParticleData Particle = new();
     }
 }

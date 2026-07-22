@@ -22,12 +22,11 @@ namespace UniVRMXT.Tests.Vfx
                     Name = "HandSpark",
                     Node = 99,
                     NodeTransform = bone.transform,
-                    LocalPosition = new Vector3(0.1f, 0f, 0f),
                     Particle = new VrmxtVfxParticleData
                     {
                         EmissionRate = 12f,
                         MaxParticles = 16,
-                        StartColor = new Color(1f, 0f, 0f, 1f),
+                        Color = new Color(1f, 0f, 0f, 1f),
                     },
                 };
 
@@ -50,8 +49,8 @@ namespace UniVRMXT.Tests.Vfx
                 Assert.IsTrue(VrmxtVfx.TryParse(json, out var parsed));
                 Assert.AreEqual(1, parsed.Emitters.Count);
                 Assert.AreEqual(7, parsed.Emitters[0].Node);
-                Assert.AreEqual(4, parsed.Emitters[0].Particle.Texture);
-                Assert.AreEqual(12f, parsed.Emitters[0].Particle.EmissionRate);
+                Assert.AreEqual(4, parsed.Emitters[0].Texture);
+                Assert.AreEqual(12f, parsed.Emitters[0].EmissionRate);
                 Assert.AreEqual("HandSpark", parsed.Emitters[0].Name);
 
                 Object.DestroyImmediate(texture);
@@ -100,7 +99,7 @@ namespace UniVRMXT.Tests.Vfx
                         out var utf8));
                 var json = VrmxtVfxExporter.Utf8ToString(utf8);
                 Assert.IsTrue(VrmxtVfx.TryParse(json, out var parsed));
-                Assert.AreEqual(3, parsed.Emitters[0].Particle.Texture);
+                Assert.AreEqual(3, parsed.Emitters[0].Texture);
 
                 Object.DestroyImmediate(texture);
             }
@@ -158,7 +157,7 @@ namespace UniVRMXT.Tests.Vfx
                         {
                             HasTexture = true,
                             Texture = texture,
-                            StartColor = Color.white,
+                            Color = Color.white,
                         },
                     },
                 });
@@ -172,7 +171,7 @@ namespace UniVRMXT.Tests.Vfx
                 var pending = VrmxtVfxExporter.CaptureAndClearParticleSystems(root);
                 Assert.AreEqual(1, pending.Count);
                 Assert.AreSame(texture, pending[0].Texture);
-                Assert.AreEqual(Color.blue, pending[0].Emitter.Particle.StartColor);
+                Assert.AreEqual(Color.blue, pending[0].Emitter.Particle.Color);
                 Assert.AreEqual(0, instance.ParticleSystems.Count);
                 Assert.AreEqual(0, bone.transform.childCount);
 
@@ -185,7 +184,7 @@ namespace UniVRMXT.Tests.Vfx
         }
 
         [Test]
-        public void ReadFromParticleSystem_CopiesStartColor()
+        public void ReadFromParticleSystem_CopiesColorAndSize()
         {
             var go = new GameObject("ps");
             try
@@ -194,7 +193,9 @@ namespace UniVRMXT.Tests.Vfx
                 var main = particleSystem.main;
                 main.startColor = new Color(0.1f, 0.2f, 0.9f, 0.75f);
                 main.startLifetime = 2.5f;
-                main.startSize = 0.2f;
+                main.startSize3D = true;
+                main.startSizeX = 0.2f;
+                main.startSizeY = 0.3f;
                 main.maxParticles = 40;
                 var emission = particleSystem.emission;
                 emission.rateOverTime = 15f;
@@ -208,9 +209,10 @@ namespace UniVRMXT.Tests.Vfx
                 };
                 VrmxtVfxParticleSystemMapper.ReadFromParticleSystem(particleSystem, emitter);
 
-                Assert.AreEqual(new Color(0.1f, 0.2f, 0.9f, 0.75f), emitter.Particle.StartColor);
+                Assert.AreEqual(new Color(0.1f, 0.2f, 0.9f, 0.75f), emitter.Particle.Color);
                 Assert.AreEqual(2.5f, emitter.Particle.Lifetime, 1e-4f);
-                Assert.AreEqual(0.2f, emitter.Particle.StartSize, 1e-4f);
+                Assert.AreEqual(0.2f, emitter.Particle.SizeX, 1e-4f);
+                Assert.AreEqual(0.3f, emitter.Particle.SizeY, 1e-4f);
                 Assert.AreEqual(40, emitter.Particle.MaxParticles);
                 Assert.AreEqual(15f, emitter.Particle.EmissionRate, 1e-4f);
                 Assert.AreEqual(0.4f, emitter.Particle.StartSpeed, 1e-4f);

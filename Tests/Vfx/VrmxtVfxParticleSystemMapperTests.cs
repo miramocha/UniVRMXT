@@ -11,24 +11,19 @@ namespace UniVRMXT.Tests.Vfx
         private const string EmitterJson = @"
             {
               ""extensions"": {
-                ""VRMXT_vfx"": {
+                ""VRMXT_sprite_particle"": {
                   ""specVersion"": ""1.0"",
                   ""emitters"": [
                     {
                       ""name"": ""HandSpark"",
-                      ""type"": ""particle"",
                       ""node"": 0,
-                      ""localPosition"": [0.0, 0.05, 0.0],
-                      ""localRotation"": [0.0, 0.0, 0.0, 1.0],
-                      ""particle"": {
-                        ""emissionRate"": 20.0,
-                        ""maxParticles"": 32,
-                        ""lifetime"": 0.8,
-                        ""startSize"": 0.04,
-                        ""startSpeed"": 0.2,
-                        ""startColor"": [1.0, 0.85, 0.4, 1.0],
-                        ""texture"": 0
-                      }
+                      ""texture"": 0,
+                      ""size"": [0.04, 0.06],
+                      ""color"": [1.0, 0.85, 0.4, 1.0],
+                      ""emissionRate"": 20.0,
+                      ""maxParticles"": 32,
+                      ""lifetime"": 0.8,
+                      ""startSpeed"": 0.2
                     }
                   ]
                 }
@@ -39,13 +34,11 @@ namespace UniVRMXT.Tests.Vfx
         private const string DefaultsJson = @"
             {
               ""extensions"": {
-                ""VRMXT_vfx"": {
+                ""VRMXT_sprite_particle"": {
                   ""specVersion"": ""1.0"",
                   ""emitters"": [
                     {
-                      ""type"": ""particle"",
-                      ""node"": 0,
-                      ""particle"": {}
+                      ""node"": 0
                     }
                   ]
                 }
@@ -71,14 +64,18 @@ namespace UniVRMXT.Tests.Vfx
                 var ps = VrmxtVfxParticleSystemMapper.Create(emitters[0], texture);
 
                 Assert.AreSame(node, ps.transform.parent);
-                Assert.AreEqual(new Vector3(0f, 0.05f, 0f), ps.transform.localPosition);
+                Assert.AreEqual(Vector3.zero, ps.transform.localPosition);
                 Assert.AreEqual(Quaternion.identity, ps.transform.localRotation);
-                Assert.AreEqual("VRMXT_vfx_HandSpark", ps.gameObject.name);
+                Assert.AreEqual(Vector3.one, ps.transform.localScale);
+                Assert.AreEqual("VRMXT_sprite_particle_HandSpark", ps.gameObject.name);
 
                 var main = ps.main;
                 Assert.AreEqual(32, main.maxParticles);
                 Assert.AreEqual(0.8f, main.startLifetime.constant);
-                Assert.AreEqual(0.04f, main.startSize.constant);
+                Assert.AreEqual(ParticleSystemScalingMode.Local, main.scalingMode);
+                Assert.IsTrue(main.startSize3D);
+                Assert.AreEqual(0.04f, main.startSizeX.constant);
+                Assert.AreEqual(0.06f, main.startSizeY.constant);
                 Assert.AreEqual(0f, main.startSpeed.constant);
                 Assert.AreEqual(new Color(1f, 0.85f, 0.4f, 1f), main.startColor.color);
 
@@ -112,6 +109,39 @@ namespace UniVRMXT.Tests.Vfx
         }
 
         [Test]
+        public void ApplyWorldSpaceSize_IgnoresNonUniformParentScale()
+        {
+            var parent = new GameObject("scaled").transform;
+            parent.localScale = new Vector3(2f, 4f, 1f);
+            var child = new GameObject("ps").transform;
+            child.SetParent(parent, false);
+            var ps = child.gameObject.AddComponent<ParticleSystem>();
+
+            try
+            {
+                var main = ps.main;
+                VrmxtVfxParticleSystemMapper.ApplyWorldSpaceSize(main, child, 0.1f, 0.2f);
+
+                Assert.IsTrue(main.startSize3D);
+                // Local scalingMode + identity PS scale ⇒ start sizes are world meters.
+                Assert.AreEqual(0.1f, main.startSizeX.constant, 1e-4f);
+                Assert.AreEqual(0.2f, main.startSizeY.constant, 1e-4f);
+
+                VrmxtVfxParticleSystemMapper.ReadWorldSpaceSize(
+                    main,
+                    child,
+                    out var worldWidth,
+                    out var worldHeight);
+                Assert.AreEqual(0.1f, worldWidth, 1e-4f);
+                Assert.AreEqual(0.2f, worldHeight, 1e-4f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(parent.gameObject);
+            }
+        }
+
+        [Test]
         public void ConfigureTransparentAlphaBlending_SetsTransparentQueue()
         {
             var shader = VrmxtVfxParticleSystemMapper.ResolveParticleShader();
@@ -133,7 +163,7 @@ namespace UniVRMXT.Tests.Vfx
         }
 
         [Test]
-        public void Create_MissingTexture_UsesStartColorFallback()
+        public void Create_MissingTexture_UsesColorFallback()
         {
             var node = new GameObject("Hand").transform;
 
@@ -179,7 +209,7 @@ namespace UniVRMXT.Tests.Vfx
         }
 
         [Test]
-        public void Create_OmittedParticleFields_UseSpecDefaults()
+        public void Create_OmittedFields_UseSpecDefaults()
         {
             var node = new GameObject("Root").transform;
 
@@ -195,7 +225,9 @@ namespace UniVRMXT.Tests.Vfx
                 var main = ps.main;
                 Assert.AreEqual(VrmxtVfx.DefaultMaxParticles, main.maxParticles);
                 Assert.AreEqual(VrmxtVfx.DefaultLifetime, main.startLifetime.constant);
-                Assert.AreEqual(VrmxtVfx.DefaultStartSize, main.startSize.constant);
+                Assert.IsTrue(main.startSize3D);
+                Assert.AreEqual(VrmxtVfx.DefaultSize[0], main.startSizeX.constant);
+                Assert.AreEqual(VrmxtVfx.DefaultSize[1], main.startSizeY.constant);
                 Assert.AreEqual(VrmxtVfx.DefaultEmissionRate, ps.emission.rateOverTime.constant);
                 Assert.AreEqual(VrmxtVfx.DefaultStartSpeed, ps.velocityOverLifetime.y.constant);
                 Assert.AreEqual(Color.white, main.startColor.color);

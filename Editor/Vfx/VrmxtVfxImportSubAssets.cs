@@ -34,7 +34,7 @@ namespace UniVRMXT.Editor.Vfx
                         continue;
                     }
 
-                    addObjectToAsset("VRMXT_vfx_tex_" + i, texture);
+                    addObjectToAsset("VRMXT_sprite_particle_tex_" + i, texture);
                     i++;
                 }
 
@@ -60,7 +60,7 @@ namespace UniVRMXT.Editor.Vfx
                     continue;
                 }
 
-                addObjectToAsset("VRMXT_vfx_mat_" + matIndex, material);
+                addObjectToAsset("VRMXT_sprite_particle_mat_" + matIndex, material);
                 matIndex++;
             }
         }
