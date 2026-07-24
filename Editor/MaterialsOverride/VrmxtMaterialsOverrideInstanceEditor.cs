@@ -68,6 +68,18 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             EditorGUILayout.EndHorizontal();
 
+            if (GUILayout.Button("Dump Materials Debug (Console)"))
+            {
+                var instance = (VrmxtMaterialsOverrideInstance)target;
+                VrmxtMaterialsOverrideDebug.Dump(instance);
+            }
+
+            EditorGUILayout.HelpBox(
+                "Dump logs JSON vs live renderer vs Override Material (shader, MainTex, "
+                    + "_Color, keywords, remembered texture indices). Compare pre-export "
+                    + "authored avatar vs re-imported VRM.",
+                MessageType.None);
+
             _showAdvancedJson = EditorGUILayout.Foldout(_showAdvancedJson, "Advanced: Extension JSON", true);
             if (_showAdvancedJson && _pairs != null)
             {

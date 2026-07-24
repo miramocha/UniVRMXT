@@ -29,6 +29,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Materials Override capture: keep `HideInInspector` scalars/vectors (Poiyomi/Thry
+  toggles and UV pans such as `_GlitterEnable`, `_ScrollingEmission`, `_MainTexPan`)
+- Materials Override capture: always include assigned textures for UniVRMXT / full VRM
+  export (`PrepareTextures` packs them into the GLB)
+- Warudo `SyncPropertiesFromLiveMaterials`: keep texture rows only when the live map is
+  already packed (imported GLB texture or existing override index); omit new unpackaged
+  Images/editor maps (patch cannot add GLB images)
+- Materials Override export: portable Unity `shaderName` prefers material tag
+  `OriginalShader` when set (Thry Lock and compatible optimizers), else
+  `shader.name` — no locked-path string parsing in core
 - `DetectActivePipeline`: identify URP/HDRP via `Object.ToString()` instead of
   `GetType().Name` so Warudo/UMod can vendor Applier (code security bans Reflection)
 - Materials Override name match: strip ` (Instance)` when comparing store keys to live

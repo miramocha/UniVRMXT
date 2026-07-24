@@ -171,6 +171,79 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void GetPortableShaderName_PrefersOriginalShaderTag()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+            var material = new Material(shader);
+            try
+            {
+                Assert.AreEqual(
+                    "Standard",
+                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material));
+
+                material.SetOverrideTag(
+                    VrmxtMaterialsOverrideApplier.OriginalShaderTag,
+                    ".poiyomi/Poiyomi Toon");
+                Assert.AreEqual(
+                    ".poiyomi/Poiyomi Toon",
+                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void Apply_UnresolvedShaderId_LeavesStockMaterial()
+        {
+            var root = CreateRootWithNamedMaterial("Hair", out var material);
+            var stockShader = Shader.Find("Unlit/Color");
+            Assert.IsNotNull(stockShader);
+            material.shader = stockShader;
+            var originalShader = material.shader;
+
+            try
+            {
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                    root,
+                    @"{
+                      ""materials"": [{
+                        ""name"": ""Hair"",
+                        ""extensions"": {
+                          ""VRMXT_materials_override"": {
+                            ""specVersion"": ""1.0"",
+                            ""overrides"": [{
+                              ""engine"": ""unity"",
+                              ""material"": {
+                                ""idType"": ""shaderName"",
+                                ""id"": ""Hidden/Locked/.poiyomi/Poiyomi Toon/f301d2b87bd460146b538aa4a5718f1d""
+                              }
+                            }]
+                          }
+                        }
+                      }]
+                    }",
+                    out var store));
+
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    store,
+                    "{}",
+                    RenderPipelineVariant.Builtin);
+
+                Assert.AreEqual(0, applied);
+                Assert.AreSame(originalShader, material.shader);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void FindMaterialsByName_StoreKeyWithInstanceSuffix_MatchesLiveWithoutSuffix()
         {
             var root = CreateRootWithNamedMaterial("Hair", out var material);
@@ -717,6 +790,31 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 pipeline == RenderPipelineVariant.Builtin ||
                 pipeline == RenderPipelineVariant.Urp ||
                 pipeline == RenderPipelineVariant.Hdrp);
+        }
+
+        [Test]
+        public void ApplyUnityRenderStateFromMode_Additive_SetsTransparentQueueAndTag()
+        {
+            var shader = Shader.Find("Hidden/VRMXT/TestMode");
+            Assume.That(shader, Is.Not.Null, "VrmxtTestMode.shader must be imported");
+            var material = new Material(shader);
+            try
+            {
+                material.renderQueue = 2000;
+                material.SetFloat("_Mode", 4f);
+                VrmxtMaterialsOverrideApplier.ApplyUnityRenderStateFromMode(material);
+                Assert.AreEqual(3000, material.renderQueue);
+                Assert.AreEqual("Transparent", material.GetTag("RenderType", false));
+
+                material.SetFloat("_Mode", 0f);
+                VrmxtMaterialsOverrideApplier.ApplyUnityRenderStateFromMode(material);
+                Assert.AreEqual(2000, material.renderQueue);
+                Assert.AreEqual("Opaque", material.GetTag("RenderType", false));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
         }
     }
 }
