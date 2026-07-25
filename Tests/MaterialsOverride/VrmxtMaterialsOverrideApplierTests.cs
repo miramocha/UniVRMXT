@@ -196,6 +196,88 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void GetPortableShaderName_PrefersPoiyomiLilFurOriginalShaderTag()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+            var material = new Material(shader);
+            try
+            {
+                material.SetOverrideTag(
+                    VrmxtMaterialsOverrideApplier.OriginalShaderTag,
+                    ".poiyomi/Poiyomi Toon + Lil Fur");
+                Assert.AreEqual(
+                    ".poiyomi/Poiyomi Toon + Lil Fur",
+                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void Apply_ShaderResolveProvider_ResolvesPoiyomiLilFurId()
+        {
+            var root = CreateRootWithNamedMaterial("Fur", out var material);
+            var stockShader = Shader.Find("Unlit/Color");
+            Assert.IsNotNull(stockShader, "Unlit/Color required for stock vs override contrast");
+            material.shader = stockShader;
+            var originalShader = material.shader;
+
+            var replacement = Shader.Find("Standard");
+            Assert.IsNotNull(replacement);
+            Assert.AreNotSame(originalShader, replacement);
+
+            const string lilFurId = ".poiyomi/Poiyomi Toon + Lil Fur";
+            var previous = VrmxtMaterialsOverrideApplier.ShaderResolveProvider;
+            try
+            {
+                VrmxtMaterialsOverrideApplier.ShaderResolveProvider = name =>
+                    string.Equals(name, lilFurId, System.StringComparison.Ordinal)
+                        ? replacement
+                        : null;
+
+                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                    root,
+                    @"{
+                      ""materials"": [{
+                        ""name"": ""Fur"",
+                        ""extensions"": {
+                          ""VRMXT_materials_override"": {
+                            ""specVersion"": ""1.0"",
+                            ""overrides"": [{
+                              ""engine"": ""unity"",
+                              ""material"": {
+                                ""idType"": ""shaderName"",
+                                ""id"": "".poiyomi/Poiyomi Toon + Lil Fur""
+                              }
+                            }]
+                          }
+                        }
+                      }]
+                    }",
+                    out var store));
+
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    store,
+                    "{}",
+                    RenderPipelineVariant.Builtin);
+
+                Assert.AreEqual(1, applied);
+                Assert.AreSame(replacement, material.shader);
+                Assert.AreNotSame(originalShader, material.shader);
+            }
+            finally
+            {
+                VrmxtMaterialsOverrideApplier.ShaderResolveProvider = previous;
+                Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void Apply_UnresolvedShaderId_LeavesStockMaterial()
         {
             var root = CreateRootWithNamedMaterial("Hair", out var material);
