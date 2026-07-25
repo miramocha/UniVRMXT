@@ -8,6 +8,100 @@ namespace UniVRMXT.Tests.MaterialsOverride
     public sealed class VrmxtMaterialsOverrideAuthoringTests
     {
         [Test]
+        public void SyncUnityOverrideFromMaterial_StockMtoon_ClearsActiveUnity_KeepsSiblings()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+
+            var overrideMat = new Material(shader) { name = "StockMtoonProxy" };
+            try
+            {
+                // Portable name is stock MToon even when the live shader is unavailable.
+                overrideMat.SetOverrideTag(
+                    VrmxtMaterialsOverrideApplier.OriginalShaderTag,
+                    "VRM10/MToon10"
+                );
+
+                var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline()
+                );
+                var siblingVariant = string.Equals(activeVariant, "urp", System.StringComparison.Ordinal)
+                    ? "builtin"
+                    : "urp";
+
+                var initialJson =
+                    @"{""specVersion"":""1.0"",""overrides"":["
+                    + @"{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Active"",""variant"":"""
+                    + activeVariant
+                    + @"""},""properties"":[]},"
+                    + @"{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Old/Sibling"",""variant"":"""
+                    + siblingVariant
+                    + @"""},""properties"":[]},"
+                    + @"{""engine"":""unreal"",""material"":{""idType"":""resourcePath"",""id"":""/Game/M"",""variant"":""opaque""}}"
+                    + "]}";
+
+                Assert.IsTrue(
+                    VrmxtMaterialsOverride.TryParse(initialJson, out _),
+                    "fixture JSON must parse before Sync"
+                );
+
+                var pair = new VrmxtMaterialsOverridePair("Hair", initialJson)
+                {
+                    OverrideMaterial = overrideMat,
+                };
+                VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);
+
+                Assert.IsTrue(
+                    VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension),
+                    pair.ExtensionJson
+                );
+                Assert.AreEqual(2, extension.Overrides.Count, pair.ExtensionJson);
+
+                var hasSiblingUnity = false;
+                var hasUnreal = false;
+                var hasActiveUnity = false;
+                for (var i = 0; i < extension.Overrides.Count; i++)
+                {
+                    var entry = extension.Overrides[i];
+                    if (entry == null)
+                    {
+                        continue;
+                    }
+
+                    if (entry.Engine == "unreal")
+                    {
+                        hasUnreal = true;
+                        continue;
+                    }
+
+                    if (
+                        entry.Engine == "unity"
+                        && entry.Material is UnityMaterialOverride unity
+                    )
+                    {
+                        if (unity.Variant == activeVariant)
+                        {
+                            hasActiveUnity = true;
+                        }
+
+                        if (unity.Variant == siblingVariant)
+                        {
+                            hasSiblingUnity = true;
+                        }
+                    }
+                }
+
+                Assert.IsFalse(hasActiveUnity, "active RP unity slot must be cleared");
+                Assert.IsTrue(hasSiblingUnity, pair.ExtensionJson);
+                Assert.IsTrue(hasUnreal, pair.ExtensionJson);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+            }
+        }
+
+        [Test]
         public void SyncUnityOverrideFromMaterial_UpsertsActiveSlot_KeepsSiblingVariant()
         {
             var shader = Shader.Find("Standard");

@@ -75,7 +75,10 @@ namespace UniVRMXT.MaterialsOverride
             var shaderName = VrmxtMaterialsOverrideApplier.GetPortableShaderName(material);
             if (IsStockUnityMtoonShader(shaderName))
             {
-                pair.ExtensionJson = null;
+                // Stock MToon is not a VRMXT unity target — drop only the active RP
+                // unity slot (and empty-variant that applies on this RP). Keep other
+                // engines and typed unity pipeline siblings.
+                ClearActiveUnityOverrideSlot(pair);
                 return;
             }
 
@@ -213,6 +216,85 @@ namespace UniVRMXT.MaterialsOverride
 
             pair.ExtensionJson = VrmxtMaterialsOverride.ToJson(
                 new VrmxtMaterialsOverrideExtension(overrides)
+            );
+        }
+
+        /// <summary>
+        /// Remove the active-(RP) unity override slot from <paramref name="pair"/> while
+        /// keeping non-unity engines and typed unity siblings for other variants.
+        /// Empty-variant unity is dropped too (it selects on the active RP).
+        /// </summary>
+        private static void ClearActiveUnityOverrideSlot(VrmxtMaterialsOverridePair pair)
+        {
+            if (pair == null)
+            {
+                return;
+            }
+
+            if (
+                string.IsNullOrWhiteSpace(pair.ExtensionJson)
+                || !VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var existing)
+            )
+            {
+                pair.ExtensionJson = null;
+                return;
+            }
+
+            var activePipeline = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
+            var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
+                activePipeline
+            );
+
+            var siblings = new List<VrmxtMaterialEngineOverride>();
+            for (var i = 0; i < existing.Overrides.Count; i++)
+            {
+                var entry = existing.Overrides[i];
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                if (
+                    !string.Equals(
+                        entry.Engine,
+                        VrmxtMaterialsOverride.EngineUnity,
+                        StringComparison.Ordinal
+                    )
+                )
+                {
+                    siblings.Add(entry);
+                    continue;
+                }
+
+                var unity = entry.Material as UnityMaterialOverride;
+                if (unity == null)
+                {
+                    siblings.Add(entry);
+                    continue;
+                }
+
+                // Drop empty-variant and the active RP slot; keep other typed variants.
+                if (string.IsNullOrEmpty(unity.Variant))
+                {
+                    continue;
+                }
+
+                if (string.Equals(unity.Variant, activeVariant, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                siblings.Add(entry);
+            }
+
+            if (siblings.Count == 0)
+            {
+                pair.ExtensionJson = null;
+                return;
+            }
+
+            pair.ExtensionJson = VrmxtMaterialsOverride.ToJson(
+                new VrmxtMaterialsOverrideExtension(siblings)
             );
         }
 
@@ -867,7 +949,10 @@ namespace UniVRMXT.MaterialsOverride
                 var property = list[i];
                 if (
                     property == null
-                    || !string.Equals(property.Name, "_Color", StringComparison.Ordinal)
+                    || (
+                        !string.Equals(property.Name, "_Color", StringComparison.Ordinal)
+                        && !string.Equals(property.Name, "_BaseColor", StringComparison.Ordinal)
+                    )
                     || !string.Equals(
                         property.Type,
                         VrmxtMaterialsOverride.TargetTypeVector,
@@ -888,7 +973,7 @@ namespace UniVRMXT.MaterialsOverride
                 );
                 if (!IsNearBlack(color))
                 {
-                    return;
+                    continue;
                 }
 
                 list[i] = new VrmxtMaterialProperty(
