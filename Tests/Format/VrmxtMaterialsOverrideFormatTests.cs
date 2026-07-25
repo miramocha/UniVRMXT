@@ -318,6 +318,54 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
+        public void TextureProperty_OptionalValue_RoundTripsScaleOffset()
+        {
+            const string json = @"
+                {
+                  ""specVersion"": ""1.0"",
+                  ""overrides"": [
+                    {
+                      ""engine"": ""unity"",
+                      ""material"": {
+                        ""idType"": ""shaderName"",
+                        ""id"": "".poiyomi/Poiyomi Toon"",
+                        ""variant"": ""builtin""
+                      },
+                      ""properties"": [
+                        {
+                          ""name"": ""_EmissionMask"",
+                          ""type"": ""texture"",
+                          ""texture"": 7,
+                          ""value"": [3.0, 3.0, 0.0, 0.0]
+                        },
+                        {
+                          ""name"": ""_MainTex"",
+                          ""type"": ""texture"",
+                          ""texture"": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+                ";
+
+            Assert.IsTrue(VrmxtMaterialsOverride.TryParse(json, out var extension));
+            var properties = extension.Overrides[0].Properties;
+            Assert.AreEqual(7, properties[0].TextureIndex);
+            Assert.AreEqual(4, properties[0].VectorValue.Count);
+            Assert.AreEqual(3f, properties[0].VectorValue[0]);
+            Assert.AreEqual(3f, properties[0].VectorValue[1]);
+            Assert.IsNull(properties[1].VectorValue);
+
+            var rebuilt = VrmxtMaterialsOverride.ToJson(extension);
+            Assert.IsTrue(VrmxtMaterialsOverride.TryParse(rebuilt, out var again));
+            Assert.AreEqual(3f, again.Overrides[0].Properties[0].VectorValue[0]);
+            Assert.IsNull(again.Overrides[0].Properties[1].VectorValue);
+            StringAssert.Contains("\"value\":[3.0,3.0,0.0,0.0]", rebuilt.Replace(" ", ""));
+            StringAssert.DoesNotContain("\"name\":\"_MainTex\",\"type\":\"texture\",\"texture\":1,\"value\"", rebuilt.Replace(" ", ""));
+        }
+
+        [Test]
         public void ToJson_RoundTripsUnityOverrideWithPropertiesAndBindings()
         {
             const string json = @"

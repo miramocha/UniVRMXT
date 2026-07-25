@@ -44,7 +44,30 @@ namespace UniVRMXT.Tests.Format
                 Assert.IsNotNull(texture);
                 Assert.AreEqual(1, texture.width);
                 Assert.AreEqual(1, texture.height);
+                // Empty sampler {} → glTF default REPEAT (not hardcoded Clamp).
+                Assert.AreEqual(TextureWrapMode.Repeat, texture.wrapModeU);
+                Assert.AreEqual(TextureWrapMode.Repeat, texture.wrapModeV);
                 Assert.IsNull(textures.Get(99));
+            }
+            finally
+            {
+                textures.Dispose();
+            }
+        }
+
+        [Test]
+        public void VrmxtVfxGlbTextures_HonorsClampSampler()
+        {
+            var glb = BuildGlbWithEmbeddedPng(
+                TinyPng,
+                samplerJson: "{\"wrapS\":33071,\"wrapT\":33071,\"magFilter\":9729,\"minFilter\":9729}");
+            Assert.IsTrue(VrmxtVfxGlbTextures.TryCreate(glb, out var textures));
+            try
+            {
+                var texture = textures.Get(0) as Texture2D;
+                Assert.IsNotNull(texture);
+                Assert.AreEqual(TextureWrapMode.Clamp, texture.wrapModeU);
+                Assert.AreEqual(TextureWrapMode.Clamp, texture.wrapModeV);
             }
             finally
             {
@@ -60,7 +83,7 @@ namespace UniVRMXT.Tests.Format
             Assert.IsFalse(GltfImageBytes.TryGetTextureImage(json, bin, 1, out _, out _));
         }
 
-        private static byte[] BuildGlbWithEmbeddedPng(byte[] png)
+        private static byte[] BuildGlbWithEmbeddedPng(byte[] png, string samplerJson = "{}")
         {
             var json =
                 "{" +
@@ -69,7 +92,7 @@ namespace UniVRMXT.Tests.Format
                 "\"bufferViews\":[{\"buffer\":0,\"byteOffset\":0,\"byteLength\":" + png.Length + "}]," +
                 "\"images\":[{\"bufferView\":0,\"mimeType\":\"image/png\",\"name\":\"dot\"}]," +
                 "\"textures\":[{\"sampler\":0,\"source\":0}]," +
-                "\"samplers\":[{}]" +
+                "\"samplers\":[" + samplerJson + "]" +
                 "}";
 
             var jsonBytes = Encoding.UTF8.GetBytes(json);
