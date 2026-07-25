@@ -372,7 +372,12 @@ namespace UniVRMXT.MaterialsOverride
                         break;
 
                     case VrmxtMaterialsOverride.TargetTypeTexture:
-                        ApplyTexture(material, property.Name, property.TextureIndex, resolveTexture);
+                        ApplyTexture(
+                            material,
+                            property.Name,
+                            property.TextureIndex,
+                            property.VectorValue,
+                            resolveTexture);
                         break;
 
                     case VrmxtMaterialsOverride.TargetTypeShaderFeature:
@@ -525,6 +530,16 @@ namespace UniVRMXT.MaterialsOverride
             int? textureIndex,
             Func<int, Texture> resolveTexture)
         {
+            ApplyTexture(material, target, textureIndex, null, resolveTexture);
+        }
+
+        private static void ApplyTexture(
+            Material material,
+            string target,
+            int? textureIndex,
+            IReadOnlyList<float> textureTransform,
+            Func<int, Texture> resolveTexture)
+        {
             if (!textureIndex.HasValue || resolveTexture == null)
             {
                 return;
@@ -534,6 +549,7 @@ namespace UniVRMXT.MaterialsOverride
             if (texture != null)
             {
                 material.SetTexture(target, texture);
+                ApplyTextureTransform(material, target, textureTransform);
                 return;
             }
 
@@ -545,6 +561,36 @@ namespace UniVRMXT.MaterialsOverride
                 " unresolved on '" +
                 (material != null ? material.name : "?") +
                 "' (RememberTextures miss / out of range).");
+        }
+
+        /// <summary>
+        /// Apply optional Unity texture ST from <c>properties[].value</c>
+        /// <c>[scale.x, scale.y, offset.x, offset.y]</c> (2-float scale-only also accepted).
+        /// </summary>
+        private static void ApplyTextureTransform(
+            Material material,
+            string target,
+            IReadOnlyList<float> textureTransform)
+        {
+            if (material == null ||
+                string.IsNullOrEmpty(target) ||
+                textureTransform == null ||
+                textureTransform.Count < 2 ||
+                !material.HasProperty(target))
+            {
+                return;
+            }
+
+            material.SetTextureScale(
+                target,
+                new Vector2(textureTransform[0], textureTransform[1]));
+
+            if (textureTransform.Count >= 4)
+            {
+                material.SetTextureOffset(
+                    target,
+                    new Vector2(textureTransform[2], textureTransform[3]));
+            }
         }
 
         /// <summary>

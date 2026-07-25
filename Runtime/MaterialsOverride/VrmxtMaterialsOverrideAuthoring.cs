@@ -622,12 +622,24 @@ namespace UniVRMXT.MaterialsOverride
                         }
 
                         // Placeholder index; export PrepareTextures remaps from live material.
+                        // VectorValue carries Unity texture ST [sx, sy, ox, oy] when non-identity.
+                        var scale = material.GetTextureScale(name);
+                        var offset = material.GetTextureOffset(name);
+                        float[] transform = null;
+                        if (Math.Abs(scale.x - 1f) > 1e-5f ||
+                            Math.Abs(scale.y - 1f) > 1e-5f ||
+                            Math.Abs(offset.x) > 1e-5f ||
+                            Math.Abs(offset.y) > 1e-5f)
+                        {
+                            transform = new[] { scale.x, scale.y, offset.x, offset.y };
+                        }
+
                         list.Add(
                             new VrmxtMaterialProperty(
                                 name,
                                 VrmxtMaterialsOverride.TargetTypeTexture,
                                 null,
-                                null,
+                                transform,
                                 null,
                                 0
                             )
@@ -667,12 +679,26 @@ namespace UniVRMXT.MaterialsOverride
                 TryGetFallbackAlbedo(material, textureFallback, out var fallbackSlot, out _)
             )
             {
+                float[] transform = null;
+                if (textureFallback != null && textureFallback.HasProperty(fallbackSlot))
+                {
+                    var scale = textureFallback.GetTextureScale(fallbackSlot);
+                    var offset = textureFallback.GetTextureOffset(fallbackSlot);
+                    if (Math.Abs(scale.x - 1f) > 1e-5f ||
+                        Math.Abs(scale.y - 1f) > 1e-5f ||
+                        Math.Abs(offset.x) > 1e-5f ||
+                        Math.Abs(offset.y) > 1e-5f)
+                    {
+                        transform = new[] { scale.x, scale.y, offset.x, offset.y };
+                    }
+                }
+
                 list.Add(
                     new VrmxtMaterialProperty(
                         fallbackSlot,
                         VrmxtMaterialsOverride.TargetTypeTexture,
                         null,
-                        null,
+                        transform,
                         null,
                         0
                     )
@@ -1031,7 +1057,7 @@ namespace UniVRMXT.MaterialsOverride
                             property.Name,
                             VrmxtMaterialsOverride.TargetTypeTexture,
                             null,
-                            null,
+                            property.VectorValue,
                             null,
                             packedIndex
                         )
@@ -1058,7 +1084,7 @@ namespace UniVRMXT.MaterialsOverride
                             property.Name,
                             VrmxtMaterialsOverride.TargetTypeTexture,
                             null,
-                            null,
+                            property.VectorValue,
                             null,
                             existingIndex
                         )

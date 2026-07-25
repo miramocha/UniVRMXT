@@ -741,6 +741,27 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 Assert.IsNotNull(mainTex, "assigned texture must be captured for full export");
                 Assert.AreEqual(VrmxtMaterialsOverride.TargetTypeTexture, mainTex.Type);
                 Assert.AreEqual(0, mainTex.TextureIndex.Value);
+                Assert.IsNull(mainTex.VectorValue, "identity ST omitted");
+
+                material.SetTextureScale("_MainTex", new Vector2(3f, 12f));
+                material.SetTextureOffset("_MainTex", new Vector2(0.25f, 0.5f));
+                var withSt = VrmxtMaterialsOverrideAuthoring.CaptureProperties(material);
+                VrmxtMaterialProperty scaled = null;
+                for (var i = 0; i < withSt.Count; i++)
+                {
+                    if (withSt[i]?.Name == "_MainTex")
+                    {
+                        scaled = withSt[i];
+                        break;
+                    }
+                }
+
+                Assert.IsNotNull(scaled);
+                Assert.AreEqual(4, scaled.VectorValue.Count);
+                Assert.AreEqual(3f, scaled.VectorValue[0]);
+                Assert.AreEqual(12f, scaled.VectorValue[1]);
+                Assert.AreEqual(0.25f, scaled.VectorValue[2]);
+                Assert.AreEqual(0.5f, scaled.VectorValue[3]);
             }
             finally
             {
