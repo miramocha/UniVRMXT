@@ -1,0 +1,22 @@
+---
+description: UniVRMXT UPM package layout, assembly boundaries, and compatibility
+alwaysApply: true
+---
+
+# UniVRMXT repository
+
+- Package id: `com.miramocha.univrmxt`. Target Unity floor from `package.json`
+  (`2022.3`); do not silently raise Unity, package, API compatibility, or C# language
+  requirements.
+- Keep first-party code in this package tree (`Runtime`, `Editor`, `Tests`, `Samples~`
+  as used nearby). Do not nest a full player app or Warudo plugin inside the UPM package.
+- Select namespace and dependencies from nearby code and the nearest `.asmdef`.
+- Runtime assemblies must not reference Editor assemblies or `UnityEditor`.
+  Put editor-only code under an `Editor` folder and editor-only asmdef.
+- When crossing an assembly boundary, update the owning `.asmdef` deliberately.
+  Avoid adding broad or circular references.
+- Preserve VRM 1.0 load without UniVRMXT and optional `VRMXT_*` attach/export behavior.
+  Avoid unrelated cleanup that widens the public API.
+- Stock UniVRM / UniGLTF live in consuming projects or as package dependencies — edit
+  those sources only in their owning repos (e.g. Extended-UniVRM), not by forking copies
+  into this package.
