@@ -2,12 +2,12 @@
 
 Agent guidance for the **UniVRMXT** UPM package (`com.miramocha.univrmxt`).
 
-## Shared kit (from Extended-UniVRM)
+## Shared kit (from VRMXT Plugin for Warudo)
 
-Shared Unity rules and `validate-unity-meta` are synced from sibling Extended-UniVRM:
+Shared Unity rules and `validate-unity-meta` are synced from sibling Warudo plugin:
 
 ```powershell
-cd ../Extended-UniVRM
+cd "../VRMXT Plugin for Warudo"
 ./scripts/sync-vrmxt-cursor-shared.ps1 -Apply
 ```
 
@@ -27,7 +27,7 @@ cd ../Extended-UniVRM
 
 ## Deliberately not included
 
-- Warudo plugin / Mod Tool rules
-- Extended-UniVRM fork-upstream safety
+- Warudo Mod Tool / ui-labels kits
+- Extended-UniVRM fork agent config (none — upstream fork stays clean)
 - VRMXT Unity Player app scenes and WebGL bridge
 - GridDungeon UITK / backlog / story Cursor kits
