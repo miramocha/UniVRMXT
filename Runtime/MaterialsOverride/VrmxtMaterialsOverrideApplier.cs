@@ -241,7 +241,10 @@ namespace UniVRMXT.MaterialsOverride
         /// <summary>
         /// Resolve a shader by name: per-call <paramref name="resolveShader"/>, else
         /// <see cref="ShaderResolveProvider"/>, else <see cref="Shader.Find"/>.
-        /// Each step is tried only when the previous returns null.
+        /// When a per-call resolver is provided, its null result is final (no Find fallback)
+        /// so host claim inventories can deny names. A distinct
+        /// <see cref="ShaderResolveProvider"/> is still tried when the per-call resolver
+        /// returns null and is not the same delegate.
         /// </summary>
         public static Shader ResolveShader(
             string shaderName,
@@ -260,12 +263,19 @@ namespace UniVRMXT.MaterialsOverride
                 {
                     return fromCaller;
                 }
+
+                if (
+                    ShaderResolveProvider != null
+                    && !ReferenceEquals(resolveShader, ShaderResolveProvider)
+                )
+                {
+                    return ShaderResolveProvider(shaderName);
+                }
+
+                return null;
             }
 
-            if (
-                ShaderResolveProvider != null
-                && !ReferenceEquals(resolveShader, ShaderResolveProvider)
-            )
+            if (ShaderResolveProvider != null)
             {
                 var fromProvider = ShaderResolveProvider(shaderName);
                 if (fromProvider != null)
