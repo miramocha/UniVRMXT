@@ -24,6 +24,23 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void ResolveShader_PerCallNull_IgnoresDistinctProvider()
+        {
+            Assert.IsNotNull(Shader.Find("Standard"), "Standard must exist for Find contrast");
+            var previous = VrmxtMaterialsOverrideApplier.ShaderResolveProvider;
+            try
+            {
+                VrmxtMaterialsOverrideApplier.ShaderResolveProvider = _ => Shader.Find("Standard");
+                var resolved = VrmxtMaterialsOverrideApplier.ResolveShader("Standard", _ => null);
+                Assert.IsNull(resolved);
+            }
+            finally
+            {
+                VrmxtMaterialsOverrideApplier.ShaderResolveProvider = previous;
+            }
+        }
+
+        [Test]
         public void ResolveShader_NoPerCall_FallsBackToFind()
         {
             Assert.IsNotNull(Shader.Find("Standard"), "Standard must exist for Find contrast");
