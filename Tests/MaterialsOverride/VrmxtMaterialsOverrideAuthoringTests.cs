@@ -25,7 +25,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var activeVariant = UnityOverrideSelector.RenderPipelineVariantToVariantString(
                     VrmxtMaterialsOverrideApplier.DetectActivePipeline()
                 );
-                var siblingVariant = string.Equals(activeVariant, "urp", System.StringComparison.Ordinal)
+                var siblingVariant = string.Equals(
+                    activeVariant,
+                    "urp",
+                    System.StringComparison.Ordinal
+                )
                     ? "builtin"
                     : "urp";
 
@@ -74,10 +78,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         continue;
                     }
 
-                    if (
-                        entry.Engine == "unity"
-                        && entry.Material is UnityMaterialOverride unity
-                    )
+                    if (entry.Engine == "unity" && entry.Material is UnityMaterialOverride unity)
                     {
                         if (unity.Variant == activeVariant)
                         {
@@ -546,7 +547,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
-        public void ApplyOverrideMaterialsToRenderers_CopiesShaderOntoNamedMaterial()
+        public void ApplyOverrideMaterialsToRenderers_AssignsOverrideMaterialAssetToSlot()
         {
             var root = new GameObject("root");
             var mesh = new GameObject("mesh");
@@ -573,14 +574,62 @@ namespace UniVRMXT.Tests.MaterialsOverride
             {
                 VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
                 var live = mesh.GetComponent<MeshRenderer>().sharedMaterial;
-                Assert.AreEqual(0.77f, live.GetFloat("_Metallic"), 1e-4f);
-                // Stock asset must stay untouched (scene uses a clone).
+                // Slot must reference the Override Material asset — not a clone, not stock.
+                Assert.AreSame(overrideMat, live);
                 Assert.AreNotSame(stock, live);
                 Assert.AreNotEqual(0.77f, stock.GetFloat("_Metallic"));
+                Assert.AreSame(overrideMat, instance.Pairs[0].LiveAppliedOverride);
             }
             finally
             {
                 Object.DestroyImmediate(overrideMat);
+                Object.DestroyImmediate(stock);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ApplyOverrideMaterialsToRenderers_ReassignReplacesPreviousOverrideAsset()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+
+            var stock = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var overrideA = new Material(Shader.Find("Standard")) { name = "OverrideA" };
+            var overrideB = new Material(Shader.Find("Standard")) { name = "OverrideB" };
+            overrideA.SetFloat("_Metallic", 0.2f);
+            overrideB.SetFloat("_Metallic", 0.8f);
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = stock;
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.SetPairs(
+                new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", null)
+                    {
+                        SourceMaterial = stock,
+                        OverrideMaterial = overrideA,
+                    },
+                }
+            );
+
+            try
+            {
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+                Assert.AreSame(overrideA, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+
+                instance.Pairs[0].OverrideMaterial = overrideB;
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+
+                Assert.AreSame(overrideB, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.AreSame(overrideB, instance.Pairs[0].LiveAppliedOverride);
+                Assert.AreSame(stock, instance.Pairs[0].SourceMaterial);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideA);
+                Object.DestroyImmediate(overrideB);
                 Object.DestroyImmediate(stock);
                 Object.DestroyImmediate(root);
             }
@@ -616,14 +665,66 @@ namespace UniVRMXT.Tests.MaterialsOverride
             try
             {
                 VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
-                Assert.AreNotSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.AreSame(overrideMat, mesh.GetComponent<MeshRenderer>().sharedMaterial);
 
                 instance.ClearOverrides();
 
                 Assert.AreSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
                 Assert.IsNull(instance.Pairs[0].OverrideMaterial);
+                Assert.IsNull(instance.Pairs[0].LiveAppliedOverride);
                 Assert.IsTrue(string.IsNullOrEmpty(instance.Pairs[0].ExtensionJson));
                 Assert.AreSame(stock, instance.Pairs[0].SourceMaterial);
+                Assert.IsFalse(instance.ApplyOverridesToRenderers);
+
+                // OnValidate-style sync must not put the cleared override back on the mesh.
+                instance.SyncFromOverrideMaterials();
+                Assert.AreSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+                Object.DestroyImmediate(stock);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void RestoreSourceMaterialsToRenderers_KeepsOverrideMaterialAndJson()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+
+            var stock = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var overrideMat = new Material(Shader.Find("Standard")) { name = "Override" };
+            overrideMat.SetFloat("_Metallic", 0.77f);
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = stock;
+
+            const string json =
+                @"{""specVersion"":""1.0"",""overrides"":[{""engine"":""unity"",""material"":{""idType"":""shaderName"",""id"":""Standard""}}]}";
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.SetPairs(
+                new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", json)
+                    {
+                        SourceMaterial = stock,
+                        OverrideMaterial = overrideMat,
+                    },
+                }
+            );
+
+            try
+            {
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+                Assert.AreSame(overrideMat, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+
+                VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(root, instance);
+
+                Assert.AreSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.AreSame(overrideMat, instance.Pairs[0].OverrideMaterial);
+                Assert.AreEqual(json, instance.Pairs[0].ExtensionJson);
             }
             finally
             {
@@ -941,10 +1042,7 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 stock.SetColor("_Color", Color.white);
                 stock.SetTexture("_MainTex", hairTex);
 
-                var props = VrmxtMaterialsOverrideAuthoring.CaptureProperties(
-                    overrideMat,
-                    stock
-                );
+                var props = VrmxtMaterialsOverrideAuthoring.CaptureProperties(overrideMat, stock);
 
                 VrmxtMaterialProperty mainTex = null;
                 VrmxtMaterialProperty shade = null;

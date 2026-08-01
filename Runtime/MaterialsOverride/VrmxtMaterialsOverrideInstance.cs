@@ -25,7 +25,25 @@ namespace UniVRMXT.MaterialsOverride
         [SerializeField]
         private List<VrmxtImportedGltfTexture> importedTextures = new();
 
+        /// <summary>
+        /// When false, <see cref="SyncFromOverrideMaterials"/> updates JSON only and leaves
+        /// renderer slots on Source / MToon (Swap Back to MToon / Clear). Set true again when
+        /// assigning Override Material or Materialize.
+        /// </summary>
+        [SerializeField]
+        [HideInInspector]
+        private bool applyOverridesToRenderers = true;
+
         public IReadOnlyList<VrmxtMaterialsOverridePair> Pairs => pairs;
+
+        /// <summary>
+        /// When true, sync also pushes Override Material assets onto matching renderer slots.
+        /// </summary>
+        public bool ApplyOverridesToRenderers
+        {
+            get => applyOverridesToRenderers;
+            set => applyOverridesToRenderers = value;
+        }
 
         /// <summary>Alias for callers migrating from the former Entries API.</summary>
         public IReadOnlyList<VrmxtMaterialsOverridePair> Entries => pairs;
@@ -286,17 +304,29 @@ namespace UniVRMXT.MaterialsOverride
                 pair.SourceMaterial = null;
             }
 
-            if (!string.IsNullOrEmpty(pair.MaterialName) && pair.SourceMaterial != null)
+            // Clear override refs first so OnValidate / Sync cannot re-apply onto renderers
+            // after we restore Source (MToon).
+            var materialName = pair.MaterialName;
+            var sourceMaterial = pair.SourceMaterial;
+            var overrideMaterial = pair.OverrideMaterial;
+            var liveApplied = pair.LiveAppliedOverride;
+            pair.OverrideMaterial = null;
+            pair.LiveAppliedOverride = null;
+            pair.ExtensionJson = null;
+            applyOverridesToRenderers = false;
+
+            if (!string.IsNullOrEmpty(materialName) && sourceMaterial != null)
             {
                 VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
                     gameObject,
-                    pair.MaterialName,
-                    pair.SourceMaterial
+                    materialName,
+                    sourceMaterial,
+                    destroyPreviewMaterials: true,
+                    overrideMaterial,
+                    liveApplied
                 );
             }
 
-            pair.OverrideMaterial = null;
-            pair.ExtensionJson = null;
             return true;
         }
 
@@ -522,12 +552,18 @@ namespace UniVRMXT.MaterialsOverride
         }
 
         /// <summary>
-        /// Sync <see cref="ExtensionJson"/> from assigned override materials and push
-        /// override shader/props onto matching live materials.
+        /// Sync <see cref="ExtensionJson"/> from assigned override materials and, when
+        /// <see cref="ApplyOverridesToRenderers"/> is set, push Override Material assets onto
+        /// matching renderer slots.
         /// </summary>
         public void SyncFromOverrideMaterials()
         {
             VrmxtMaterialsOverrideAuthoring.SyncAllFromOverrideMaterials(this);
+            if (!applyOverridesToRenderers)
+            {
+                return;
+            }
+
             VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(gameObject, this);
         }
 
@@ -616,6 +652,15 @@ namespace UniVRMXT.MaterialsOverride
         public Material SourceMaterial;
         public Material OverrideMaterial;
         public string ExtensionJson;
+
+        /// <summary>
+        /// Material currently on renderer slots for this pair after the last apply. Used so
+        /// re-assigning <see cref="OverrideMaterial"/> can find slots when the asset name
+        /// differs from the glTF / store key. Hidden — not an authoring field.
+        /// </summary>
+        [SerializeField]
+        [HideInInspector]
+        public Material LiveAppliedOverride;
 
         /// <summary>
         /// Index into glTF <c>materials[]</c> when attached from JSON; <c>-1</c> when unknown

@@ -1,8 +1,8 @@
 using System.Text;
-using UniVRMXT.Format;
-using UniVRMXT.MaterialsOverride;
 using UnityEditor;
 using UnityEngine;
+using UniVRMXT.Format;
+using UniVRMXT.MaterialsOverride;
 
 namespace UniVRMXT.Editor.MaterialsOverride
 {
@@ -14,11 +14,13 @@ namespace UniVRMXT.Editor.MaterialsOverride
     public sealed class VrmxtMaterialsOverrideInstanceEditor : UnityEditor.Editor
     {
         private SerializedProperty _pairs;
+        private SerializedProperty _applyOverridesToRenderers;
         private bool _showAdvancedJson;
 
         private void OnEnable()
         {
             _pairs = serializedObject.FindProperty("pairs");
+            _applyOverridesToRenderers = serializedObject.FindProperty("applyOverridesToRenderers");
         }
 
         public override void OnInspectorGUI()
@@ -27,11 +29,16 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             EditorGUILayout.LabelField("Material Override Pairs", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Override Material is optional authoring: assign one only when you want to " +
-                "rewrite the Unity override from that asset. Imported VRMs keep overrides in " +
-                "extension JSON — an empty Override Material after import is normal. See each " +
-                "pair's Status line.",
-                MessageType.Info);
+                "Import attaches override JSON and textures but leaves stock MToon on "
+                    + "renderers. Materialize (all or per slot) creates .mat assets, assigns "
+                    + "Override Material, and puts that asset into matching MeshRenderer "
+                    + "slots (stock Source Material is not mutated). Use Show Override "
+                    + "Materials to toggle renderer slots between Override Material assets "
+                    + "and stock Source / MToon without clearing Override Material or "
+                    + "extension JSON. Dragging a .mat into Override Material also swaps "
+                    + "slots and Transfers into the active unity slot on export.",
+                MessageType.Info
+            );
 
             if (_pairs != null)
             {
@@ -43,6 +50,25 @@ namespace UniVRMXT.Editor.MaterialsOverride
             }
 
             EditorGUILayout.Space();
+            if (GUILayout.Button("Materialize All Materials"))
+            {
+                var instance = (VrmxtMaterialsOverrideInstance)target;
+                var count = VrmxtMaterialsOverrideMaterialize.MaterializeAll(instance);
+                if (count == 0)
+                {
+                    Debug.LogWarning(
+                        "VRMXT Materialize: no pairs materialized (missing unity override "
+                            + "or unresolved shader)."
+                    );
+                }
+
+                EditorUtility.SetDirty(instance);
+                serializedObject.Update();
+                GUIUtility.ExitGUI();
+            }
+
+            DrawShowOverrideMaterialsToggle();
+
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Populate Pairs From Renderers"))
             {
@@ -78,15 +104,21 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 "Dump logs JSON vs live renderer vs Override Material (shader, MainTex, "
                     + "_Color, keywords, remembered texture indices). Compare pre-export "
                     + "authored avatar vs re-imported VRM.",
-                MessageType.None);
+                MessageType.None
+            );
 
-            _showAdvancedJson = EditorGUILayout.Foldout(_showAdvancedJson, "Advanced: Extension JSON", true);
+            _showAdvancedJson = EditorGUILayout.Foldout(
+                _showAdvancedJson,
+                "Advanced: Extension JSON",
+                true
+            );
             if (_showAdvancedJson && _pairs != null)
             {
                 for (var i = 0; i < _pairs.arraySize; i++)
                 {
                     var element = _pairs.GetArrayElementAtIndex(i);
-                    var name = element.FindPropertyRelative("MaterialName")?.stringValue ?? $"[{i}]";
+                    var name =
+                        element.FindPropertyRelative("MaterialName")?.stringValue ?? $"[{i}]";
                     EditorGUILayout.LabelField(name, EditorStyles.miniBoldLabel);
                     var jsonProp = element.FindPropertyRelative("ExtensionJson");
                     if (jsonProp != null)
@@ -110,6 +142,12 @@ namespace UniVRMXT.Editor.MaterialsOverride
             var json = jsonProp?.stringValue;
             BuildPairStatus(json, overrideMat != null, out var statusLabel, out var detail);
             var canClear = statusLabel != "Stock";
+            var instance = (VrmxtMaterialsOverrideInstance)target;
+            var pair =
+                instance != null && index >= 0 && index < instance.Pairs.Count
+                    ? instance.Pairs[index]
+                    : null;
+            var canMaterialize = VrmxtMaterialsOverrideMaterialize.CanMaterializePair(pair);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
@@ -119,21 +157,41 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 "Source Material",
                 sourceProp?.objectReferenceValue,
                 typeof(Material),
-                true);
+                true
+            );
             EditorGUI.EndDisabledGroup();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Status", statusLabel, EditorStyles.boldLabel);
+            EditorGUI.BeginDisabledGroup(!canMaterialize);
+            if (GUILayout.Button("Materialize", GUILayout.Width(88f)))
+            {
+                var label = nameProp?.stringValue;
+                if (!VrmxtMaterialsOverrideMaterialize.MaterializePair(instance, index))
+                {
+                    Debug.LogWarning(
+                        "VRMXT Materialize: failed for '"
+                            + (string.IsNullOrEmpty(label) ? ("[" + index + "]") : label)
+                            + "'."
+                    );
+                }
+
+                EditorUtility.SetDirty(instance);
+                serializedObject.Update();
+                GUIUtility.ExitGUI();
+            }
+
+            EditorGUI.EndDisabledGroup();
             EditorGUI.BeginDisabledGroup(!canClear);
             if (GUILayout.Button("Clear", GUILayout.Width(56f)))
             {
-                var instance = (VrmxtMaterialsOverrideInstance)target;
                 var label = nameProp?.stringValue;
                 Undo.RecordObject(
                     instance,
                     string.IsNullOrEmpty(label)
                         ? "Clear Material Override"
-                        : $"Clear Material Override ({label})");
+                        : $"Clear Material Override ({label})"
+                );
                 instance.ClearOverrideAt(index);
                 EditorUtility.SetDirty(instance);
                 serializedObject.Update();
@@ -155,11 +213,15 @@ namespace UniVRMXT.Editor.MaterialsOverride
                     overrideProp,
                     new GUIContent(
                         "Override Material",
-                        "Optional. Assign to author/rewrite the active unity slot from this asset. " +
-                        "Sibling pipeline slots in extension JSON are kept. " +
-                        "Leave empty when using imported extension JSON only."));
+                        "Optional. Assign to author/rewrite the active unity slot from this asset. "
+                            + "Sibling pipeline slots in extension JSON are kept. "
+                            + "Materialize fills this from extension JSON."
+                    )
+                );
                 if (EditorGUI.EndChangeCheck())
                 {
+                    // Re-enable renderer slot swaps after Swap Back / Clear suppressed them.
+                    instance.ApplyOverridesToRenderers = true;
                     // Apply OverrideMaterial first so OnValidate Sync can read siblings from
                     // ExtensionJson, then reload SO so a later ApplyModifiedProperties does
                     // not stomp the multi-slot JSON Sync just wrote.
@@ -172,6 +234,77 @@ namespace UniVRMXT.Editor.MaterialsOverride
             EditorGUILayout.EndVertical();
         }
 
+        private void DrawShowOverrideMaterialsToggle()
+        {
+            var instance = (VrmxtMaterialsOverrideInstance)target;
+            var canToggle = HasAnyOverrideMaterial(instance);
+            var showOverrides =
+                _applyOverridesToRenderers != null
+                    ? _applyOverridesToRenderers.boolValue
+                    : instance.ApplyOverridesToRenderers;
+
+            EditorGUI.BeginDisabledGroup(!canToggle);
+            EditorGUI.BeginChangeCheck();
+            var next = EditorGUILayout.ToggleLeft(
+                new GUIContent(
+                    "Show Override Materials",
+                    "On: put assigned Override Material assets on matching MeshRenderer slots. "
+                        + "Off: put stock Source / MToon back. Does not clear Override Material "
+                        + "or extension JSON."
+                ),
+                showOverrides
+            );
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(instance, "Toggle Show Override Materials");
+                if (next)
+                {
+                    VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(
+                        instance.gameObject,
+                        instance
+                    );
+                }
+                else
+                {
+                    VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(
+                        instance.gameObject,
+                        instance
+                    );
+                }
+
+                EditorUtility.SetDirty(instance);
+                serializedObject.Update();
+                GUIUtility.ExitGUI();
+            }
+
+            EditorGUI.EndDisabledGroup();
+            if (!canToggle)
+            {
+                EditorGUILayout.HelpBox(
+                    "Assign or Materialize Override Materials to enable this toggle.",
+                    MessageType.None
+                );
+            }
+        }
+
+        private static bool HasAnyOverrideMaterial(VrmxtMaterialsOverrideInstance instance)
+        {
+            if (instance == null)
+            {
+                return false;
+            }
+
+            foreach (var pair in instance.Pairs)
+            {
+                if (pair?.OverrideMaterial != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Stock | Imported | Authored | Imported + Authored, plus a one-line unity/engine summary.
         /// </summary>
@@ -179,13 +312,14 @@ namespace UniVRMXT.Editor.MaterialsOverride
             string extensionJson,
             bool hasOverrideMaterial,
             out string statusLabel,
-            out string detail)
+            out string detail
+        )
         {
             detail = null;
             var hasFileJson = !string.IsNullOrWhiteSpace(extensionJson);
             VrmxtMaterialsOverrideExtension extension = null;
-            var parsed = hasFileJson &&
-                         VrmxtMaterialsOverride.TryParse(extensionJson, out extension);
+            var parsed =
+                hasFileJson && VrmxtMaterialsOverride.TryParse(extensionJson, out extension);
             var hasFileOverride = parsed && extension != null && extension.Overrides.Count > 0;
 
             if (hasFileOverride && hasOverrideMaterial)
@@ -223,18 +357,22 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
         private static string BuildDetail(
             VrmxtMaterialsOverrideExtension extension,
-            bool hasOverrideMaterial)
+            bool hasOverrideMaterial
+        )
         {
             var sb = new StringBuilder();
             var unityCount = 0;
 
             foreach (var entry in extension.Overrides)
             {
-                if (entry == null ||
-                    !string.Equals(
+                if (
+                    entry == null
+                    || !string.Equals(
                         entry.Engine,
                         VrmxtMaterialsOverride.EngineUnity,
-                        System.StringComparison.Ordinal))
+                        System.StringComparison.Ordinal
+                    )
+                )
                 {
                     continue;
                 }
@@ -270,11 +408,14 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             foreach (var entry in extension.Overrides)
             {
-                if (entry == null ||
-                    string.Equals(
+                if (
+                    entry == null
+                    || string.Equals(
                         entry.Engine,
                         VrmxtMaterialsOverride.EngineUnity,
-                        System.StringComparison.Ordinal))
+                        System.StringComparison.Ordinal
+                    )
+                )
                 {
                     continue;
                 }
@@ -292,7 +433,9 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             if (hasOverrideMaterial)
             {
-                sb.Append(" · local Override Material assigned (sync upserts active unity slot only)");
+                sb.Append(
+                    " · local Override Material assigned (sync upserts active unity slot only)"
+                );
             }
 
             return sb.ToString();

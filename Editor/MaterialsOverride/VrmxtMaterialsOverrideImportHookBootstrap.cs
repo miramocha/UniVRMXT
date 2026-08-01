@@ -1,23 +1,24 @@
 using System;
 using System.IO;
 using System.Reflection;
-using UniVRMXT.MaterialsOverride;
-using UniVRMXT.Vfx;
 using UnityEditor;
 using UnityEngine;
+using UniVRMXT.MaterialsOverride;
+using UniVRMXT.Vfx;
 
 namespace UniVRMXT.Editor.MaterialsOverride
 {
     /// <summary>
-    /// Soft-detect Extended-UniVRM <c>Vrm10ImportExtensionRegistry</c> and apply
-    /// <c>VRMXT_materials_override</c> onto the imported <c>.vrm</c> when hooks exist and
-    /// are enabled in Project Settings/VRM10. Stock UniVRM or hooks disabled → materials
-    /// stay on stock import (no companion path for the materials-override MVP).
+    /// Soft-detect Extended-UniVRM <c>Vrm10ImportExtensionRegistry</c> and attach
+    /// <c>VrmxtMaterialsOverrideInstance</c> (+ remembered textures) when hooks exist and
+    /// are enabled in Project Settings/VRM10. Does <b>not</b> auto-Apply overrides —
+    /// Editor preview uses Materialize. Stock UniVRM or hooks disabled → no Instance.
     /// </summary>
     [InitializeOnLoad]
     public static class VrmxtMaterialsOverrideImportHookBootstrap
     {
-        private const string RegistryTypeName = "UniVRM10.Vrm10ImportExtensionRegistry, VRM10.Editor";
+        private const string RegistryTypeName =
+            "UniVRM10.Vrm10ImportExtensionRegistry, VRM10.Editor";
 
         private static readonly Action<object> Handler = OnVrmImported;
         private static bool s_registered;
@@ -69,11 +70,13 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 BindingFlags.Public | BindingFlags.Static,
                 binder: null,
                 types: new[] { typeof(Action<object>) },
-                modifiers: null);
+                modifiers: null
+            );
             if (register == null)
             {
                 Debug.LogWarning(
-                    "UniVRMXT: Vrm10ImportExtensionRegistry found but RegisterHandler(Action<object>) missing.");
+                    "UniVRMXT: Vrm10ImportExtensionRegistry found but RegisterHandler(Action<object>) missing."
+                );
                 return false;
             }
 
@@ -87,7 +90,8 @@ namespace UniVRMXT.Editor.MaterialsOverride
             // Extended-UniVRM with project-setting gate. Older builds without IsEnabled → assume on.
             var prop = registryType.GetProperty(
                 "IsEnabled",
-                BindingFlags.Public | BindingFlags.Static);
+                BindingFlags.Public | BindingFlags.Static
+            );
             if (prop == null || prop.PropertyType != typeof(bool))
             {
                 return true;
@@ -112,7 +116,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             try
             {
-                ApplyMaterialsOverride(contextObj);
+                AttachMaterialsOverrideStore(contextObj);
             }
             catch (Exception ex)
             {
@@ -120,7 +124,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
             }
         }
 
-        private static void ApplyMaterialsOverride(object contextObj)
+        private static void AttachMaterialsOverrideStore(object contextObj)
         {
             var type = contextObj.GetType();
             var root = type.GetProperty("Root")?.GetValue(contextObj) as GameObject;
@@ -131,45 +135,37 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 BindingFlags.Instance | BindingFlags.Public,
                 binder: null,
                 types: new[] { typeof(string), typeof(UnityEngine.Object) },
-                modifiers: null);
+                modifiers: null
+            );
 
             if (root == null || string.IsNullOrEmpty(json))
             {
                 return;
             }
 
-            // Always attach MaterialsOverrideInstance (authoring shell). Apply is a no-op
-            // when no unity overrides are present / selectable.
+            // Authoring shell only — stock MToon stays on renderers until Materialize.
             if (!VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store))
             {
                 return;
             }
 
-            var pipeline = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
-            Func<int, Texture> resolveTexture = null;
             VrmxtVfxGlbTextures glbTextures = null;
 
             try
             {
-                // Always drop prior-import images before pairing with this file's JSON.
-                // Skip/fail of the second GLB read must not leave stale ImportedTextures for
-                // Apply's Instance fallback to resolve against the new indices.
+                // Drop prior-import images before pairing with this file's JSON so
+                // Materialize's Instance texture resolve cannot hit stale indices.
                 store.ClearImportedTextures();
 
-                if (!string.IsNullOrEmpty(assetPath) &&
-                    TryLoadGlbTextures(assetPath, out glbTextures))
+                if (
+                    !string.IsNullOrEmpty(assetPath)
+                    && TryLoadGlbTextures(assetPath, out glbTextures)
+                )
                 {
-                    // Decode into Instance first. Apply must not use glbTextures.AsResolver()
-                    // after ReleaseOwnership — Get() would re-decode, then Dispose() would
-                    // DestroyImmediate those live SetTexture refs (missing on reimport).
                     store.RememberTexturesFromPairs(glbTextures.AsResolver(), json);
                     PersistImportedTextures(store, contextObj, addObject);
                     glbTextures.ReleaseOwnership();
-                    resolveTexture = index =>
-                        store.TryGetImportedTexture(index, out var texture) ? texture : null;
                 }
-
-                VrmxtMaterialsOverrideApplier.Apply(root, store, json, pipeline, resolveTexture);
             }
             finally
             {
@@ -177,7 +173,10 @@ namespace UniVRMXT.Editor.MaterialsOverride
             }
         }
 
-        private static bool TryLoadGlbTextures(string assetPath, out VrmxtVfxGlbTextures glbTextures)
+        private static bool TryLoadGlbTextures(
+            string assetPath,
+            out VrmxtVfxGlbTextures glbTextures
+        )
         {
             glbTextures = null;
             byte[] bytes;
@@ -196,7 +195,8 @@ namespace UniVRMXT.Editor.MaterialsOverride
         private static void PersistImportedTextures(
             VrmxtMaterialsOverrideInstance store,
             object contextObj,
-            MethodInfo addObject)
+            MethodInfo addObject
+        )
         {
             if (store == null || addObject == null)
             {
@@ -215,7 +215,8 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 entry.Texture.name = "VRMXT_mo_tex_" + entry.GltfIndex;
                 addObject.Invoke(
                     contextObj,
-                    new object[] { "vrmxt_mo_tex_" + entry.GltfIndex, entry.Texture });
+                    new object[] { "vrmxt_mo_tex_" + entry.GltfIndex, entry.Texture }
+                );
             }
         }
     }
