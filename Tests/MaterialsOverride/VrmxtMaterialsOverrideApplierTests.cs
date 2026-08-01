@@ -1,6 +1,6 @@
 using NUnit.Framework;
-using UniVRMXT.MaterialsOverride;
 using UnityEngine;
+using UniVRMXT.MaterialsOverride;
 
 namespace UniVRMXT.Tests.MaterialsOverride
 {
@@ -57,7 +57,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
             }
         }
 
-        private const string GltfWithBindingsAndPropertiesJson = @"
+        private const string GltfWithBindingsAndPropertiesJson =
+            @"
             {
               ""materials"": [
                 {
@@ -101,7 +102,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
             }
             ";
 
-        private static GameObject CreateRootWithNamedMaterial(string materialName, out Material material)
+        private static GameObject CreateRootWithNamedMaterial(
+            string materialName,
+            out Material material
+        )
         {
             var root = new GameObject("root");
             var meshGo = new GameObject("mesh");
@@ -114,15 +118,112 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void TryWritePairOverrideOntoMaterial_WritesShaderPropertiesAndBindings()
+        {
+            var target = new Material(Shader.Find("Unlit/Color")) { name = "Hair" };
+            try
+            {
+                var pair = new VrmxtMaterialsOverridePair(
+                    "Hair",
+                    @"{
+                      ""specVersion"": ""1.0"",
+                      ""overrides"": [{
+                        ""engine"": ""unity"",
+                        ""material"": {
+                          ""idType"": ""shaderName"",
+                          ""id"": ""Standard""
+                        },
+                        ""bindings"": [
+                          {
+                            ""source"": ""shadeColorFactor"",
+                            ""target"": ""_Color"",
+                            ""targetType"": ""vector""
+                          },
+                          {
+                            ""source"": ""shadingToonyFactor"",
+                            ""target"": ""_Metallic"",
+                            ""targetType"": ""scalar""
+                          }
+                        ],
+                        ""properties"": [
+                          { ""name"": ""_Glossiness"", ""type"": ""scalar"", ""value"": 0.25 }
+                        ]
+                      }]
+                    }",
+                    0
+                );
+
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideApplier.TryWritePairOverrideOntoMaterial(
+                        target,
+                        pair,
+                        GltfWithBindingsAndPropertiesJson,
+                        RenderPipelineVariant.Builtin
+                    )
+                );
+
+                Assert.AreEqual("Standard", target.shader.name);
+                Assert.AreEqual(0.25f, target.GetFloat("_Glossiness"), 1e-5f);
+                Assert.AreEqual(0.42f, target.GetFloat("_Metallic"), 1e-5f);
+                var color = target.GetColor("_Color");
+                Assert.AreEqual(1f, color.r, 1e-5f);
+                Assert.AreEqual(0f, color.g, 1e-5f);
+                Assert.AreEqual(0f, color.b, 1e-5f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(target);
+            }
+        }
+
+        [Test]
+        public void TryWritePairOverrideOntoMaterial_MissingShader_ReturnsFalse()
+        {
+            var target = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var original = target.shader;
+            try
+            {
+                var pair = new VrmxtMaterialsOverridePair(
+                    "Hair",
+                    @"{
+                      ""specVersion"": ""1.0"",
+                      ""overrides"": [{
+                        ""engine"": ""unity"",
+                        ""material"": {
+                          ""idType"": ""shaderName"",
+                          ""id"": ""Definitely/Missing/OverrideShader""
+                        }
+                      }]
+                    }"
+                );
+
+                Assert.IsFalse(
+                    VrmxtMaterialsOverrideApplier.TryWritePairOverrideOntoMaterial(
+                        target,
+                        pair,
+                        "{}",
+                        RenderPipelineVariant.Builtin
+                    )
+                );
+                Assert.AreSame(original, target.shader);
+            }
+            finally
+            {
+                Object.DestroyImmediate(target);
+            }
+        }
+
+        [Test]
         public void Apply_MissingShader_LeavesStockAndDoesNotApply()
         {
             var root = CreateRootWithNamedMaterial("Hair", out var material);
             var originalShader = material.shader;
             try
             {
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair"",
                         ""extensions"": {
@@ -139,7 +240,9 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 store.TryGetPair("Hair", out var pair);
                 pair.SourceMaterial = material;
@@ -148,11 +251,15 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(0, applied);
                 Assert.AreSame(originalShader, material.shader);
-                Assert.AreSame(material, root.GetComponentInChildren<MeshRenderer>().sharedMaterial);
+                Assert.AreSame(
+                    material,
+                    root.GetComponentInChildren<MeshRenderer>().sharedMaterial
+                );
             }
             finally
             {
@@ -182,9 +289,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         ? replacement
                         : null;
 
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair"",
                         ""extensions"": {
@@ -201,13 +309,16 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 var applied = VrmxtMaterialsOverrideApplier.Apply(
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreSame(replacement, material.shader);
@@ -231,14 +342,17 @@ namespace UniVRMXT.Tests.MaterialsOverride
             {
                 Assert.AreEqual(
                     "Standard",
-                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material));
+                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material)
+                );
 
                 material.SetOverrideTag(
                     VrmxtMaterialsOverrideApplier.OriginalShaderTag,
-                    ".poiyomi/Poiyomi Toon");
+                    ".poiyomi/Poiyomi Toon"
+                );
                 Assert.AreEqual(
                     ".poiyomi/Poiyomi Toon",
-                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material));
+                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material)
+                );
             }
             finally
             {
@@ -256,10 +370,12 @@ namespace UniVRMXT.Tests.MaterialsOverride
             {
                 material.SetOverrideTag(
                     VrmxtMaterialsOverrideApplier.OriginalShaderTag,
-                    ".poiyomi/Poiyomi Toon + Lil Fur");
+                    ".poiyomi/Poiyomi Toon + Lil Fur"
+                );
                 Assert.AreEqual(
                     ".poiyomi/Poiyomi Toon + Lil Fur",
-                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material));
+                    VrmxtMaterialsOverrideApplier.GetPortableShaderName(material)
+                );
             }
             finally
             {
@@ -289,9 +405,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         ? replacement
                         : null;
 
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Fur"",
                         ""extensions"": {
@@ -308,13 +425,16 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 var applied = VrmxtMaterialsOverrideApplier.Apply(
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreSame(replacement, material.shader);
@@ -339,9 +459,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
 
             try
             {
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair"",
                         ""extensions"": {
@@ -358,13 +479,16 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 var applied = VrmxtMaterialsOverrideApplier.Apply(
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(0, applied);
                 Assert.AreSame(originalShader, material.shader);
@@ -383,7 +507,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
             try
             {
                 var hits = new System.Collections.Generic.List<Material>(
-                    VrmxtMaterialsOverrideApplier.FindMaterialsByName(root, "Hair (Instance)"));
+                    VrmxtMaterialsOverrideApplier.FindMaterialsByName(root, "Hair (Instance)")
+                );
                 Assert.AreEqual(1, hits.Count);
                 Assert.AreSame(material, hits[0]);
             }
@@ -400,9 +525,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
             var root = CreateRootWithNamedMaterial("Hair", out var material);
             try
             {
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair (Instance)"",
                         ""extensions"": {
@@ -422,7 +548,9 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 Assert.IsTrue(store.TryGetPair("Hair (Instance)", out var pair));
                 pair.SourceMaterial = material;
@@ -431,7 +559,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreEqual(0.33f, material.GetFloat("_Glossiness"), 1e-4f);
@@ -452,7 +581,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 var applied = VrmxtMaterialsOverrideApplier.Apply(
                     root,
                     GltfWithBindingsAndPropertiesJson,
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreEqual("Standard", material.shader.name);
@@ -471,7 +601,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
         [Test]
         public void Apply_NoSiblingMtoonExtension_IgnoresBindingsButKeepsProperties()
         {
-            const string json = @"
+            const string json =
+                @"
                 {
                   ""materials"": [
                     {
@@ -502,7 +633,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
             var defaultColor = material.GetColor("_Color");
             try
             {
-                var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    json,
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreEqual(defaultColor, material.GetColor("_Color"));
@@ -522,7 +657,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
             var originalShader = material.shader;
             try
             {
-                const string json = @"
+                const string json =
+                    @"
                     {
                       ""materials"": [
                         {
@@ -547,7 +683,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     }
                     ";
 
-                var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    json,
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(0, applied);
                 Assert.AreSame(originalShader, material.shader);
@@ -566,7 +706,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
             var originalShader = material.shader;
             try
             {
-                const string json = @"
+                const string json =
+                    @"
                     {
                       ""materials"": [
                         {
@@ -590,7 +731,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     }
                     ";
 
-                var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    json,
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(0, applied);
                 Assert.AreSame(originalShader, material.shader);
@@ -616,7 +761,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
 
             try
             {
-                const string json = @"
+                const string json =
+                    @"
                     {
                       ""materials"": [
                         {
@@ -657,7 +803,11 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     }
                     ";
 
-                var applied = VrmxtMaterialsOverrideApplier.Apply(root, json, RenderPipelineVariant.Builtin);
+                var applied = VrmxtMaterialsOverrideApplier.Apply(
+                    root,
+                    json,
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(2, applied);
                 Assert.AreEqual(0.1f, firstMaterial.GetFloat("_Glossiness"), 1e-4f);
@@ -677,15 +827,19 @@ namespace UniVRMXT.Tests.MaterialsOverride
             var root = CreateRootWithNamedMaterial("Hair", out var material);
             var stockTexture = new Texture2D(2, 2);
             var targetShader = Shader.Find("Unlit/Texture");
-            Assert.IsNotNull(targetShader, "Unlit/Texture required for shader-swap texture clear test");
+            Assert.IsNotNull(
+                targetShader,
+                "Unlit/Texture required for shader-swap texture clear test"
+            );
 
             try
             {
                 material.SetTexture("_MainTex", stockTexture);
 
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair"",
                         ""extensions"": {
@@ -705,7 +859,9 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 store.TryGetPair("Hair", out var pair);
                 pair.SourceMaterial = material;
@@ -714,7 +870,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreSame(targetShader, material.shader);
@@ -739,9 +896,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
             {
                 material.SetTexture("_MainTex", stockTexture);
 
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair"",
                         ""extensions"": {
@@ -761,7 +919,9 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 store.TryGetPair("Hair", out var pair);
                 pair.SourceMaterial = material;
@@ -770,7 +930,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreEqual("Standard", material.shader.name);
@@ -791,15 +952,19 @@ namespace UniVRMXT.Tests.MaterialsOverride
             var root = CreateRootWithNamedMaterial("Hair", out var material);
             var stockTexture = new Texture2D(2, 2);
             var targetShader = Shader.Find("Unlit/Texture");
-            Assert.IsNotNull(targetShader, "Unlit/Texture required for shader-swap texture clear test");
+            Assert.IsNotNull(
+                targetShader,
+                "Unlit/Texture required for shader-swap texture clear test"
+            );
 
             try
             {
                 material.SetTexture("_MainTex", stockTexture);
 
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair"",
                         ""extensions"": {
@@ -826,7 +991,9 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 store.TryGetPair("Hair", out var pair);
                 pair.SourceMaterial = material;
@@ -835,13 +1002,15 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     root,
                     store,
                     "{}",
-                    RenderPipelineVariant.Builtin);
+                    RenderPipelineVariant.Builtin
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreSame(targetShader, material.shader);
                 Assert.IsNull(
                     material.GetTexture("_MainTex"),
-                    "Skipped binding must not block clear of stock-import texture");
+                    "Skipped binding must not block clear of stock-import texture"
+                );
                 Assert.AreEqual(new Color(0f, 1f, 0f, 1f), material.GetColor("_Color"));
             }
             finally
@@ -865,9 +1034,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
             {
                 material.SetTexture("_MainTex", stockTexture);
 
-                Assert.IsTrue(VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
-                    root,
-                    @"{
+                Assert.IsTrue(
+                    VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(
+                        root,
+                        @"{
                       ""materials"": [{
                         ""name"": ""Hair"",
                         ""extensions"": {
@@ -887,7 +1057,9 @@ namespace UniVRMXT.Tests.MaterialsOverride
                         }
                       }]
                     }",
-                    out var store));
+                        out var store
+                    )
+                );
 
                 store.TryGetPair("Hair", out var pair);
                 pair.SourceMaterial = material;
@@ -897,7 +1069,8 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     store,
                     "{}",
                     RenderPipelineVariant.Builtin,
-                    index => index == 0 ? overrideTexture : null);
+                    index => index == 0 ? overrideTexture : null
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreSame(targetShader, material.shader);
@@ -920,9 +1093,10 @@ namespace UniVRMXT.Tests.MaterialsOverride
             // Implementation must not use Object.GetType() (Warudo/UMod Reflection ban).
             var pipeline = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
             Assert.IsTrue(
-                pipeline == RenderPipelineVariant.Builtin ||
-                pipeline == RenderPipelineVariant.Urp ||
-                pipeline == RenderPipelineVariant.Hdrp);
+                pipeline == RenderPipelineVariant.Builtin
+                    || pipeline == RenderPipelineVariant.Urp
+                    || pipeline == RenderPipelineVariant.Hdrp
+            );
         }
 
         [Test]

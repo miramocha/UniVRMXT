@@ -117,8 +117,7 @@ namespace UniVRMXT.MaterialsOverride
                     continue;
                 }
 
-                var shader = ResolveShader(unityOverride.ShaderName, resolveShader);
-                if (shader == null)
+                if (ResolveShader(unityOverride.ShaderName, resolveShader) == null)
                 {
                     // Shader not present in this build — keep / restore stock import.
                     Debug.LogWarning(
@@ -130,7 +129,10 @@ namespace UniVRMXT.MaterialsOverride
                         VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
                             root,
                             entry.MaterialName,
-                            entry.SourceMaterial
+                            entry.SourceMaterial,
+                            destroyPreviewMaterials: true,
+                            overrideMaterial: entry.OverrideMaterial,
+                            liveAppliedOverride: entry.LiveAppliedOverride
                         );
                     }
 
@@ -145,13 +147,17 @@ namespace UniVRMXT.MaterialsOverride
 
                 var hasMtoon = TryFindSiblingMtoonForPair(gltfRoot, entry, out var mtoon);
 
-                // Drop stale DontSave authoring previews so we apply onto stock import mats.
+                // Put Source back on slots (drops authoring Override Material assets or
+                // leftover DontSave previews) so runtime Apply mutates stock import mats.
                 if (entry.SourceMaterial != null)
                 {
                     VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
                         root,
                         entry.MaterialName,
-                        entry.SourceMaterial
+                        entry.SourceMaterial,
+                        destroyPreviewMaterials: true,
+                        overrideMaterial: entry.OverrideMaterial,
+                        liveAppliedOverride: entry.LiveAppliedOverride
                     );
                 }
 
@@ -168,35 +174,23 @@ namespace UniVRMXT.MaterialsOverride
                         continue;
                     }
 
-                    // Import / runtime: mutate materials the host already built. Scene
-                    // authoring uses DontSave clones via Authoring instead — those must not
-                    // be written onto imported assets (they do not serialize → pink/missing).
-                    var previousShader = material.shader;
-                    material.shader = shader;
-                    if (!ReferenceEquals(previousShader, shader))
-                    {
-                        ClearUnlistedTextureProperties(
+                    // Runtime / Player: mutate host-built materials in place. Editor
+                    // authoring assigns Override Material *assets* onto slots via
+                    // VrmxtMaterialsOverrideAuthoring — skip DontSave leftovers here.
+                    if (
+                        !TryWriteUnityOverrideOntoMaterial(
                             material,
-                            shader,
-                            engineOverride.Properties,
-                            engineOverride.Bindings,
+                            engineOverride,
                             hasMtoon,
-                            mtoon
-                        );
+                            mtoon,
+                            resolveTexture,
+                            resolveShader
+                        )
+                    )
+                    {
+                        continue;
                     }
 
-                    ApplyProperties(material, engineOverride.Properties, resolveTexture);
-                    ApplyBindings(
-                        material,
-                        engineOverride.Bindings,
-                        hasMtoon,
-                        mtoon,
-                        resolveTexture
-                    );
-                    // Thry/Poiyomi _Mode on_value_actions (render_queue / RenderType) only run
-                    // in the Editor inspector — runtime SetFloat("_Mode") alone leaves the
-                    // stock MToon queue. Additive glitter/emission then draws wrong / invisible.
-                    ApplyUnityRenderStateFromMode(material);
                     appliedToAny = true;
                 }
 
@@ -207,6 +201,109 @@ namespace UniVRMXT.MaterialsOverride
             }
 
             return applied;
+        }
+
+        /// <summary>
+        /// Write the active-pipeline unity override from <paramref name="pair"/> onto
+        /// <paramref name="material"/> (shader, properties, bindings, render state).
+        /// Does not touch renderers. Returns false when the slot is unselectable or the
+        /// shader cannot resolve.
+        /// </summary>
+        public static bool TryWritePairOverrideOntoMaterial(
+            Material material,
+            VrmxtMaterialsOverridePair pair,
+            string gltfJson,
+            RenderPipelineVariant activePipeline,
+            Func<int, Texture> resolveTexture = null,
+            Func<string, Shader> resolveShader = null
+        )
+        {
+            if (material == null || pair == null)
+            {
+                return false;
+            }
+
+            if (!VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension))
+            {
+                return false;
+            }
+
+            if (
+                !UnityOverrideSelector.TrySelectUnityEngineOverride(
+                    extension,
+                    activePipeline,
+                    out var engineOverride
+                )
+            )
+            {
+                return false;
+            }
+
+            var gltfRoot = TryParseGltfRoot(gltfJson);
+            var hasMtoon = TryFindSiblingMtoonForPair(gltfRoot, pair, out var mtoon);
+            return TryWriteUnityOverrideOntoMaterial(
+                material,
+                engineOverride,
+                hasMtoon,
+                mtoon,
+                resolveTexture,
+                resolveShader
+            );
+        }
+
+        /// <summary>
+        /// Write a selected unity engine override onto an existing <see cref="Material"/>.
+        /// Sets shader, clears unlisted textures when the shader changes, applies
+        /// <c>properties</c> then <c>bindings</c>, then Unity render state from
+        /// <c>_Mode</c>. Returns false when the shader cannot resolve.
+        /// </summary>
+        public static bool TryWriteUnityOverrideOntoMaterial(
+            Material material,
+            VrmxtMaterialEngineOverride engineOverride,
+            bool hasMtoon,
+            JObject mtoon,
+            Func<int, Texture> resolveTexture,
+            Func<string, Shader> resolveShader = null
+        )
+        {
+            if (material == null || engineOverride == null)
+            {
+                return false;
+            }
+
+            var unityOverride = engineOverride.Material as UnityMaterialOverride;
+            if (unityOverride == null)
+            {
+                return false;
+            }
+
+            var shader = ResolveShader(unityOverride.ShaderName, resolveShader);
+            if (shader == null)
+            {
+                return false;
+            }
+
+            var previousShader = material.shader;
+            material.shader = shader;
+            if (!ReferenceEquals(previousShader, shader))
+            {
+                ClearUnlistedTextureProperties(
+                    material,
+                    shader,
+                    engineOverride.Properties,
+                    engineOverride.Bindings,
+                    hasMtoon,
+                    mtoon
+                );
+            }
+
+            ApplyProperties(material, engineOverride.Properties, resolveTexture);
+            ApplyBindings(material, engineOverride.Bindings, hasMtoon, mtoon, resolveTexture);
+            // Thry/Poiyomi _Mode on_value_actions (render_queue / RenderType) only run
+            // in the Editor inspector — runtime SetFloat("_Mode") alone leaves the
+            // stock MToon queue. Additive glitter/emission then draws wrong / invisible.
+            ApplyUnityRenderStateFromMode(material);
+            return true;
         }
 
         /// <summary>
