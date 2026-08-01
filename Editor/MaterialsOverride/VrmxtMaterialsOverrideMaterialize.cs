@@ -52,8 +52,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                         folderAssetPath,
                         gltfJson,
                         pipeline,
-                        resolveTexture,
-                        recordUndo: true
+                        resolveTexture
                     )
                 )
                 {
@@ -108,8 +107,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                     folderAssetPath,
                     gltfJson,
                     pipeline,
-                    resolveTexture,
-                    recordUndo: true
+                    resolveTexture
                 )
             )
             {
@@ -154,8 +152,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
             string folderAssetPath,
             string gltfJson,
             RenderPipelineVariant pipeline,
-            Func<int, Texture> resolveTexture,
-            bool recordUndo
+            Func<int, Texture> resolveTexture
         )
         {
             var pair = instance.Pairs[pairIndex];
@@ -206,10 +203,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
             if (existing != null)
             {
                 materialAsset = existing;
-                if (recordUndo)
-                {
-                    Undo.RecordObject(materialAsset, "Materialize Material");
-                }
+                Undo.RecordObject(materialAsset, "Materialize Material");
             }
             else
             {
@@ -239,7 +233,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 return false;
             }
 
-            if (createdNew && recordUndo)
+            if (createdNew)
             {
                 Undo.RegisterCreatedObjectUndo(materialAsset, "Materialize Material");
             }

@@ -725,6 +725,53 @@ namespace UniVRMXT.Tests.MaterialsOverride
                 Assert.AreSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
                 Assert.AreSame(overrideMat, instance.Pairs[0].OverrideMaterial);
                 Assert.AreEqual(json, instance.Pairs[0].ExtensionJson);
+                Assert.IsFalse(instance.ApplyOverridesToRenderers);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+                Object.DestroyImmediate(stock);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void SyncFromOverrideMaterials_KeepsSourceWhenShowOverridesOff()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+
+            var stock = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var overrideMat = new Material(Shader.Find("Standard")) { name = "Override" };
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = stock;
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.SetPairs(
+                new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", null)
+                    {
+                        SourceMaterial = stock,
+                        OverrideMaterial = overrideMat,
+                    },
+                }
+            );
+
+            try
+            {
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+                Assert.AreSame(overrideMat, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+
+                VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterialsToRenderers(root, instance);
+                Assert.IsFalse(instance.ApplyOverridesToRenderers);
+                Assert.AreSame(overrideMat, instance.Pairs[0].OverrideMaterial);
+
+                // OnValidate-style sync must not re-slot Override Material while Show is off.
+                instance.SyncFromOverrideMaterials();
+                Assert.IsFalse(instance.ApplyOverridesToRenderers);
+                Assert.AreSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.AreSame(overrideMat, instance.Pairs[0].OverrideMaterial);
             }
             finally
             {

@@ -30,6 +30,13 @@ namespace UniVRMXT.MaterialsOverride
         /// renderer slots on Source / MToon (Show Override Materials off / Clear all). Set
         /// true again when assigning Override Material or Materialize.
         /// </summary>
+        /// <remarks>
+        /// Field initializer <c>true</c> applies to new instances only. Unity deserializes a
+        /// missing bool as <c>false</c>, so prefabs/scenes saved before this field existed load
+        /// Show-off until Materialize, Override assign, or the inspector toggle turns it on.
+        /// Do not auto-flip from assigned <see cref="VrmxtMaterialsOverridePair.OverrideMaterial"/> —
+        /// that clobbers intentional Show-off.
+        /// </remarks>
         [SerializeField]
         [HideInInspector]
         private bool applyOverridesToRenderers = true;
