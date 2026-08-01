@@ -34,14 +34,6 @@ namespace UniVRMXT.MaterialsOverride
         [HideInInspector]
         private bool applyOverridesToRenderers = true;
 
-        /// <summary>
-        /// Distinguishes "field missing on old assets" (Unity loads false) from an explicit
-        /// off after the Show Override Materials toggle shipped.
-        /// </summary>
-        [SerializeField]
-        [HideInInspector]
-        private bool applyOverridesShowFlagInitialized;
-
         public IReadOnlyList<VrmxtMaterialsOverridePair> Pairs => pairs;
 
         /// <summary>
@@ -50,39 +42,7 @@ namespace UniVRMXT.MaterialsOverride
         public bool ApplyOverridesToRenderers
         {
             get => applyOverridesToRenderers;
-            set
-            {
-                applyOverridesToRenderers = value;
-                applyOverridesShowFlagInitialized = true;
-            }
-        }
-
-        private void Awake()
-        {
-            EnsureApplyOverridesShowFlagInitialized();
-        }
-
-        private void OnEnable()
-        {
-            EnsureApplyOverridesShowFlagInitialized();
-        }
-
-        /// <summary>
-        /// Old serialized instances lack <see cref="applyOverridesToRenderers"/> → Unity
-        /// loads false. Prefer show-on when any Override Material is already assigned.
-        /// </summary>
-        private void EnsureApplyOverridesShowFlagInitialized()
-        {
-            if (applyOverridesShowFlagInitialized)
-            {
-                return;
-            }
-
-            applyOverridesShowFlagInitialized = true;
-            if (!applyOverridesToRenderers && HasAnyAssignedOverrideMaterial())
-            {
-                applyOverridesToRenderers = true;
-            }
+            set => applyOverridesToRenderers = value;
         }
 
         private bool HasAnyAssignedOverrideMaterial()
@@ -688,7 +648,6 @@ namespace UniVRMXT.MaterialsOverride
 
         private void FlushValidate()
         {
-            EnsureApplyOverridesShowFlagInitialized();
             RefreshSourceMaterials();
             SyncFromOverrideMaterials();
         }

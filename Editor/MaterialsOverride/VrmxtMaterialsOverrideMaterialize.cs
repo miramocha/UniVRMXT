@@ -216,10 +216,6 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 materialAsset = new Material(shader) { name = SanitizeFileName(pair.MaterialName) };
                 AssetDatabase.CreateAsset(materialAsset, assetPath);
                 createdNew = true;
-                if (recordUndo)
-                {
-                    Undo.RegisterCreatedObjectUndo(materialAsset, "Materialize Material");
-                }
             }
 
             if (
@@ -241,6 +237,11 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 }
 
                 return false;
+            }
+
+            if (createdNew && recordUndo)
+            {
+                Undo.RegisterCreatedObjectUndo(materialAsset, "Materialize Material");
             }
 
             EditorUtility.SetDirty(materialAsset);
