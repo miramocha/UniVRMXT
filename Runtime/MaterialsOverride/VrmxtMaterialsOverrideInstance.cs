@@ -27,12 +27,20 @@ namespace UniVRMXT.MaterialsOverride
 
         /// <summary>
         /// When false, <see cref="SyncFromOverrideMaterials"/> updates JSON only and leaves
-        /// renderer slots on Source / MToon (Swap Back to MToon / Clear). Set true again when
-        /// assigning Override Material or Materialize.
+        /// renderer slots on Source / MToon (Show Override Materials off / Clear all). Set
+        /// true again when assigning Override Material or Materialize.
         /// </summary>
         [SerializeField]
         [HideInInspector]
         private bool applyOverridesToRenderers = true;
+
+        /// <summary>
+        /// Distinguishes "field missing on old assets" (Unity loads false) from an explicit
+        /// off after the Show Override Materials toggle shipped.
+        /// </summary>
+        [SerializeField]
+        [HideInInspector]
+        private bool applyOverridesShowFlagInitialized;
 
         public IReadOnlyList<VrmxtMaterialsOverridePair> Pairs => pairs;
 
@@ -42,7 +50,52 @@ namespace UniVRMXT.MaterialsOverride
         public bool ApplyOverridesToRenderers
         {
             get => applyOverridesToRenderers;
-            set => applyOverridesToRenderers = value;
+            set
+            {
+                applyOverridesToRenderers = value;
+                applyOverridesShowFlagInitialized = true;
+            }
+        }
+
+        private void Awake()
+        {
+            EnsureApplyOverridesShowFlagInitialized();
+        }
+
+        private void OnEnable()
+        {
+            EnsureApplyOverridesShowFlagInitialized();
+        }
+
+        /// <summary>
+        /// Old serialized instances lack <see cref="applyOverridesToRenderers"/> → Unity
+        /// loads false. Prefer show-on when any Override Material is already assigned.
+        /// </summary>
+        private void EnsureApplyOverridesShowFlagInitialized()
+        {
+            if (applyOverridesShowFlagInitialized)
+            {
+                return;
+            }
+
+            applyOverridesShowFlagInitialized = true;
+            if (!applyOverridesToRenderers && HasAnyAssignedOverrideMaterial())
+            {
+                applyOverridesToRenderers = true;
+            }
+        }
+
+        private bool HasAnyAssignedOverrideMaterial()
+        {
+            for (var i = 0; i < pairs.Count; i++)
+            {
+                if (pairs[i]?.OverrideMaterial != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Alias for callers migrating from the former Entries API.</summary>
@@ -313,7 +366,13 @@ namespace UniVRMXT.MaterialsOverride
             pair.OverrideMaterial = null;
             pair.LiveAppliedOverride = null;
             pair.ExtensionJson = null;
-            applyOverridesToRenderers = false;
+
+            // Only hide the Show Override Materials flag when nothing left to show.
+            // Clearing one pair must not flip siblings still on Override Material slots.
+            if (!HasAnyAssignedOverrideMaterial())
+            {
+                ApplyOverridesToRenderers = false;
+            }
 
             if (!string.IsNullOrEmpty(materialName) && sourceMaterial != null)
             {
@@ -629,6 +688,7 @@ namespace UniVRMXT.MaterialsOverride
 
         private void FlushValidate()
         {
+            EnsureApplyOverridesShowFlagInitialized();
             RefreshSourceMaterials();
             SyncFromOverrideMaterials();
         }

@@ -53,7 +53,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                         gltfJson,
                         pipeline,
                         resolveTexture,
-                        recordUndo: false
+                        recordUndo: true
                     )
                 )
                 {
@@ -109,7 +109,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                     gltfJson,
                     pipeline,
                     resolveTexture,
-                    recordUndo: false
+                    recordUndo: true
                 )
             )
             {
@@ -200,7 +200,8 @@ namespace UniVRMXT.Editor.MaterialsOverride
             }
 
             var assetPath = BuildMaterialAssetPath(folderAssetPath, pair.MaterialName);
-            Material materialAsset = null;
+            Material materialAsset;
+            var createdNew = false;
             var existing = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
             if (existing != null)
             {
@@ -214,6 +215,11 @@ namespace UniVRMXT.Editor.MaterialsOverride
             {
                 materialAsset = new Material(shader) { name = SanitizeFileName(pair.MaterialName) };
                 AssetDatabase.CreateAsset(materialAsset, assetPath);
+                createdNew = true;
+                if (recordUndo)
+                {
+                    Undo.RegisterCreatedObjectUndo(materialAsset, "Materialize Material");
+                }
             }
 
             if (
@@ -229,6 +235,11 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 Debug.LogWarning(
                     "VRMXT Materialize: write failed for material '" + pair.MaterialName + "'."
                 );
+                if (createdNew)
+                {
+                    AssetDatabase.DeleteAsset(assetPath);
+                }
+
                 return false;
             }
 
@@ -303,7 +314,10 @@ namespace UniVRMXT.Editor.MaterialsOverride
 
             if (
                 string.IsNullOrEmpty(baseDir)
-                || !baseDir.StartsWith("Assets", StringComparison.Ordinal)
+                || !(
+                    string.Equals(baseDir, "Assets", StringComparison.Ordinal)
+                    || baseDir.StartsWith("Assets/", StringComparison.Ordinal)
+                )
             )
             {
                 baseDir = "Assets";

@@ -735,6 +735,99 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void ClearOverrideAt_ClearsShowOverridesFlagWhenLastOverrideMaterialRemoved()
+        {
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+
+            var stock = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var overrideMat = new Material(Shader.Find("Standard")) { name = "OverrideHair" };
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = stock;
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.ApplyOverridesToRenderers = true;
+            instance.SetPairs(
+                new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", null)
+                    {
+                        SourceMaterial = stock,
+                        OverrideMaterial = overrideMat,
+                    },
+                }
+            );
+
+            try
+            {
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+                Assert.IsTrue(instance.ClearOverrideAt(0));
+                Assert.IsFalse(instance.ApplyOverridesToRenderers);
+                Assert.AreSame(stock, mesh.GetComponent<MeshRenderer>().sharedMaterial);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideMat);
+                Object.DestroyImmediate(stock);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ClearOverrideAt_KeepsShowOverridesFlagWhenSiblingHasOverrideMaterial()
+        {
+            var root = new GameObject("root");
+            var meshA = new GameObject("meshA");
+            var meshB = new GameObject("meshB");
+            meshA.transform.SetParent(root.transform, false);
+            meshB.transform.SetParent(root.transform, false);
+
+            var stockA = new Material(Shader.Find("Standard")) { name = "Hair" };
+            var stockB = new Material(Shader.Find("Standard")) { name = "Face" };
+            var overrideA = new Material(Shader.Find("Standard")) { name = "OverrideA" };
+            var overrideB = new Material(Shader.Find("Standard")) { name = "OverrideB" };
+            meshA.AddComponent<MeshRenderer>().sharedMaterial = stockA;
+            meshB.AddComponent<MeshRenderer>().sharedMaterial = stockB;
+
+            var instance = root.AddComponent<VrmxtMaterialsOverrideInstance>();
+            instance.ApplyOverridesToRenderers = true;
+            instance.SetPairs(
+                new[]
+                {
+                    new VrmxtMaterialsOverridePair("Hair", null)
+                    {
+                        SourceMaterial = stockA,
+                        OverrideMaterial = overrideA,
+                    },
+                    new VrmxtMaterialsOverridePair("Face", null)
+                    {
+                        SourceMaterial = stockB,
+                        OverrideMaterial = overrideB,
+                    },
+                }
+            );
+
+            try
+            {
+                VrmxtMaterialsOverrideAuthoring.ApplyOverrideMaterialsToRenderers(root, instance);
+                Assert.IsTrue(instance.ClearOverrideAt(0));
+
+                Assert.AreSame(stockA, meshA.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.AreSame(overrideB, meshB.GetComponent<MeshRenderer>().sharedMaterial);
+                Assert.IsTrue(instance.ApplyOverridesToRenderers);
+                Assert.AreSame(overrideB, instance.Pairs[1].OverrideMaterial);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overrideA);
+                Object.DestroyImmediate(overrideB);
+                Object.DestroyImmediate(stockA);
+                Object.DestroyImmediate(stockB);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void ClearOverrideAt_ClearsOnlyTargetPair()
         {
             var root = new GameObject("root");

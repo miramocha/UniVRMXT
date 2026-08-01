@@ -129,7 +129,10 @@ namespace UniVRMXT.MaterialsOverride
                         VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
                             root,
                             entry.MaterialName,
-                            entry.SourceMaterial
+                            entry.SourceMaterial,
+                            destroyPreviewMaterials: true,
+                            overrideMaterial: entry.OverrideMaterial,
+                            liveAppliedOverride: entry.LiveAppliedOverride
                         );
                     }
 
@@ -144,13 +147,17 @@ namespace UniVRMXT.MaterialsOverride
 
                 var hasMtoon = TryFindSiblingMtoonForPair(gltfRoot, entry, out var mtoon);
 
-                // Drop stale DontSave authoring previews so we apply onto stock import mats.
+                // Put Source back on slots (drops authoring Override Material assets or
+                // leftover DontSave previews) so runtime Apply mutates stock import mats.
                 if (entry.SourceMaterial != null)
                 {
                     VrmxtMaterialsOverrideAuthoring.RestoreSourceMaterial(
                         root,
                         entry.MaterialName,
-                        entry.SourceMaterial
+                        entry.SourceMaterial,
+                        destroyPreviewMaterials: true,
+                        overrideMaterial: entry.OverrideMaterial,
+                        liveAppliedOverride: entry.LiveAppliedOverride
                     );
                 }
 
@@ -167,9 +174,9 @@ namespace UniVRMXT.MaterialsOverride
                         continue;
                     }
 
-                    // Import / runtime: mutate materials the host already built. Scene
-                    // authoring uses DontSave clones via Authoring instead — those must not
-                    // be written onto imported assets (they do not serialize → pink/missing).
+                    // Runtime / Player: mutate host-built materials in place. Editor
+                    // authoring assigns Override Material *assets* onto slots via
+                    // VrmxtMaterialsOverrideAuthoring — skip DontSave leftovers here.
                     if (
                         !TryWriteUnityOverrideOntoMaterial(
                             material,

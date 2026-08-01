@@ -220,7 +220,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 );
                 if (EditorGUI.EndChangeCheck())
                 {
-                    // Re-enable renderer slot swaps after Swap Back / Clear suppressed them.
+                    // Re-enable renderer slot swaps after Show Override Materials off / Clear.
                     instance.ApplyOverridesToRenderers = true;
                     // Apply OverrideMaterial first so OnValidate Sync can read siblings from
                     // ExtensionJson, then reload SO so a later ApplyModifiedProperties does
