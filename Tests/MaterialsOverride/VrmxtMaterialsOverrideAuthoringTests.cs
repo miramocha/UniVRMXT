@@ -547,6 +547,82 @@ namespace UniVRMXT.Tests.MaterialsOverride
         }
 
         [Test]
+        public void SyncUnityOverrideFromMaterial_ActivePipelineProvider_WritesForcedVariant()
+        {
+            var shader = Shader.Find("Standard");
+            Assert.IsNotNull(shader);
+
+            var previous = VrmxtMaterialsOverrideApplier.ActivePipelineProvider;
+            var overrideMat = new Material(shader) { name = "Override" };
+            try
+            {
+                // Force Urp even when the test GraphicsSettings RP is Builtin.
+                VrmxtMaterialsOverrideApplier.ActivePipelineProvider = () =>
+                    RenderPipelineVariant.Urp;
+
+                var initialJson =
+                    "{\"specVersion\":\"1.0\",\"overrides\":[{\"engine\":\"unity\",\"material\":{\"idType\":\"shaderName\",\"id\":\"Old/Builtin\",\"variant\":\"builtin\"},\"properties\":[{\"name\":\"_Metallic\",\"type\":\"scalar\",\"scalar\":0.1}]},{\"engine\":\"unreal\",\"material\":{\"idType\":\"resourcePath\",\"id\":\"/Game/M\"}}]}";
+
+                var pair = new VrmxtMaterialsOverridePair("Hair", initialJson)
+                {
+                    OverrideMaterial = overrideMat,
+                };
+                VrmxtMaterialsOverrideAuthoring.SyncUnityOverrideFromMaterial(pair);
+
+                Assert.IsTrue(
+                    VrmxtMaterialsOverride.TryParse(pair.ExtensionJson, out var extension)
+                );
+                Assert.IsTrue(
+                    VrmxtMaterialsOverride.TryGetUnityOverrides(extension, out var unitySlots)
+                );
+
+                UnityMaterialOverride urp = null;
+                UnityMaterialOverride builtin = null;
+                foreach (var slot in unitySlots)
+                {
+                    var unity = slot?.Material as UnityMaterialOverride;
+                    if (unity == null)
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(unity.Variant, "urp", System.StringComparison.Ordinal))
+                    {
+                        urp = unity;
+                    }
+                    else if (
+                        string.Equals(unity.Variant, "builtin", System.StringComparison.Ordinal)
+                    )
+                    {
+                        builtin = unity;
+                    }
+                }
+
+                Assert.IsNotNull(urp, "forced Urp provider must upsert an urp unity slot");
+                Assert.AreEqual("Standard", urp.ShaderName);
+                Assert.IsNotNull(builtin, "builtin sibling must survive Transfer");
+                Assert.AreEqual("Old/Builtin", builtin.ShaderName);
+
+                var hasUnreal = false;
+                foreach (var entry in extension.Overrides)
+                {
+                    if (entry != null && entry.Engine == "unreal")
+                    {
+                        hasUnreal = true;
+                        break;
+                    }
+                }
+
+                Assert.IsTrue(hasUnreal);
+            }
+            finally
+            {
+                VrmxtMaterialsOverrideApplier.ActivePipelineProvider = previous;
+                Object.DestroyImmediate(overrideMat);
+            }
+        }
+
+        [Test]
         public void ApplyOverrideMaterialsToRenderers_AssignsOverrideMaterialAssetToSlot()
         {
             var root = new GameObject("root");
