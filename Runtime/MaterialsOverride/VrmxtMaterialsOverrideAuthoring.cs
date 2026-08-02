@@ -63,8 +63,17 @@ namespace UniVRMXT.MaterialsOverride
         /// <see cref="VrmxtMaterialsOverridePair.OverrideMaterial"/>. Sibling unity variants
         /// and other engines stay intact. Fills <c>variant</c> from the active RP when creating
         /// a new slot (see <see cref="VrmxtMaterialsOverrideExporter.ResolveUnityVariant"/>).
+        /// <para>
+        /// When <paramref name="includeTextureProperties"/> is true (Editor Transfer), texture
+        /// rows use placeholder indices for later <c>PrepareTextures</c> remapping. Pass false
+        /// for patch hosts that cannot add GLB images (same as
+        /// <see cref="SyncPropertiesFromLiveMaterials"/> with <c>includePackedTextures: false</c>).
+        /// </para>
         /// </summary>
-        public static void SyncUnityOverrideFromMaterial(VrmxtMaterialsOverridePair pair)
+        public static void SyncUnityOverrideFromMaterial(
+            VrmxtMaterialsOverridePair pair,
+            bool includeTextureProperties = true
+        )
         {
             if (pair?.OverrideMaterial == null || pair.OverrideMaterial.shader == null)
             {
@@ -195,7 +204,10 @@ namespace UniVRMXT.MaterialsOverride
                 existingProvider
                 ?? new MaterialProvider(DefaultProviderId, ResolvePackageVersion());
 
-            var properties = CaptureProperties(material, pair.SourceMaterial);
+            var captured = CaptureProperties(material, pair.SourceMaterial);
+            var properties = includeTextureProperties
+                ? captured
+                : WithoutTextureProperties(captured);
 
             var unityMaterial = new UnityMaterialOverride(
                 VrmxtMaterialsOverride.UnityMaterialIdTypeShaderName,
@@ -1047,15 +1059,18 @@ namespace UniVRMXT.MaterialsOverride
         /// Replace active-unity <c>properties</c> on each store pair from the live Character
         /// renderer material. Keeps shader, bindings, and sibling overrides.
         /// <para>
-        /// Texture policy (Warudo patch): keep a texture row only when the live slot map is
-        /// already packed in the GLB (matches <see cref="VrmxtMaterialsOverrideInstance.ImportedTextures"/>
-        /// or an existing override texture index). New Warudo Images / editor maps that are
-        /// not in the file are omitted — patch export cannot add GLB images.
+        /// Texture policy (Warudo patch): when <paramref name="includePackedTextures"/> is true,
+        /// keep a texture row only when the live slot map is already packed in the GLB
+        /// (matches <see cref="VrmxtMaterialsOverrideInstance.ImportedTextures"/> or an
+        /// existing override texture index). New Warudo Images / editor maps that are not in
+        /// the file are omitted — patch export cannot add GLB images. When false (Material
+        /// Transfer), all <c>type: texture</c> rows are omitted.
         /// </para>
         /// </summary>
         public static int SyncPropertiesFromLiveMaterials(
             VrmxtMaterialsOverrideInstance store,
-            GameObject root
+            GameObject root,
+            bool includePackedTextures = true
         )
         {
             if (store?.Pairs == null || root == null)
@@ -1104,12 +1119,10 @@ namespace UniVRMXT.MaterialsOverride
                     continue;
                 }
 
-                var properties = FilterTexturesToPackedOnly(
-                    CaptureProperties(live, pair.SourceMaterial),
-                    live,
-                    pair,
-                    store
-                );
+                var captured = CaptureProperties(live, pair.SourceMaterial);
+                var properties = includePackedTextures
+                    ? FilterTexturesToPackedOnly(captured, live, pair, store)
+                    : WithoutTextureProperties(captured);
 
                 if (!TryReplaceActiveUnityProperties(pair, properties))
                 {
@@ -1270,8 +1283,8 @@ namespace UniVRMXT.MaterialsOverride
         }
 
         /// <summary>
-        /// Drop <c>texture</c>-typed entries from a properties list (kept for shader-only
-        /// upserts that would otherwise preserve stale texture indices).
+        /// Drop <c>texture</c>-typed entries from a properties list (Material Transfer and
+        /// Sync with <c>includePackedTextures: false</c>).
         /// </summary>
         public static List<VrmxtMaterialProperty> WithoutTextureProperties(
             IReadOnlyList<VrmxtMaterialProperty> properties

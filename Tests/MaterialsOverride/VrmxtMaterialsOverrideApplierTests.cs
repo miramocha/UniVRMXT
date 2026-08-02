@@ -1091,12 +1091,47 @@ namespace UniVRMXT.Tests.MaterialsOverride
             // No render pipeline asset assigned in test environment → Builtin. Assert the
             // helper does not throw and returns a defined enum value either way.
             // Implementation must not use Object.GetType() (Warudo/UMod Reflection ban).
-            var pipeline = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
-            Assert.IsTrue(
-                pipeline == RenderPipelineVariant.Builtin
-                    || pipeline == RenderPipelineVariant.Urp
-                    || pipeline == RenderPipelineVariant.Hdrp
-            );
+            var previous = VrmxtMaterialsOverrideApplier.ActivePipelineProvider;
+            try
+            {
+                VrmxtMaterialsOverrideApplier.ActivePipelineProvider = null;
+                var pipeline = VrmxtMaterialsOverrideApplier.DetectActivePipeline();
+                Assert.IsTrue(
+                    pipeline == RenderPipelineVariant.Builtin
+                        || pipeline == RenderPipelineVariant.Urp
+                        || pipeline == RenderPipelineVariant.Hdrp
+                );
+            }
+            finally
+            {
+                VrmxtMaterialsOverrideApplier.ActivePipelineProvider = previous;
+            }
+        }
+
+        [Test]
+        public void DetectActivePipeline_ActivePipelineProvider_OverridesGraphicsSettings()
+        {
+            var previous = VrmxtMaterialsOverrideApplier.ActivePipelineProvider;
+            try
+            {
+                VrmxtMaterialsOverrideApplier.ActivePipelineProvider = () =>
+                    RenderPipelineVariant.Urp;
+                Assert.AreEqual(
+                    RenderPipelineVariant.Urp,
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline()
+                );
+
+                VrmxtMaterialsOverrideApplier.ActivePipelineProvider = () =>
+                    RenderPipelineVariant.Builtin;
+                Assert.AreEqual(
+                    RenderPipelineVariant.Builtin,
+                    VrmxtMaterialsOverrideApplier.DetectActivePipeline()
+                );
+            }
+            finally
+            {
+                VrmxtMaterialsOverrideApplier.ActivePipelineProvider = previous;
+            }
         }
 
         [Test]

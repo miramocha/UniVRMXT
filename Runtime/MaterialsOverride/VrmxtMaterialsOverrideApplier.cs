@@ -30,6 +30,13 @@ namespace UniVRMXT.MaterialsOverride
         public static Func<string, Shader> ShaderResolveProvider { get; set; }
 
         /// <summary>
+        /// Optional host pipeline detection (e.g. Warudo
+        /// <c>DetectActivePipelineForWarudo</c>). Used by Transfer / authoring paths that
+        /// call <see cref="DetectActivePipeline"/> so hosts can match Apply's RP choice.
+        /// </summary>
+        public static Func<RenderPipelineVariant> ActivePipelineProvider { get; set; }
+
+        /// <summary>
         /// Attach (if needed) and apply in one call. Prefer the
         /// <see cref="Apply(GameObject,VrmxtMaterialsOverrideInstance,string,RenderPipelineVariant,Func{int,Texture},Func{MaterialProvider,bool},Func{string,Shader})"/>
         /// overload when a <see cref="VrmxtMaterialsOverrideInstance"/> already exists (e.g.
@@ -379,6 +386,11 @@ namespace UniVRMXT.MaterialsOverride
         /// </summary>
         public static RenderPipelineVariant DetectActivePipeline()
         {
+            if (ActivePipelineProvider != null)
+            {
+                return ActivePipelineProvider();
+            }
+
             var pipelineAsset = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
             if (pipelineAsset == null)
             {
