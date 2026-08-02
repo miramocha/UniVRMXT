@@ -561,7 +561,12 @@ namespace UniVRMXT.Tests.MaterialsOverride
                     RenderPipelineVariant.Urp;
 
                 var initialJson =
-                    "{\"specVersion\":\"1.0\",\"overrides\":[{\"engine\":\"unity\",\"material\":{\"idType\":\"shaderName\",\"id\":\"Old/Builtin\",\"variant\":\"builtin\"},\"properties\":[{\"name\":\"_Metallic\",\"type\":\"scalar\",\"scalar\":0.1}]},{\"engine\":\"unreal\",\"material\":{\"idType\":\"resourcePath\",\"id\":\"/Game/M\"}}]}";
+                    "{\"specVersion\":\"1.0\",\"overrides\":[{\"engine\":\"unity\",\"material\":{\"idType\":\"shaderName\",\"id\":\"Old/Builtin\",\"variant\":\"builtin\"},\"properties\":[{\"name\":\"_Metallic\",\"type\":\"scalar\",\"value\":0.1}]},{\"engine\":\"unreal\",\"material\":{\"idType\":\"resourcePath\",\"id\":\"/Game/M\"}}]}";
+
+                Assert.IsTrue(
+                    VrmxtMaterialsOverride.TryParse(initialJson, out _),
+                    "fixture JSON must parse before Sync"
+                );
 
                 var pair = new VrmxtMaterialsOverridePair("Hair", initialJson)
                 {
