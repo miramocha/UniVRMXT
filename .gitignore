@@ -37,3 +37,8 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# Local sandbox — throwaway experiments (see Sandbox/README.md)
+/Sandbox/*
+!/Sandbox/README.md
+!/Sandbox/README.md.meta
