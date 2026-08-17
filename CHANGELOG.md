@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `VRMC_materials_mtoonxt` — parse/attach/apply stencil extras onto `VRMXT/MToon10` when that shader resolves; skip when `VRMXT_materials_override` would apply
 - `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can
   supply shaders when `Shader.Find` misses (Warudo/uMod ModHost cache); optional
   `resolveShader` arg on `Apply`

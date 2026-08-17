@@ -4,6 +4,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UniVRMXT.MaterialsOverride;
+using UniVRMXT.Mtoonxt;
 using UniVRMXT.Vfx;
 
 namespace UniVRMXT.Editor.MaterialsOverride
@@ -144,6 +145,8 @@ namespace UniVRMXT.Editor.MaterialsOverride
             }
 
             // Authoring shell only — stock MToon stays on renderers until Materialize.
+            VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson(root, json, out _);
+
             if (!VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store))
             {
                 return;

@@ -61,6 +61,13 @@ VrmxtVfxRuntime.TryAttach(
 - Full `IMaterialDescriptorGenerator` wrapping (Editor import-time shader swap ahead of first render) still requires UniVRM at consumption time; see `VrmxtMaterialsOverrideGenerator` and `Editor/MaterialsOverride/VrmxtMaterialDescriptorGeneratorFactory.cs`.
 - Unity↔Blender uses the current `idType` / `id` schema. Remaining Blender gap: Unreal `idType: "resourcePath"` + per-entry `variant` format/UI — see [Blender Materials Override](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/blender-materials-override.md).
 
+### VRMC_materials_mtoonxt
+
+- Per-material extension: `materials[i].extensions.VRMC_materials_mtoonxt`
+- Spec: [vrmc-materials-mtoonxt.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmc-materials-mtoonxt.md)
+- `VrmcMaterialsMtoonxt.TryParse` — `specVersion` `1.0`; portable `stencil` / `outlineStencil` string enums; invalid stencil object skipped
+- `VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmcMaterialsMtoonxtApplier.Apply` — swap to `VRMXT/MToon10` when resolved; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply
+
 ## UniVRM integration
 
 - **VFX (runtime):** parse + `TryAttach` after `Vrm10.LoadGltfDataAsync` as above. UniVRMXT Runtime asmdef does **not** hard-reference UniGLTF/VRM10; the load caller supplies JSON, `Nodes`, and optional texture resolution.
