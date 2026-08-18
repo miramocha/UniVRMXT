@@ -2,7 +2,7 @@
   "name": "com.miramocha.univrmxt",
   "version": "0.1.0",
   "displayName": "UniVRMXT",
-  "description": "Optional Extended VRM extensions for Unity (VFX, materials override).",
+  "description": "Optional Extended VRM extensions for Unity (VFX, materials override, MToonXT).",
   "unity": "2021.3",
   "keywords": [
     "vrm",

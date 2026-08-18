@@ -26,6 +26,7 @@ namespace UniVRMXT.Tests.Format
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNotNull(xt.Stencil);
             Assert.AreEqual(1, xt.Stencil.Ref);
+            Assert.IsFalse(xt.Stencil.Enabled);
             Assert.AreEqual(255, xt.Stencil.ReadMask);
             Assert.AreEqual(8, xt.Stencil.CompUnityInt);
             Assert.AreEqual(2, xt.Stencil.PassUnityInt);
@@ -74,6 +75,20 @@ namespace UniVRMXT.Tests.Format
             Assert.IsFalse(VrmcMaterialsMtoonxt.TryMapCompareFunction("Always", out _));
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryMapCompareFunction("always", out var always));
             Assert.AreEqual(8, always);
+        }
+
+        [Test]
+        public void TryParse_EnabledTrue_MapsFlag()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""stencil"": { ""enabled"": true, ""ref"": 1, ""pass"": ""replace"" }
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(xt.Stencil.Enabled);
+            Assert.AreEqual(1, xt.Stencil.Ref);
+            Assert.AreEqual(2, xt.Stencil.PassUnityInt);
         }
     }
 }

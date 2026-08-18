@@ -18,10 +18,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   native billboard mode; local +Y velocity unchanged.
 - Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
   `extensionsUsed` once (never `extensionsRequired`).
+- MToonXT ShaderLab names: `VRMXT/MToonXT10` and `VRMXT/Universal Render Pipeline/MToonXT10`
+- `MtoonxtInspector` reuses UniVRM `MToonInspector` and draws stencil / outline stencil extras
 
 ### Added
 
-- `VRMC_materials_mtoonxt` — parse/attach/apply stencil extras onto `VRMXT/MToon10` when that shader resolves; skip when `VRMXT_materials_override` would apply
+- `VRMC_materials_mtoonxt` — parse/attach/apply stencil extras onto packaged `VRMXT/MToonXT10` / `VRMXT/Universal Render Pipeline/MToonXT10`; skip when `VRMXT_materials_override` would apply
+- MToonXT stencil **Enable stencil** / **Enable outline stencil** (`_M_StencilEnabled`, `_M_OutlineStencilEnabled`), default off
+- MToonXT `_M_ZTest` on forward/outline/add (default LessEqual). Overlay mats use Always so stencil Pass can run in front of closer hair
+- MToon10 stencil forks under `Runtime/Shaders/MToonxt/` (UniVRM 0.131.2 pin)
 - `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can
   supply shaders when `Shader.Find` misses (Warudo/uMod ModHost cache); optional
   `resolveShader` arg on `Apply`

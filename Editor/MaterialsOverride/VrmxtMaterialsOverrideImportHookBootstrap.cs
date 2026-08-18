@@ -144,8 +144,10 @@ namespace UniVRMXT.Editor.MaterialsOverride
                 return;
             }
 
-            // Authoring shell only — stock MToon stays on renderers until Materialize.
+            // Authoring shell for materials-override (stock MToon until Materialize).
+            // MToonXT Apply uses packaged VRMXT/MToonXT10 (Shader.Find).
             VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson(root, json, out _);
+            VrmcMaterialsMtoonxtApplier.Apply(root, json);
 
             if (!VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store))
             {
