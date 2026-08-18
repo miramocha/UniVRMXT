@@ -4,6 +4,7 @@ using UniVRMXT.Format;
 using UniVRMXT.MaterialsOverride;
 using UniVRMXT.Mtoonxt;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace UniVRMXT.Tests.Mtoonxt
 {
@@ -304,6 +305,146 @@ namespace UniVRMXT.Tests.Mtoonxt
             {
                 Object.DestroyImmediate(material);
                 Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void RestoreUnityMtoonPassSettings_Transparent_SetsBlendAndQueue()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.SetInt("_AlphaMode", 2);
+                material.SetInt("_TransparentWithZWrite", 0);
+                material.SetFloat("_M_SrcBlend", 0f);
+                material.SetFloat("_M_DstBlend", 0f);
+                material.renderQueue = 2000;
+                VrmcMaterialsMtoonxtApplier.RestoreUnityMtoonPassSettings(material);
+                Assert.AreEqual((float)BlendMode.SrcAlpha, material.GetFloat("_M_SrcBlend"));
+                Assert.AreEqual((float)BlendMode.OneMinusSrcAlpha, material.GetFloat("_M_DstBlend"));
+                Assert.AreEqual(0f, material.GetFloat("_M_ZWrite"));
+                Assert.AreEqual(3000, material.renderQueue);
+                Assert.IsTrue(material.IsKeywordEnabled("_ALPHABLEND_ON"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void ApplyZTest_Always_WritesCompareAlways()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.SetFloat(VrmcMaterialsMtoonxt.ZTestProp, 0f);
+                VrmcMaterialsMtoonxtApplier.ApplyZTest(material, "always");
+                Assert.AreEqual(8f, material.GetFloat(VrmcMaterialsMtoonxt.ZTestProp));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void ApplyZTest_Uninitialized_WritesLessEqual()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.SetFloat(VrmcMaterialsMtoonxt.ZTestProp, 0f);
+                VrmcMaterialsMtoonxtApplier.ApplyZTest(material, null);
+                Assert.AreEqual(4f, material.GetFloat(VrmcMaterialsMtoonxt.ZTestProp));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void EnsureStencilOffIfUninitialized_RecoversZTest()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.SetFloat(VrmcMaterialsMtoonxt.ZTestProp, 0f);
+                VrmcMaterialsMtoonxtApplier.EnsureStencilOffIfUninitialized(material);
+                Assert.AreEqual(4f, material.GetFloat(VrmcMaterialsMtoonxt.ZTestProp));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void ApplyRenderQueue_OverridesMaterialQueue()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.renderQueue = 3000;
+                VrmcMaterialsMtoonxtApplier.ApplyRenderQueue(material, 2449);
+                Assert.AreEqual(2449, material.renderQueue);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void ApplyZWrite_False_ClearsUnityZWrite()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.SetFloat("_M_ZWrite", 1f);
+                VrmcMaterialsMtoonxtApplier.ApplyZWrite(material, false);
+                Assert.AreEqual(0f, material.GetFloat("_M_ZWrite"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
             }
         }
 

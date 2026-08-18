@@ -19,7 +19,9 @@ namespace UniVRMXT.Editor.Mtoonxt
             Shader newShader)
         {
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
+            VrmcMaterialsMtoonxtApplier.RestoreUnityMtoonPassSettings(material);
             VrmcMaterialsMtoonxtApplier.ApplyStencilOffDefaults(material);
+            VrmcMaterialsMtoonxtApplier.ApplyZTest(material, VrmcMaterialsMtoonxt.ZTestDefault);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
@@ -27,7 +29,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             _mtoon.OnGUI(materialEditor, properties);
 
             EditorGUILayout.HelpBox(
-                "Stencil Pass needs a depth pass. Hair in front fails ZTest LEqual, so brow never writes stencil. Use Z test Always to draw over hair.",
+                "Hair overlay: do not stencil-punch hair (soft alpha cuts holes). Brow at queue 3000 with Z test LessEqual. Hair cutout zWrite off so the brow blends over it. Z test Always draws over the whole scene.",
                 MessageType.Info);
 
             DrawIfPresent(materialEditor, properties, VrmcMaterialsMtoonxt.ZTestProp, "Z test");

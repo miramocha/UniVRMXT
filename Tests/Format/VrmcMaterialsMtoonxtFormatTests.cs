@@ -90,5 +90,97 @@ namespace UniVRMXT.Tests.Format
             Assert.AreEqual(1, xt.Stencil.Ref);
             Assert.AreEqual(2, xt.Stencil.PassUnityInt);
         }
+
+        [Test]
+        public void TryParse_ZTestAlways_MapsCompare()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""zTest"": ""always""
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.AreEqual("always", xt.ZTest);
+            Assert.AreEqual(8, xt.ZTestUnityInt);
+        }
+
+        [Test]
+        public void TryParse_MissingZTest_DefaultsLessEqual()
+        {
+            const string json = @"{ ""specVersion"": ""1.0"" }";
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.AreEqual("lessEqual", xt.ZTest);
+            Assert.AreEqual(4, xt.ZTestUnityInt);
+        }
+
+        [Test]
+        public void TryParse_RenderQueue_MapsInt()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""renderQueue"": 2449
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.AreEqual(2449, xt.RenderQueue);
+        }
+
+        [Test]
+        public void TryParse_MissingRenderQueue_IsNull()
+        {
+            const string json = @"{ ""specVersion"": ""1.0"" }";
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsNull(xt.RenderQueue);
+        }
+
+        [Test]
+        public void TryParse_ZWriteFalse_MapsFlag()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""zWrite"": false
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(xt.ZWrite.HasValue);
+            Assert.IsFalse(xt.ZWrite.Value);
+        }
+
+        [Test]
+        public void TryParse_BadZTest_DefaultsLessEqual()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""zTest"": ""nope""
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.AreEqual("lessEqual", xt.ZTest);
+            Assert.AreEqual(4, xt.ZTestUnityInt);
+        }
+
+        [Test]
+        public void TryParse_BadRenderQueue_IsNull()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""renderQueue"": 9001
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsNull(xt.RenderQueue);
+        }
+
+        [Test]
+        public void TryParse_NonBoolZWrite_IsNull()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""zWrite"": 1
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsNull(xt.ZWrite);
+        }
     }
 }
