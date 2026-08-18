@@ -18,9 +18,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   native billboard mode; local +Y velocity unchanged.
 - Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
   `extensionsUsed` once (never `extensionsRequired`).
+- MToonXT ShaderLab names: `VRMXT/MToonXT10` and `VRMXT/Universal Render Pipeline/MToonXT10`
+- `MtoonxtInspector` reuses UniVRM `MToonInspector` and draws stencil / outline stencil extras
 
 ### Added
 
+- `VRMC_materials_mtoonxt` — parse/attach/apply stencil extras onto packaged `VRMXT/MToonXT10` / `VRMXT/Universal Render Pipeline/MToonXT10`; skip when `VRMXT_materials_override` would apply
+- MToonXT stencil **Enable stencil** / **Enable outline stencil** (`_M_StencilEnabled`, `_M_OutlineStencilEnabled`), default off
+- MToonXT `_M_ZTest` on forward/outline/add (default LessEqual). Overlay mats use Always so stencil Pass can run in front of closer hair
+- `VRMC_materials_mtoonxt.zTest` (`lessEqual` default; `always` for overlays). Apply writes `_M_ZTest`
+- `VRMC_materials_mtoonxt.renderQueue` — optional Unity queue after MToon mapping
+- `VRMC_materials_mtoonxt.zWrite` — optional Unity ZWrite override after MToon mapping (hair overlay: hair `false`)
+- MToon10 stencil forks under `Runtime/Shaders/MToonxt/` (UniVRM 0.131.2 pin)
 - `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can
   supply shaders when `Shader.Find` misses (Warudo/uMod ModHost cache); optional
   `resolveShader` arg on `Apply`
@@ -29,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- MToonXT shader swap: restore MToon blend / ZWrite / keywords / queue from `_AlphaMode` so transparent materials keep albedo
+- MToonXT inspector shader swap / OnGUI recover `_M_ZTest` Disabled (`0`) to LessEqual
 - Materials Override capture: keep `HideInInspector` scalars/vectors (Poiyomi/Thry
   toggles and UV pans such as `_GlitterEnable`, `_ScrollingEmission`, `_MainTexPan`)
 - Materials Override capture: always include assigned textures for UniVRMXT / full VRM

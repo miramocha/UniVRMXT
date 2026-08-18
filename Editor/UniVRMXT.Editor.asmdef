@@ -2,7 +2,8 @@
   "name": "UniVRMXT.Editor",
   "rootNamespace": "UniVRMXT.Editor",
   "references": [
-    "GUID:7f3a9c2e1b4d5a6f8091a2b3c4d5e6f7"
+    "GUID:7f3a9c2e1b4d5a6f8091a2b3c4d5e6f7",
+    "GUID:e3216dcc79b326b47b307c06b99c7331"
   ],
   "includePlatforms": [
     "Editor"

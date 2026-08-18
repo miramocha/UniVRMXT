@@ -61,6 +61,13 @@ VrmxtVfxRuntime.TryAttach(
 - Full `IMaterialDescriptorGenerator` wrapping (Editor import-time shader swap ahead of first render) still requires UniVRM at consumption time; see `VrmxtMaterialsOverrideGenerator` and `Editor/MaterialsOverride/VrmxtMaterialDescriptorGeneratorFactory.cs`.
 - Unity↔Blender uses the current `idType` / `id` schema. Remaining Blender gap: Unreal `idType: "resourcePath"` + per-entry `variant` format/UI — see [Blender Materials Override](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/blender-materials-override.md).
 
+### VRMC_materials_mtoonxt
+
+- Per-material extension: `materials[i].extensions.VRMC_materials_mtoonxt`
+- Spec: [vrmc-materials-mtoonxt.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmc-materials-mtoonxt.md)
+- `VrmcMaterialsMtoonxt.TryParse` — `specVersion` `1.0`; portable `stencil` / `outlineStencil` string enums; invalid stencil object skipped
+- `VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmcMaterialsMtoonxtApplier.Apply` — swap to packaged `VRMXT/MToonXT10` or `VRMXT/Universal Render Pipeline/MToonXT10` from the active RP; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply. ShaderLab lives in `Runtime/Shaders/MToonxt/`. Material inspector `MtoonxtInspector` wraps UniVRM `MToonInspector` and adds stencil fields.
+
 ## UniVRM integration
 
 - **VFX (runtime):** parse + `TryAttach` after `Vrm10.LoadGltfDataAsync` as above. UniVRMXT Runtime asmdef does **not** hard-reference UniGLTF/VRM10; the load caller supplies JSON, `Nodes`, and optional texture resolution.
@@ -76,7 +83,7 @@ VrmxtVfxRuntime.TryAttach(
     (Project Settings → Enable VRM Export Extensions).
   - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` (unchanged).
   - Design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
-- **Materials:** `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` attaches the Instance from post-load `.vrm` JSON (Editor or Warudo-style runtime), same soft-detect pattern as VFX. Editor import hook second-reads the GLB (via `VrmxtVfxGlbTextures`) to persist `ImportedTextures` as sub-assets and leaves stock MToon until Materialize. Runtime hosts (Player / Warudo) call `VrmxtMaterialsOverrideApplier.Apply` after attach. Export: `VrmxtMaterialsOverrideExporter` feeds `Vrm10ExportExtensionContext.AddMaterialExtension` during `PrepareTextures` / `WriteExtensions` (per-material extension write; see [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)). Editor import-time `IMaterialDescriptorGenerator` wrapping (shader swap ahead of first render, via project settings factory) remains planned.
+- **Materials:** `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` attaches the Instance from post-load `.vrm` JSON (Editor or Warudo-style runtime), same soft-detect pattern as VFX. Editor import hook second-reads the GLB (via `VrmxtVfxGlbTextures`) to persist `ImportedTextures` as sub-assets and leaves stock MToon until Materialize. The same hook runs `VrmcMaterialsMtoonxtApplier.Apply` (`Shader.Find` on packaged forks). Runtime hosts (Player / Warudo) call `VrmxtMaterialsOverrideApplier.Apply` then MToonXT Apply after attach. Export: `VrmxtMaterialsOverrideExporter` feeds `Vrm10ExportExtensionContext.AddMaterialExtension` during `PrepareTextures` / `WriteExtensions` (per-material extension write; see [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)). Editor import-time `IMaterialDescriptorGenerator` wrapping (shader swap ahead of first render, via project settings factory) remains planned.
 
 ## CI
 
