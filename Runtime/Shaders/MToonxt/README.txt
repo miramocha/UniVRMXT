@@ -14,4 +14,4 @@ Warudo UMod Shader.Find is null. Warudo ships the same forks as shader UMods
 do not include `MtoonxtInspector`.
 
 Material inspector: CustomEditor UniVRMXT.Editor.Mtoonxt.MtoonxtInspector (wraps UniVRM
-MToonInspector, then stencil / outline stencil).
+MToonInspector, then stencil op / writer dropdowns into avatar pair JSON).

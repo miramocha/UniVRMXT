@@ -66,7 +66,7 @@ namespace UniVRMXT.Mtoonxt
                 return 0;
             }
 
-            var extrasByIndex = BuildExtrasByIndex(gltfRoot, store);
+            var extrasByIndex = BuildExtrasByIndex(gltfRoot, store, root);
             VrmcMaterialsMtoonxtStencilCompiler.Compile(extrasByIndex, out var compiledBody, out var compiledOutline);
 
             var applied = 0;
@@ -74,12 +74,13 @@ namespace UniVRMXT.Mtoonxt
             for (var i = 0; i < pairs.Count; i++)
             {
                 var pair = pairs[i];
-                if (pair == null || string.IsNullOrEmpty(pair.ExtensionJson))
+                if (pair == null)
                 {
                     continue;
                 }
 
-                if (!VrmcMaterialsMtoonxt.TryParse(pair.ExtensionJson, out var xt))
+                var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, pair);
+                if (xt == null)
                 {
                     continue;
                 }
@@ -142,7 +143,8 @@ namespace UniVRMXT.Mtoonxt
 
         private static VrmcMaterialsMtoonxtExtension[] BuildExtrasByIndex(
             JObject gltfRoot,
-            VrmcMaterialsMtoonxtInstance store)
+            VrmcMaterialsMtoonxtInstance store,
+            GameObject root)
         {
             var materials = gltfRoot["materials"] as JArray;
             var count = materials != null ? materials.Count : 0;
@@ -153,13 +155,13 @@ namespace UniVRMXT.Mtoonxt
                 var pair = pairs[i];
                 if (pair == null ||
                     pair.GltfMaterialIndex < 0 ||
-                    pair.GltfMaterialIndex >= count ||
-                    string.IsNullOrEmpty(pair.ExtensionJson))
+                    pair.GltfMaterialIndex >= count)
                 {
                     continue;
                 }
 
-                if (VrmcMaterialsMtoonxt.TryParse(pair.ExtensionJson, out var xt))
+                var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, pair);
+                if (xt != null)
                 {
                     extras[pair.GltfMaterialIndex] = xt;
                 }

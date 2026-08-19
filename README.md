@@ -15,12 +15,15 @@ See [docs/architecture.md](docs/architecture.md) for runtime attach + AssetDatab
 
 ## Requirements
 
-- Unity 2022.3 LTS
-- `com.vrmc.gltf` and `com.vrmc.vrm` 0.131.1 (declared in `package.json`)
+- Unity 2022.3 LTS or later
+- `com.vrmc.gltf` and `com.vrmc.vrm` 0.131.2 (declared in `package.json`)
 
 ## Installation
 
-See [docs/installation.md](docs/installation.md).
+See [docs/installation.md](docs/installation.md). Git UPM, Unity 2022.3 LTS or later:
+
+1. Extended UniVRM (`?path=/Packages/UniGLTF` then `?path=/Packages/VRM10`).
+2. UniVRMXT `https://github.com/miramocha/UniVRMXT.git`.
 
 ## Architecture
 
