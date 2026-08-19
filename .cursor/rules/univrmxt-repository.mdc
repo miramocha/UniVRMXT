@@ -5,7 +5,7 @@ alwaysApply: true
 
 # UniVRMXT repository
 
-- Package id: `com.miramocha.univrmxt`. Target Unity floor from `package.json`
+- Package id: `com.vrmxt.univrmxt`. Target Unity floor from `package.json`
   (`2022.3`); do not silently raise Unity, package, API compatibility, or C# language
   requirements.
 - Keep first-party code in this package tree (`Runtime`, `Editor`, `Tests`, `Samples~`

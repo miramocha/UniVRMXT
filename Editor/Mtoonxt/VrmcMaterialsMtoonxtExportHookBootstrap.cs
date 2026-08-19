@@ -103,13 +103,25 @@ namespace UniVRMXT.Editor.Mtoonxt
         {
             var type = contextObj.GetType();
             var phaseObj = type.GetProperty("Phase")?.GetValue(contextObj);
-            if (phaseObj == null || phaseObj.ToString() != "WriteExtensions")
+            if (phaseObj == null)
             {
                 return;
             }
 
             var root = type.GetProperty("Root")?.GetValue(contextObj) as GameObject;
             if (root == null)
+            {
+                return;
+            }
+
+            var phase = phaseObj.ToString();
+            if (phase == "PreHierarchy")
+            {
+                RemapMtoonxtShadersToStockMtoon(root);
+                return;
+            }
+
+            if (phase != "WriteExtensions")
             {
                 return;
             }
@@ -149,17 +161,23 @@ namespace UniVRMXT.Editor.Mtoonxt
             for (var i = 0; i < store.Pairs.Count; i++)
             {
                 var pair = store.Pairs[i];
-                if (pair == null || string.IsNullOrEmpty(pair.ExtensionJson))
+                if (pair == null)
                 {
                     continue;
                 }
 
-                if (!VrmcMaterialsMtoonxt.TryParse(pair.ExtensionJson, out var xt))
+                var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, pair);
+                if (xt == null)
                 {
                     continue;
                 }
 
-                var payload = pair.ExtensionJson;
+                if (xt.Stencil == null && xt.OutlineStencil == null)
+                {
+                    continue;
+                }
+
+                var payload = VrmcMaterialsMtoonxt.ToJson(xt);
                 if (NeedsClipIndexRewrite(xt) && tryGetMaterialIndex != null)
                 {
                     payload = RewriteClipIndices(
@@ -315,6 +333,70 @@ namespace UniVRMXT.Editor.Mtoonxt
                         return material;
                     }
                 }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Export copy only: UniVRM MToon export matches stock <c>VRM10/MToon10</c> shader
+        /// identity. Swap MToonXT forks to stock so <c>VRMC_materials_mtoon</c> is written.
+        /// New material instances so shared assets are not mutated.
+        /// </summary>
+        private static void RemapMtoonxtShadersToStockMtoon(GameObject root)
+        {
+            var stockBirp = Shader.Find("VRM10/MToon10");
+            var stockUrp = Shader.Find("VRM10/Universal Render Pipeline/MToon10");
+            var renderers = root.GetComponentsInChildren<Renderer>(true);
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                var renderer = renderers[i];
+                var shared = renderer.sharedMaterials;
+                Material[] next = null;
+                for (var j = 0; j < shared.Length; j++)
+                {
+                    var src = shared[j];
+                    var stock = StockMtoonShaderFor(src, stockBirp, stockUrp);
+                    if (stock == null)
+                    {
+                        continue;
+                    }
+
+                    if (next == null)
+                    {
+                        next = (Material[])shared.Clone();
+                    }
+
+                    var copy = new Material(src);
+                    copy.shader = stock;
+                    copy.name = src.name;
+                    copy.hideFlags = HideFlags.HideAndDontSave;
+                    next[j] = copy;
+                }
+
+                if (next != null)
+                {
+                    renderer.sharedMaterials = next;
+                }
+            }
+        }
+
+        private static Shader StockMtoonShaderFor(Material src, Shader stockBirp, Shader stockUrp)
+        {
+            if (src == null || src.shader == null)
+            {
+                return null;
+            }
+
+            var name = src.shader.name;
+            if (name == VrmcMaterialsMtoonxt.BuiltinShaderName)
+            {
+                return stockBirp;
+            }
+
+            if (name == VrmcMaterialsMtoonxt.UrpShaderName)
+            {
+                return stockUrp;
             }
 
             return null;

@@ -1,6 +1,6 @@
 # Cursor configuration
 
-Agent guidance for the **UniVRMXT** UPM package (`com.miramocha.univrmxt`).
+Agent guidance for the **UniVRMXT** UPM package (`com.vrmxt.univrmxt`).
 
 ## Shared kit (from VRMXT Plugin for Warudo)
 

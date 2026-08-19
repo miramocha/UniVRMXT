@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Breaking (unreleased):** UPM package id `com.miramocha.univrmxt` →
+  `com.vrmxt.univrmxt`. Update `Packages/manifest.json`. New materials-override
+  `provider.id` matches; existing files with the old id still load (`provider` is
+  advisory).
+- UniVRM pin `com.vrmc.gltf` / `com.vrmc.vrm` `0.131.1` → `0.131.2` (matches Extended-UniVRM and the MToonXT shader fork).
+- `package.json` `unity` `2021.3` → `2022.3` (matches UniVRM 0.131.2). Add `license` / repo URLs for Package Manager.
 - **Breaking (unreleased):** Root extension renamed to `VRMXT_sprite_particle` with flat
   emitter fields (`texture`, `size`, `color`, …). Legacy `VRMXT_vfx` / `VRMXT_particle`
   are not read. Removed emitter `localPosition` / `localRotation`, nested `particle`, `type`,
@@ -19,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
   `extensionsUsed` once (never `extensionsRequired`).
 - MToonXT stencil `op` (`write` / `inside` / `outside` / outline `same`) plus glTF material indices; compile to GPU Ref from one table (clip lists resolve body `write`). `ref`/`comp`/`pass` are not read. Avatar `VrmcMaterialsMtoonxtInstance` editor lists clip materials. Body `write` draws two Unity queue slots earlier and `inside` one slot earlier so clip readers see the stamp before later face cutout. `renderQueueOffset` on the XT object is ignored. Export keeps original clip indices when material remap fails.
+- `MtoonxtInspector` authors serialized stencil ops and writer lists on the avatar instance (Unity fields). glTF JSON is written on export only. Z test is not an inspector field; parse/apply of research `zTest` / `zWrite` from imported leftover JSON is unchanged. **Add MToonXT extras** creates pairs on a loaded avatar without Blender (shader swap to `VRMXT/MToonXT10` still required).
 
 ### Added
 
@@ -36,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- MToonXT export: PreHierarchy remaps `VRMXT/MToonXT10` to stock `VRM10/MToon10` on the export copy so UniVRM writes sibling `VRMC_materials_mtoon` (hub rule 3). UniVRM stays shader-name agnostic.
 - MToonXT shader swap: restore MToon blend / ZWrite / keywords / queue from `_AlphaMode` so transparent materials keep albedo
 - MToonXT inspector shader swap / OnGUI recover `_M_ZTest` Disabled (`0`) to LessEqual
 - Materials Override capture: keep `HideInInspector` scalars/vectors (Poiyomi/Thry

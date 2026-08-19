@@ -30,7 +30,7 @@ def check_package_json() -> None:
 
     data = json.loads(package_json_path.read_text(encoding="utf-8"))
     expected = {
-        "name": "com.miramocha.univrmxt",
+        "name": "com.vrmxt.univrmxt",
         "version": "0.1.0",
         "unity": "2022.3",
     }
@@ -45,8 +45,8 @@ def check_package_json() -> None:
     deps = data.get("dependencies", {})
     for dep, version in {
         "com.unity.nuget.newtonsoft-json": "3.2.1",
-        "com.vrmc.gltf": "0.131.1",
-        "com.vrmc.vrm": "0.131.1",
+        "com.vrmc.gltf": "0.131.2",
+        "com.vrmc.vrm": "0.131.2",
     }.items():
         if deps.get(dep) != version:
             fail(f"package.json dependency {dep} must be {version}")

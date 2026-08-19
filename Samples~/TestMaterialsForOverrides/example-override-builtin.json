@@ -8,7 +8,7 @@
         "id": "VRMXT/Samples/TestOverrideBuiltin",
         "variant": "builtin",
         "provider": {
-          "id": "com.miramocha.univrmxt",
+          "id": "com.vrmxt.univrmxt",
           "version": "0.1.0"
         }
       },
