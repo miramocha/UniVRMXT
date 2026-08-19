@@ -160,7 +160,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 }
 
                 var payload = pair.ExtensionJson;
-                if (NeedsClipIndexRewrite(xt))
+                if (NeedsClipIndexRewrite(xt) && tryGetMaterialIndex != null)
                 {
                     payload = RewriteClipIndices(
                         xt,
@@ -278,15 +278,16 @@ namespace UniVRMXT.Editor.Mtoonxt
                 return stencil;
             }
 
-            var mapped = new List<int>();
-            for (var i = 0; i < stencil.Materials.Count; i++)
+            if (!VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
+                    stencil.Materials,
+                    source => ResolveMaterialIndex(
+                        contextObj,
+                        type,
+                        tryGetMaterialIndex,
+                        FindMaterialForGltfIndex(root, store, source)),
+                    out var mapped))
             {
-                var material = FindMaterialForGltfIndex(root, store, stencil.Materials[i]);
-                var index = ResolveMaterialIndex(contextObj, type, tryGetMaterialIndex, material);
-                if (index.HasValue && !mapped.Contains(index.Value))
-                {
-                    mapped.Add(index.Value);
-                }
+                return stencil;
             }
 
             return VrmcMaterialsMtoonxtStencil.FromOp(stencil.Op, mapped);

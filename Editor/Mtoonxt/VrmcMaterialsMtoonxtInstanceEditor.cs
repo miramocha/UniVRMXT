@@ -99,6 +99,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 xt.ZWrite);
             pair.ExtensionJson = VrmcMaterialsMtoonxt.ToJson(next);
             EditorUtility.SetDirty(instance);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(instance);
         }
 
         private static void DrawMaterialList(string label, List<Material> list)

@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   native billboard mode; local +Y velocity unchanged.
 - Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
   `extensionsUsed` once (never `extensionsRequired`).
-- MToonXT stencil `op` (`write` / `inside` / `outside` / outline `same`) plus glTF material indices; compile to GPU Ref. `ref`/`comp`/`pass` are not read. Avatar `VrmcMaterialsMtoonxtInstance` editor lists clip materials. Body `write` draws two Unity queue slots earlier and `inside` one slot earlier so clip readers see the stamp before later face cutout. `renderQueueOffset` on the XT object is ignored.
+- MToonXT stencil `op` (`write` / `inside` / `outside` / outline `same`) plus glTF material indices; compile to GPU Ref from one table (clip lists resolve body `write`). `ref`/`comp`/`pass` are not read. Avatar `VrmcMaterialsMtoonxtInstance` editor lists clip materials. Body `write` draws two Unity queue slots earlier and `inside` one slot earlier so clip readers see the stamp before later face cutout. `renderQueueOffset` on the XT object is ignored. Export keeps original clip indices when material remap fails.
 
 ### Added
 

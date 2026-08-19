@@ -240,5 +240,65 @@ namespace UniVRMXT.Tests.Format
             Assert.AreEqual(body[1].Comp, outline[1].Comp);
             Assert.AreEqual(body[0].Ref, outline[0].Ref);
         }
+
+        [Test]
+        public void Compile_OutlineInside_UsesBodyWriteRef()
+        {
+            var extras = new VrmcMaterialsMtoonxtExtension[4];
+            extras[1] = new VrmcMaterialsMtoonxtExtension(
+                null,
+                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }));
+            extras[3] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+                null);
+
+            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            Assert.AreEqual(1, body[3].Ref);
+            Assert.AreEqual("replace", body[3].Pass);
+            Assert.IsNull(body[1]);
+            Assert.AreEqual(1, outline[1].Ref);
+            Assert.AreEqual("equal", outline[1].Comp);
+            Assert.AreEqual("keep", outline[1].Pass);
+        }
+
+        [Test]
+        public void Compile_OutlineWrite_SharesBodyWriterRef()
+        {
+            var extras = new VrmcMaterialsMtoonxtExtension[4];
+            extras[1] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
+                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }));
+            extras[3] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null));
+
+            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            Assert.AreEqual(body[3].Ref, outline[3].Ref);
+            Assert.AreEqual(body[1].Ref, outline[1].Ref);
+            Assert.AreEqual(body[3].Ref, body[1].Ref);
+            Assert.AreEqual("replace", outline[3].Pass);
+        }
+
+        [Test]
+        public void TryMapClipMaterialIndices_Miss_Fails()
+        {
+            Assert.IsFalse(
+                VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
+                    new[] { 3 },
+                    _ => null,
+                    out _));
+        }
+
+        [Test]
+        public void TryMapClipMaterialIndices_MapsUnique()
+        {
+            Assert.IsTrue(
+                VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
+                    new[] { 3, 3 },
+                    i => i + 1,
+                    out var mapped));
+            Assert.AreEqual(1, mapped.Length);
+            Assert.AreEqual(4, mapped[0]);
+        }
     }
 }
