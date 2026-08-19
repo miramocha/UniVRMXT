@@ -154,12 +154,24 @@ namespace UniVRMXT.Editor.Mtoonxt
                     continue;
                 }
 
-                if (!VrmcMaterialsMtoonxt.TryParse(pair.ExtensionJson, out _))
+                if (!VrmcMaterialsMtoonxt.TryParse(pair.ExtensionJson, out var xt))
                 {
                     continue;
                 }
 
-                var utf8 = Encoding.UTF8.GetBytes(pair.ExtensionJson);
+                var payload = pair.ExtensionJson;
+                if (NeedsClipIndexRewrite(xt) && tryGetMaterialIndex != null)
+                {
+                    payload = RewriteClipIndices(
+                        xt,
+                        root,
+                        store,
+                        contextObj,
+                        type,
+                        tryGetMaterialIndex);
+                }
+
+                var utf8 = Encoding.UTF8.GetBytes(payload);
                 var written = new HashSet<int>();
                 var matchedAny = false;
 
@@ -219,6 +231,89 @@ namespace UniVRMXT.Editor.Mtoonxt
                 if (boxed is int index)
                 {
                     return index;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool NeedsClipIndexRewrite(VrmcMaterialsMtoonxtExtension xt)
+        {
+            return xt != null &&
+                ((xt.Stencil != null &&
+                  xt.Stencil.HasOp &&
+                  VrmcMaterialsMtoonxt.UsesMaterialsList(xt.Stencil.Op)) ||
+                 (xt.OutlineStencil != null &&
+                  xt.OutlineStencil.HasOp &&
+                  VrmcMaterialsMtoonxt.UsesMaterialsList(xt.OutlineStencil.Op)));
+        }
+
+        private static string RewriteClipIndices(
+            VrmcMaterialsMtoonxtExtension xt,
+            GameObject root,
+            VrmcMaterialsMtoonxtInstance store,
+            object contextObj,
+            Type type,
+            MethodInfo tryGetMaterialIndex)
+        {
+            var body = RewriteStencil(xt.Stencil, root, store, contextObj, type, tryGetMaterialIndex);
+            var outline = RewriteStencil(xt.OutlineStencil, root, store, contextObj, type, tryGetMaterialIndex);
+            var next = new VrmcMaterialsMtoonxtExtension(body, outline, xt.ZTest, xt.ZWrite);
+            return VrmcMaterialsMtoonxt.ToJson(next);
+        }
+
+        private static VrmcMaterialsMtoonxtStencil RewriteStencil(
+            VrmcMaterialsMtoonxtStencil stencil,
+            GameObject root,
+            VrmcMaterialsMtoonxtInstance store,
+            object contextObj,
+            Type type,
+            MethodInfo tryGetMaterialIndex)
+        {
+            if (stencil == null ||
+                !stencil.HasOp ||
+                !VrmcMaterialsMtoonxt.UsesMaterialsList(stencil.Op) ||
+                stencil.Materials == null)
+            {
+                return stencil;
+            }
+
+            if (!VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
+                    stencil.Materials,
+                    source => ResolveMaterialIndex(
+                        contextObj,
+                        type,
+                        tryGetMaterialIndex,
+                        FindMaterialForGltfIndex(root, store, source)),
+                    out var mapped))
+            {
+                return stencil;
+            }
+
+            return VrmcMaterialsMtoonxtStencil.FromOp(stencil.Op, mapped);
+        }
+
+        private static Material FindMaterialForGltfIndex(
+            GameObject root,
+            VrmcMaterialsMtoonxtInstance store,
+            int gltfIndex)
+        {
+            for (var i = 0; i < store.Pairs.Count; i++)
+            {
+                var pair = store.Pairs[i];
+                if (pair == null || pair.GltfMaterialIndex != gltfIndex)
+                {
+                    continue;
+                }
+
+                foreach (var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
+                             root,
+                             pair.MaterialName))
+                {
+                    if (material != null)
+                    {
+                        return material;
+                    }
                 }
             }
 
