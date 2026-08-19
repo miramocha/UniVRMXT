@@ -6,56 +6,57 @@ namespace UniVRMXT.Tests.Format
     public sealed class VrmcMaterialsMtoonxtFormatTests
     {
         [Test]
-        public void TryParse_HappyPath_MapsStencilEnums()
+        public void TryParse_HappyPath_MapsOpStencil()
         {
             const string json = @"{
               ""specVersion"": ""1.0"",
-              ""stencil"": {
-                ""ref"": 1,
-                ""comp"": ""always"",
-                ""pass"": ""replace""
-              },
-              ""outlineStencil"": {
-                ""ref"": 1,
-                ""comp"": ""notEqual"",
-                ""pass"": ""keep""
-              },
+              ""stencil"": { ""op"": ""write"" },
+              ""outlineStencil"": { ""op"": ""outside"", ""materials"": [0] },
               ""faceSdf"": { ""enabled"": true }
             }";
 
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNotNull(xt.Stencil);
-            Assert.AreEqual(1, xt.Stencil.Ref);
-            Assert.IsFalse(xt.Stencil.Enabled);
-            Assert.AreEqual(255, xt.Stencil.ReadMask);
-            Assert.AreEqual(8, xt.Stencil.CompUnityInt);
-            Assert.AreEqual(2, xt.Stencil.PassUnityInt);
+            Assert.AreEqual("write", xt.Stencil.Op);
             Assert.IsNotNull(xt.OutlineStencil);
-            Assert.AreEqual(6, xt.OutlineStencil.CompUnityInt);
-            Assert.AreEqual(0, xt.OutlineStencil.PassUnityInt);
+            Assert.AreEqual("outside", xt.OutlineStencil.Op);
+            Assert.AreEqual(1, xt.OutlineStencil.Materials.Count);
+            Assert.AreEqual(0, xt.OutlineStencil.Materials[0]);
         }
 
         [Test]
-        public void TryParse_BadEnum_SkipsThatStencilObject()
+        public void TryParse_BadOp_SkipsThatStencilObject()
         {
             const string json = @"{
               ""specVersion"": ""1.0"",
-              ""stencil"": { ""comp"": ""nope"" },
-              ""outlineStencil"": { ""ref"": 2, ""pass"": ""keep"" }
+              ""stencil"": { ""op"": ""nope"" },
+              ""outlineStencil"": { ""op"": ""write"" }
             }";
 
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNull(xt.Stencil);
             Assert.IsNotNull(xt.OutlineStencil);
-            Assert.AreEqual(2, xt.OutlineStencil.Ref);
+            Assert.AreEqual("write", xt.OutlineStencil.Op);
         }
 
         [Test]
-        public void TryParse_OutOfRangeRef_SkipsStencil()
+        public void TryParse_MissingOp_SkipsStencil()
         {
             const string json = @"{
               ""specVersion"": ""1.0"",
-              ""stencil"": { ""ref"": 300 }
+              ""stencil"": { ""ref"": 1, ""comp"": ""always"", ""pass"": ""replace"" }
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsNull(xt.Stencil);
+        }
+
+        [Test]
+        public void TryParse_NegativeMaterialIndex_SkipsStencil()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""stencil"": { ""op"": ""inside"", ""materials"": [-1] }
             }";
 
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
@@ -78,20 +79,6 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
-        public void TryParse_EnabledTrue_MapsFlag()
-        {
-            const string json = @"{
-              ""specVersion"": ""1.0"",
-              ""stencil"": { ""enabled"": true, ""ref"": 1, ""pass"": ""replace"" }
-            }";
-
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
-            Assert.IsTrue(xt.Stencil.Enabled);
-            Assert.AreEqual(1, xt.Stencil.Ref);
-            Assert.AreEqual(2, xt.Stencil.PassUnityInt);
-        }
-
-        [Test]
         public void TryParse_ZTestAlways_MapsCompare()
         {
             const string json = @"{
@@ -111,26 +98,6 @@ namespace UniVRMXT.Tests.Format
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.AreEqual("lessEqual", xt.ZTest);
             Assert.AreEqual(4, xt.ZTestUnityInt);
-        }
-
-        [Test]
-        public void TryParse_RenderQueue_MapsInt()
-        {
-            const string json = @"{
-              ""specVersion"": ""1.0"",
-              ""renderQueue"": 2449
-            }";
-
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
-            Assert.AreEqual(2449, xt.RenderQueue);
-        }
-
-        [Test]
-        public void TryParse_MissingRenderQueue_IsNull()
-        {
-            const string json = @"{ ""specVersion"": ""1.0"" }";
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
-            Assert.IsNull(xt.RenderQueue);
         }
 
         [Test]
@@ -160,27 +127,118 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
-        public void TryParse_BadRenderQueue_IsNull()
+        public void TryParse_UnknownRenderQueueOffset_NotEmitted()
         {
             const string json = @"{
               ""specVersion"": ""1.0"",
-              ""renderQueue"": 9001
+              ""renderQueueOffset"": -1
             }";
 
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
-            Assert.IsNull(xt.RenderQueue);
+            Assert.That(VrmcMaterialsMtoonxt.ToJson(xt), Does.Not.Contain("renderQueueOffset"));
         }
 
         [Test]
-        public void TryParse_NonBoolZWrite_IsNull()
+        public void TryParse_OpInside_MapsMaterials()
         {
             const string json = @"{
               ""specVersion"": ""1.0"",
-              ""zWrite"": 1
+              ""stencil"": { ""op"": ""inside"", ""materials"": [3] }
             }";
 
             Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
-            Assert.IsNull(xt.ZWrite);
+            Assert.IsNotNull(xt.Stencil);
+            Assert.AreEqual("inside", xt.Stencil.Op);
+            Assert.AreEqual(1, xt.Stencil.Materials.Count);
+            Assert.AreEqual(3, xt.Stencil.Materials[0]);
+        }
+
+        [Test]
+        public void TryParse_OpWriteWithMaterials_SkipsStencil()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""stencil"": { ""op"": ""write"", ""materials"": [1] }
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsNull(xt.Stencil);
+        }
+
+        [Test]
+        public void TryParse_SameOnBody_SkipsStencil()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""stencil"": { ""op"": ""same"" }
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsNull(xt.Stencil);
+        }
+
+        [Test]
+        public void TryParse_OutlineSame_MapsOp()
+        {
+            const string json = @"{
+              ""specVersion"": ""1.0"",
+              ""outlineStencil"": { ""op"": ""same"" }
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.AreEqual("same", xt.OutlineStencil.Op);
+        }
+
+        [Test]
+        public void Compile_InsideWhite_AssignsSharedRef()
+        {
+            var extras = new VrmcMaterialsMtoonxtExtension[4];
+            extras[1] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
+                null);
+            extras[3] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+                null);
+
+            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            Assert.IsTrue(body[3].Enabled);
+            Assert.AreEqual(1, body[3].Ref);
+            Assert.AreEqual("always", body[3].Comp);
+            Assert.AreEqual("replace", body[3].Pass);
+            Assert.AreEqual(1, body[1].Ref);
+            Assert.AreEqual("equal", body[1].Comp);
+            Assert.AreEqual("keep", body[1].Pass);
+            Assert.IsNull(outline[1]);
+            Assert.IsNull(outline[3]);
+        }
+
+        [Test]
+        public void Compile_GpuStateWithoutOp_IsDropped()
+        {
+            var extras = new VrmcMaterialsMtoonxtExtension[1];
+            extras[0] = new VrmcMaterialsMtoonxtExtension(
+                new VrmcMaterialsMtoonxtStencil(true, 7, 255, 255, "always", "replace", "keep", "keep"),
+                null);
+
+            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out _);
+            Assert.IsNull(body[0]);
+        }
+
+        [Test]
+        public void Compile_OutlineSame_CopiesBody()
+        {
+            var extras = new VrmcMaterialsMtoonxtExtension[2];
+            extras[0] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+                VrmcMaterialsMtoonxtStencil.FromOp("same", null));
+            extras[1] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("outside", new[] { 0 }),
+                VrmcMaterialsMtoonxtStencil.FromOp("same", null));
+
+            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            Assert.AreEqual(body[1].Ref, outline[1].Ref);
+            Assert.AreEqual(body[1].Comp, outline[1].Comp);
+            Assert.AreEqual(body[0].Ref, outline[0].Ref);
         }
     }
 }

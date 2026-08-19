@@ -64,9 +64,9 @@ VrmxtVfxRuntime.TryAttach(
 ### VRMC_materials_mtoonxt
 
 - Per-material extension: `materials[i].extensions.VRMC_materials_mtoonxt`
-- Spec: [vrmc-materials-mtoonxt.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmc-materials-mtoonxt.md)
-- `VrmcMaterialsMtoonxt.TryParse` — `specVersion` `1.0`; portable `stencil` / `outlineStencil` string enums; invalid stencil object skipped
-- `VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmcMaterialsMtoonxtApplier.Apply` — swap to packaged `VRMXT/MToonXT10` or `VRMXT/Universal Render Pipeline/MToonXT10` from the active RP; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply. ShaderLab lives in `Runtime/Shaders/MToonxt/`. Material inspector `MtoonxtInspector` wraps UniVRM `MToonInspector` and adds stencil fields.
+- Spec: [vrmc-materials-mtoonxt](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmc-materials-mtoonxt/README.md)
+- `VrmcMaterialsMtoonxt.TryParse` — `specVersion` `1.0`; `stencil.op` (`write`/`inside`/`outside`) plus material indices; experimental `zTest` / `zWrite` still parsed (not hub extras); `renderQueueOffset` ignored; invalid stencil object skipped
+- `VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmcMaterialsMtoonxtApplier.Apply` — swap to packaged `VRMXT/MToonXT10` or `VRMXT/Universal Render Pipeline/MToonXT10` from the active RP; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply. ShaderLab lives in `Runtime/Shaders/MToonxt/`. `MtoonxtInspector` wraps UniVRM `MToonInspector` (Z test). Clip targets are on `VrmcMaterialsMtoonxtInstance`.
 
 ## UniVRM integration
 

@@ -18,8 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   native billboard mode; local +Y velocity unchanged.
 - Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
   `extensionsUsed` once (never `extensionsRequired`).
-- MToonXT ShaderLab names: `VRMXT/MToonXT10` and `VRMXT/Universal Render Pipeline/MToonXT10`
-- `MtoonxtInspector` reuses UniVRM `MToonInspector` and draws stencil / outline stencil extras
+- MToonXT stencil `op` (`write` / `inside` / `outside` / outline `same`) plus glTF material indices; compile to GPU Ref. `ref`/`comp`/`pass` are not read. Avatar `VrmcMaterialsMtoonxtInstance` editor lists clip materials. Body `write` draws two Unity queue slots earlier and `inside` one slot earlier so clip readers see the stamp before later face cutout. `renderQueueOffset` on the XT object is ignored.
 
 ### Added
 
@@ -27,7 +26,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - MToonXT stencil **Enable stencil** / **Enable outline stencil** (`_M_StencilEnabled`, `_M_OutlineStencilEnabled`), default off
 - MToonXT `_M_ZTest` on forward/outline/add (default LessEqual). Overlay mats use Always so stencil Pass can run in front of closer hair
 - `VRMC_materials_mtoonxt.zTest` (`lessEqual` default; `always` for overlays). Apply writes `_M_ZTest`
-- `VRMC_materials_mtoonxt.renderQueue` — optional Unity queue after MToon mapping
 - `VRMC_materials_mtoonxt.zWrite` — optional Unity ZWrite override after MToon mapping (hair overlay: hair `false`)
 - MToon10 stencil forks under `Runtime/Shaders/MToonxt/` (UniVRM 0.131.2 pin)
 - `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can

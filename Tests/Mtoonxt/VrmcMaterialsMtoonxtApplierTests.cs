@@ -21,12 +21,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     },
                     ""VRMC_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
-                      ""stencil"": {
-                        ""enabled"": true,
-                        ""ref"": 1,
-                        ""comp"": ""always"",
-                        ""pass"": ""replace""
-                      }
+                      ""stencil"": { ""op"": ""write"" }
                     }
                   }
                 }
@@ -41,7 +36,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                   ""extensions"": {
                     ""VRMC_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
-                      ""stencil"": { ""ref"": 1, ""pass"": ""replace"" }
+                      ""stencil"": { ""op"": ""write"" }
                     }
                   }
                 }
@@ -59,7 +54,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     },
                     ""VRMC_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
-                      ""stencil"": { ""ref"": 1, ""pass"": ""replace"" }
+                      ""stencil"": { ""op"": ""write"" }
                     },
                     ""VRMXT_materials_override"": {
                       ""specVersion"": ""1.0"",
@@ -108,6 +103,70 @@ namespace UniVRMXT.Tests.Mtoonxt
             finally
             {
                 Object.DestroyImmediate(material);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void Apply_OpInside_WritesEqualRef()
+        {
+            var fork = Shader.Find("Hidden/InternalErrorShader");
+            Assert.IsNotNull(fork);
+
+            const string gltf = @"
+            {
+              ""materials"": [
+                { ""name"": ""Iris"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
+                    ""VRMC_materials_mtoonxt"": {
+                      ""specVersion"": ""1.0"",
+                      ""stencil"": { ""op"": ""inside"", ""materials"": [1] }
+                    }
+                }},
+                { ""name"": ""White"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
+                    ""VRMC_materials_mtoonxt"": {
+                      ""specVersion"": ""1.0"",
+                      ""stencil"": { ""op"": ""write"" }
+                    }
+                }}
+              ]
+            }";
+
+            var root = new GameObject("root");
+            var irisGo = new GameObject("iris");
+            var whiteGo = new GameObject("white");
+            irisGo.transform.SetParent(root.transform, false);
+            whiteGo.transform.SetParent(root.transform, false);
+            var iris = new Material(Shader.Find("Standard")) { name = "Iris" };
+            var white = new Material(Shader.Find("Standard")) { name = "White" };
+            irisGo.AddComponent<MeshRenderer>().sharedMaterial = iris;
+            whiteGo.AddComponent<MeshRenderer>().sharedMaterial = white;
+
+            try
+            {
+                var applied = VrmcMaterialsMtoonxtApplier.Apply(
+                    root,
+                    gltf,
+                    name => IsMtoonxtForkName(name) ? fork : null);
+
+                Assert.AreEqual(2, applied);
+                if (iris.HasProperty(VrmcMaterialsMtoonxt.StencilPropRef))
+                {
+                    Assert.AreEqual(1f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
+                    Assert.AreEqual(1f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                    Assert.AreEqual(8f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropComp));
+                    Assert.AreEqual(2f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropPass));
+                    Assert.AreEqual(1f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
+                    Assert.AreEqual(1f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                    Assert.AreEqual(3f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropComp));
+                    Assert.AreEqual(0f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropPass));
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(iris);
+                Object.DestroyImmediate(white);
                 Object.DestroyImmediate(root);
             }
         }
@@ -405,7 +464,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
-        public void ApplyRenderQueue_OverridesMaterialQueue()
+        public void ApplyStencilDrawOrder_Write_SubtractsTwo()
         {
             var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
@@ -416,9 +475,56 @@ namespace UniVRMXT.Tests.Mtoonxt
             var material = new Material(shader);
             try
             {
-                material.renderQueue = 3000;
-                VrmcMaterialsMtoonxtApplier.ApplyRenderQueue(material, 2449);
+                material.renderQueue = 2450;
+                var compiled = VrmcMaterialsMtoonxtStencil.Compiled(1, "always", "replace");
+                VrmcMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
+                Assert.AreEqual(2448, material.renderQueue);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void ApplyStencilDrawOrder_Inside_SubtractsOne()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.renderQueue = 2450;
+                var compiled = VrmcMaterialsMtoonxtStencil.Compiled(1, "equal", "keep");
+                VrmcMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
                 Assert.AreEqual(2449, material.renderQueue);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void ApplyStencilDrawOrder_Outside_LeavesQueue()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.renderQueue = 2450;
+                var compiled = VrmcMaterialsMtoonxtStencil.Compiled(1, "notEqual", "keep");
+                VrmcMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
+                Assert.AreEqual(2450, material.renderQueue);
             }
             finally
             {
