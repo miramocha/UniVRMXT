@@ -1,16 +1,17 @@
-using NUnit.Framework;
 using System;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.Rendering;
 using UniVRMXT.Format;
 using UniVRMXT.MaterialsOverride;
 using UniVRMXT.Mtoonxt;
-using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace UniVRMXT.Tests.Mtoonxt
 {
     public sealed class VrmcMaterialsMtoonxtApplierTests
     {
-        private const string GltfMtoonxt = @"
+        private const string GltfMtoonxt =
+            @"
             {
               ""materials"": [
                 {
@@ -28,7 +29,8 @@ namespace UniVRMXT.Tests.Mtoonxt
               ]
             }";
 
-        private const string GltfMissingSibling = @"
+        private const string GltfMissingSibling =
+            @"
             {
               ""materials"": [
                 {
@@ -43,7 +45,8 @@ namespace UniVRMXT.Tests.Mtoonxt
               ]
             }";
 
-        private const string GltfWithOverride = @"
+        private const string GltfWithOverride =
+            @"
             {
               ""materials"": [
                 {
@@ -73,6 +76,18 @@ namespace UniVRMXT.Tests.Mtoonxt
               ]
             }";
 
+        [SetUp]
+        public void SetUp()
+        {
+            VrmcMaterialsMtoonxtStencilRefs.Reset();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            VrmcMaterialsMtoonxtStencilRefs.Reset();
+        }
+
         [Test]
         public void Apply_SwapsAndWritesStencil_WhenShaderResolves()
         {
@@ -90,13 +105,14 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var applied = VrmcMaterialsMtoonxtApplier.Apply(
                     root,
                     GltfMtoonxt,
-                    name => IsMtoonxtForkName(name) ? fork : null);
+                    name => IsMtoonxtForkName(name) ? fork : null
+                );
 
                 Assert.AreEqual(1, applied);
                 Assert.AreEqual(fork, material.shader);
                 if (material.HasProperty(VrmcMaterialsMtoonxt.StencilPropRef))
                 {
-                    Assert.AreEqual(1f, material.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                    Assert.AreEqual(32f, material.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
                     Assert.AreEqual(1f, material.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
                 }
             }
@@ -113,7 +129,8 @@ namespace UniVRMXT.Tests.Mtoonxt
             var fork = Shader.Find("Hidden/InternalErrorShader");
             Assert.IsNotNull(fork);
 
-            const string gltf = @"
+            const string gltf =
+                @"
             {
               ""materials"": [
                 { ""name"": ""Iris"", ""extensions"": {
@@ -148,17 +165,18 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var applied = VrmcMaterialsMtoonxtApplier.Apply(
                     root,
                     gltf,
-                    name => IsMtoonxtForkName(name) ? fork : null);
+                    name => IsMtoonxtForkName(name) ? fork : null
+                );
 
                 Assert.AreEqual(2, applied);
                 if (iris.HasProperty(VrmcMaterialsMtoonxt.StencilPropRef))
                 {
                     Assert.AreEqual(1f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
-                    Assert.AreEqual(1f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                    Assert.AreEqual(32f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
                     Assert.AreEqual(8f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropComp));
                     Assert.AreEqual(2f, white.GetFloat(VrmcMaterialsMtoonxt.StencilPropPass));
                     Assert.AreEqual(1f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
-                    Assert.AreEqual(1f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                    Assert.AreEqual(32f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
                     Assert.AreEqual(3f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropComp));
                     Assert.AreEqual(0f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropPass));
                 }
@@ -210,7 +228,8 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var applied = VrmcMaterialsMtoonxtApplier.Apply(
                     root,
                     GltfMissingSibling,
-                    name => IsMtoonxtForkName(name) ? fork : null);
+                    name => IsMtoonxtForkName(name) ? fork : null
+                );
                 Assert.AreEqual(0, applied);
                 Assert.AreEqual(stock, material.shader);
             }
@@ -239,14 +258,14 @@ namespace UniVRMXT.Tests.Mtoonxt
                     GltfWithOverride,
                     name =>
                     {
-                        if (IsMtoonxtForkName(name) ||
-                            name == "Hidden/InternalErrorShader")
+                        if (IsMtoonxtForkName(name) || name == "Hidden/InternalErrorShader")
                         {
                             return fork;
                         }
 
                         return null;
-                    });
+                    }
+                );
                 Assert.AreEqual(0, applied);
                 Assert.AreEqual(stock, material.shader);
             }
@@ -263,10 +282,13 @@ namespace UniVRMXT.Tests.Mtoonxt
             var root = new GameObject("root");
             try
             {
-                Assert.IsTrue(VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson(
-                    root,
-                    GltfMtoonxt,
-                    out var store));
+                Assert.IsTrue(
+                    VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson(
+                        root,
+                        GltfMtoonxt,
+                        out var store
+                    )
+                );
                 Assert.IsNotNull(store);
                 Assert.AreEqual(1, store.Pairs.Count);
                 Assert.AreEqual("Face", store.Pairs[0].MaterialName);
@@ -283,15 +305,19 @@ namespace UniVRMXT.Tests.Mtoonxt
         {
             Assert.AreEqual(
                 VrmcMaterialsMtoonxt.BuiltinShaderName,
-                VrmcMaterialsMtoonxtApplier.ShaderNameForPipeline(RenderPipelineVariant.Builtin));
+                VrmcMaterialsMtoonxtApplier.ShaderNameForPipeline(RenderPipelineVariant.Builtin)
+            );
             Assert.AreEqual(
                 VrmcMaterialsMtoonxt.UrpShaderName,
-                VrmcMaterialsMtoonxtApplier.ShaderNameForPipeline(RenderPipelineVariant.Urp));
+                VrmcMaterialsMtoonxtApplier.ShaderNameForPipeline(RenderPipelineVariant.Urp)
+            );
             Assert.IsNull(
-                VrmcMaterialsMtoonxtApplier.ShaderNameForPipeline(RenderPipelineVariant.Hdrp));
+                VrmcMaterialsMtoonxtApplier.ShaderNameForPipeline(RenderPipelineVariant.Hdrp)
+            );
         }
 
-        private const string GltfMtoonxtNoStencil = @"
+        private const string GltfMtoonxtNoStencil =
+            @"
             {
               ""materials"": [
                 {
@@ -355,7 +381,8 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var applied = VrmcMaterialsMtoonxtApplier.Apply(
                     root,
                     GltfMtoonxtNoStencil,
-                    name => IsMtoonxtForkName(name) ? shader : null);
+                    name => IsMtoonxtForkName(name) ? shader : null
+                );
                 Assert.AreEqual(1, applied);
                 Assert.AreEqual(8f, material.GetFloat(VrmcMaterialsMtoonxt.StencilPropComp));
                 Assert.AreEqual(0f, material.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
@@ -386,7 +413,10 @@ namespace UniVRMXT.Tests.Mtoonxt
                 material.renderQueue = 2000;
                 VrmcMaterialsMtoonxtApplier.RestoreUnityMtoonPassSettings(material);
                 Assert.AreEqual((float)BlendMode.SrcAlpha, material.GetFloat("_M_SrcBlend"));
-                Assert.AreEqual((float)BlendMode.OneMinusSrcAlpha, material.GetFloat("_M_DstBlend"));
+                Assert.AreEqual(
+                    (float)BlendMode.OneMinusSrcAlpha,
+                    material.GetFloat("_M_DstBlend")
+                );
                 Assert.AreEqual(0f, material.GetFloat("_M_ZWrite"));
                 Assert.AreEqual(3000, material.renderQueue);
                 Assert.IsTrue(material.IsKeywordEnabled("_ALPHABLEND_ON"));
@@ -555,6 +585,163 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
+        public void Apply_TwoRoots_UseDistinctRefs()
+        {
+            var fork = Shader.Find("Hidden/InternalErrorShader");
+            Assert.IsNotNull(fork);
+
+            var rootA = new GameObject("rootA");
+            var meshA = new GameObject("meshA");
+            meshA.transform.SetParent(rootA.transform, false);
+            var matA = new Material(Shader.Find("Standard")) { name = "Face" };
+            meshA.AddComponent<MeshRenderer>().sharedMaterial = matA;
+
+            var rootB = new GameObject("rootB");
+            var meshB = new GameObject("meshB");
+            meshB.transform.SetParent(rootB.transform, false);
+            var matB = new Material(Shader.Find("Standard")) { name = "Face" };
+            meshB.AddComponent<MeshRenderer>().sharedMaterial = matB;
+
+            try
+            {
+                Assert.AreEqual(
+                    1,
+                    VrmcMaterialsMtoonxtApplier.Apply(
+                        rootA,
+                        GltfMtoonxt,
+                        name => IsMtoonxtForkName(name) ? fork : null
+                    )
+                );
+                Assert.AreEqual(
+                    1,
+                    VrmcMaterialsMtoonxtApplier.Apply(
+                        rootB,
+                        GltfMtoonxt,
+                        name => IsMtoonxtForkName(name) ? fork : null
+                    )
+                );
+
+                if (matA.HasProperty(VrmcMaterialsMtoonxt.StencilPropRef))
+                {
+                    Assert.AreEqual(32f, matA.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                    Assert.AreEqual(33f, matB.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(matA);
+                Object.DestroyImmediate(matB);
+                Object.DestroyImmediate(rootA);
+                Object.DestroyImmediate(rootB);
+            }
+        }
+
+        [Test]
+        public void Apply_DestroyFirst_ThirdRootReusesBand()
+        {
+            var fork = Shader.Find("Hidden/InternalErrorShader");
+            Assert.IsNotNull(fork);
+
+            Shader Resolve(string name)
+            {
+                return IsMtoonxtForkName(name) ? fork : null;
+            }
+
+            var rootA = new GameObject("rootA");
+            var meshA = new GameObject("meshA");
+            meshA.transform.SetParent(rootA.transform, false);
+            var matA = new Material(Shader.Find("Standard")) { name = "Face" };
+            meshA.AddComponent<MeshRenderer>().sharedMaterial = matA;
+
+            var rootB = new GameObject("rootB");
+            var meshB = new GameObject("meshB");
+            meshB.transform.SetParent(rootB.transform, false);
+            var matB = new Material(Shader.Find("Standard")) { name = "Face" };
+            meshB.AddComponent<MeshRenderer>().sharedMaterial = matB;
+
+            var rootC = new GameObject("rootC");
+            var meshC = new GameObject("meshC");
+            meshC.transform.SetParent(rootC.transform, false);
+            var matC = new Material(Shader.Find("Standard")) { name = "Face" };
+            meshC.AddComponent<MeshRenderer>().sharedMaterial = matC;
+
+            try
+            {
+                Assert.AreEqual(1, VrmcMaterialsMtoonxtApplier.Apply(rootA, GltfMtoonxt, Resolve));
+                Assert.AreEqual(1, VrmcMaterialsMtoonxtApplier.Apply(rootB, GltfMtoonxt, Resolve));
+                Object.DestroyImmediate(rootA);
+                rootA = null;
+                Assert.AreEqual(1, VrmcMaterialsMtoonxtApplier.Apply(rootC, GltfMtoonxt, Resolve));
+
+                if (matC.HasProperty(VrmcMaterialsMtoonxt.StencilPropRef))
+                {
+                    Assert.AreEqual(32f, matC.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                    Assert.AreEqual(33f, matB.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                }
+
+                Assert.AreEqual(34, VrmcMaterialsMtoonxtStencilRefs.Acquire(999, 1));
+            }
+            finally
+            {
+                Object.DestroyImmediate(matA);
+                Object.DestroyImmediate(matB);
+                Object.DestroyImmediate(matC);
+                if (rootA != null)
+                {
+                    Object.DestroyImmediate(rootA);
+                }
+
+                Object.DestroyImmediate(rootB);
+                Object.DestroyImmediate(rootC);
+            }
+        }
+
+        [Test]
+        public void Apply_NoStencil_DoesNotLeaseBand()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            Shader Resolve(string name)
+            {
+                return IsMtoonxtForkName(name) ? shader : null;
+            }
+
+            var idle = new GameObject("idle");
+            var idleMesh = new GameObject("idleMesh");
+            idleMesh.transform.SetParent(idle.transform, false);
+            var idleMat = new Material(shader) { name = "Face" };
+            idleMesh.AddComponent<MeshRenderer>().sharedMaterial = idleMat;
+
+            var writer = new GameObject("writer");
+            var writerMesh = new GameObject("writerMesh");
+            writerMesh.transform.SetParent(writer.transform, false);
+            var writerMat = new Material(shader) { name = "Face" };
+            writerMesh.AddComponent<MeshRenderer>().sharedMaterial = writerMat;
+
+            try
+            {
+                Assert.AreEqual(
+                    1,
+                    VrmcMaterialsMtoonxtApplier.Apply(idle, GltfMtoonxtNoStencil, Resolve)
+                );
+                Assert.AreEqual(1, VrmcMaterialsMtoonxtApplier.Apply(writer, GltfMtoonxt, Resolve));
+                Assert.AreEqual(32f, writerMat.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
+                Assert.AreEqual(33, VrmcMaterialsMtoonxtStencilRefs.Acquire(999, 1));
+            }
+            finally
+            {
+                Object.DestroyImmediate(idleMat);
+                Object.DestroyImmediate(writerMat);
+                Object.DestroyImmediate(idle);
+                Object.DestroyImmediate(writer);
+            }
+        }
+
+        [Test]
         public void PackagedShaders_FindWhenImported()
         {
             var builtin = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
@@ -568,7 +755,9 @@ namespace UniVRMXT.Tests.Mtoonxt
             var urp = Shader.Find(VrmcMaterialsMtoonxt.UrpShaderName);
             if (urp == null)
             {
-                Assert.Ignore("VRMXT/Universal Render Pipeline/MToonXT10 not imported (no URP package).");
+                Assert.Ignore(
+                    "VRMXT/Universal Render Pipeline/MToonXT10 not imported (no URP package)."
+                );
             }
 
             Assert.AreEqual(VrmcMaterialsMtoonxt.UrpShaderName, urp.name);
@@ -576,8 +765,16 @@ namespace UniVRMXT.Tests.Mtoonxt
 
         private static bool IsMtoonxtForkName(string name)
         {
-            return string.Equals(name, VrmcMaterialsMtoonxt.BuiltinShaderName, StringComparison.Ordinal)
-                || string.Equals(name, VrmcMaterialsMtoonxt.UrpShaderName, StringComparison.Ordinal);
+            return string.Equals(
+                    name,
+                    VrmcMaterialsMtoonxt.BuiltinShaderName,
+                    StringComparison.Ordinal
+                )
+                || string.Equals(
+                    name,
+                    VrmcMaterialsMtoonxt.UrpShaderName,
+                    StringComparison.Ordinal
+                );
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UniVRMXT.Format;
 
 namespace UniVRMXT.Mtoonxt
 {
@@ -8,8 +9,10 @@ namespace UniVRMXT.Mtoonxt
     {
         Off = 0,
         Write = 1,
+
         [InspectorName("Clip inside")]
         ClipInside = 2,
+
         [InspectorName("Clip outside")]
         ClipOutside = 3,
     }
@@ -17,11 +20,14 @@ namespace UniVRMXT.Mtoonxt
     public enum VrmcMtoonxtOutlineStencilOp
     {
         Off = 0,
+
         [InspectorName("Same as body")]
         Same = 1,
         Write = 2,
+
         [InspectorName("Clip inside")]
         ClipInside = 3,
+
         [InspectorName("Clip outside")]
         ClipOutside = 4,
     }
@@ -37,6 +43,11 @@ namespace UniVRMXT.Mtoonxt
         private List<VrmcMaterialsMtoonxtPair> pairs = new List<VrmcMaterialsMtoonxtPair>();
 
         public IReadOnlyList<VrmcMaterialsMtoonxtPair> Pairs => pairs;
+
+        private void OnDestroy()
+        {
+            VrmcMaterialsMtoonxtStencilRefs.Release(gameObject.GetInstanceID());
+        }
 
         public void SetPairs(IEnumerable<VrmcMaterialsMtoonxtPair> values)
         {
@@ -67,7 +78,11 @@ namespace UniVRMXT.Mtoonxt
 
         public VrmcMaterialsMtoonxtPair() { }
 
-        public VrmcMaterialsMtoonxtPair(string materialName, string extensionJson, int gltfMaterialIndex)
+        public VrmcMaterialsMtoonxtPair(
+            string materialName,
+            string extensionJson,
+            int gltfMaterialIndex
+        )
         {
             MaterialName = materialName;
             ExtensionJson = extensionJson;
