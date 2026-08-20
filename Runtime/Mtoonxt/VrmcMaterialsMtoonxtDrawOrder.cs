@@ -9,18 +9,6 @@ namespace UniVRMXT.Mtoonxt
     /// its reader (Unity mapped queues). Spec: sibling <c>alphaMode</c> rank on
     /// <c>VRMC_materials_mtoon</c>.
     /// </summary>
-    public readonly struct VrmcMaterialsMtoonxtDrawWarning
-    {
-        public readonly string Headline;
-        public readonly string Detail;
-
-        public VrmcMaterialsMtoonxtDrawWarning(string headline, string detail)
-        {
-            Headline = headline;
-            Detail = detail;
-        }
-    }
-
     public static class VrmcMaterialsMtoonxtDrawOrder
     {
         public const int RankOpaque = 0;

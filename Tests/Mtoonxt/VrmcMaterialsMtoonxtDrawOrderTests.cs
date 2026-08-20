@@ -132,6 +132,63 @@ namespace UniVRMXT.Tests.Mtoonxt
             }
         }
 
+        [Test]
+        public void CollectForPair_CutoutWrite_OpaqueReader_Warns()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var root = new GameObject("DrawOrderRoot");
+            var writer = new Material(shader) { name = "White" };
+            var reader = new Material(shader) { name = "Body_Skin-Highlight" };
+            try
+            {
+                writer.SetInt("_AlphaMode", 1);
+                reader.SetInt("_AlphaMode", 0);
+                AddMesh(root, "WhiteMesh", writer);
+                AddMesh(root, "BodyMesh", reader);
+
+                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
+                var writePair = new VrmcMaterialsMtoonxtPair("White", null, 0)
+                {
+                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                };
+                var readPair = new VrmcMaterialsMtoonxtPair("Body_Skin-Highlight", null, 1)
+                {
+                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
+                    StencilTargets = new List<Material> { writer },
+                };
+                store.SetPairs(new[] { writePair, readPair });
+
+                var readWarn = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, readPair);
+                Assert.AreEqual(1, readWarn.Count);
+                Assert.AreEqual(
+                    "White is Cutout and set to Write",
+                    readWarn[0].Headline);
+                Assert.AreEqual(
+                    "This material is Opaque. Write may draw too late for clip",
+                    readWarn[0].Detail);
+
+                var writeWarn = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, writePair);
+                Assert.AreEqual(1, writeWarn.Count);
+                Assert.AreEqual(
+                    "Body_Skin-Highlight is Opaque and clips this Write material",
+                    writeWarn[0].Headline);
+                Assert.AreEqual(
+                    "This material is Cutout. Write may draw too late for clip",
+                    writeWarn[0].Detail);
+            }
+            finally
+            {
+                Object.DestroyImmediate(writer);
+                Object.DestroyImmediate(reader);
+                Object.DestroyImmediate(root);
+            }
+        }
+
         private static void AddMesh(GameObject root, string name, Material material)
         {
             var child = new GameObject(name);
