@@ -235,6 +235,15 @@ namespace UniVRMXT.Editor.Mtoonxt
             }
 
             serializedInstance.ApplyModifiedProperties();
+
+            var warnings = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(instance, pair);
+            for (var i = 0; i < warnings.Count; i++)
+            {
+                var warning = warnings[i];
+                EditorGUILayout.HelpBox(
+                    warning.Headline + "\n" + warning.Detail,
+                    MessageType.Warning);
+            }
         }
 
         private static bool TryFindPair(

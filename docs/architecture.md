@@ -66,7 +66,7 @@ VrmxtVfxRuntime.TryAttach(
 - Per-material extension: `materials[i].extensions.VRMC_materials_mtoonxt`
 - Spec: [vrmc-materials-mtoonxt](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmc-materials-mtoonxt/README.md)
 - `VrmcMaterialsMtoonxt.TryParse` — `specVersion` `1.0`; `stencil.op` (`write`/`inside`/`outside`) plus material indices; experimental `zTest` / `zWrite` still parsed (not hub extras); `renderQueueOffset` ignored; invalid stencil object skipped
-- `VrmcMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmcMaterialsMtoonxtApplier.Apply` — swap to packaged `VRMXT/MToonXT10` or `VRMXT/Universal Render Pipeline/MToonXT10` from the active RP; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply. ShaderLab lives in `Runtime/Shaders/MToonxt/`. `MtoonxtInspector` wraps UniVRM `MToonInspector`, then serialized stencil ops / writer lists on `VrmcMaterialsMtoonxtInstance`. Export writes glTF JSON. **Add MToonXT extras** creates pairs on a loaded avatar without a prior glTF extra.
+- `MtoonxtInspector` wraps UniVRM `MToonInspector`, then serialized stencil ops / writer lists on `VrmcMaterialsMtoonxtInstance`. Inspector warns when Write `_AlphaMode` would stamp after a clip reader. Export writes glTF JSON. **Add MToonXT extras** creates pairs on a loaded avatar without a prior glTF extra.
 
 ## UniVRM integration
 
