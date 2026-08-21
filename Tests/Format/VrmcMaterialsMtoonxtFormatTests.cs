@@ -8,7 +8,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_HappyPath_MapsOpStencil()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""stencil"": { ""op"": ""write"" },
               ""outlineStencil"": { ""op"": ""outside"", ""materials"": [0] },
@@ -27,7 +28,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_BadOp_SkipsThatStencilObject()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""stencil"": { ""op"": ""nope"" },
               ""outlineStencil"": { ""op"": ""write"" }
@@ -42,7 +44,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_MissingOp_SkipsStencil()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""stencil"": { ""ref"": 1, ""comp"": ""always"", ""pass"": ""replace"" }
             }";
@@ -54,7 +57,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_NegativeMaterialIndex_SkipsStencil()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""stencil"": { ""op"": ""inside"", ""materials"": [-1] }
             }";
@@ -81,7 +85,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_ZTestAlways_MapsCompare()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""zTest"": ""always""
             }";
@@ -103,7 +108,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_ZWriteFalse_MapsFlag()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""zWrite"": false
             }";
@@ -116,7 +122,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_BadZTest_DefaultsLessEqual()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""zTest"": ""nope""
             }";
@@ -129,7 +136,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_UnknownRenderQueueOffset_NotEmitted()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""renderQueueOffset"": -1
             }";
@@ -141,7 +149,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_OpInside_MapsMaterials()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""stencil"": { ""op"": ""inside"", ""materials"": [3] }
             }";
@@ -154,9 +163,26 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
+        public void TryParse_OpInsideOverlay_MapsMaterials()
+        {
+            const string json =
+                @"{
+              ""specVersion"": ""1.0"",
+              ""stencil"": { ""op"": ""insideOverlay"", ""materials"": [0] }
+            }";
+
+            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsNotNull(xt.Stencil);
+            Assert.AreEqual("insideOverlay", xt.Stencil.Op);
+            Assert.AreEqual(1, xt.Stencil.Materials.Count);
+            Assert.AreEqual(0, xt.Stencil.Materials[0]);
+        }
+
+        [Test]
         public void TryParse_OpWriteWithMaterials_SkipsStencil()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""stencil"": { ""op"": ""write"", ""materials"": [1] }
             }";
@@ -168,7 +194,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_SameOnBody_SkipsStencil()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""stencil"": { ""op"": ""same"" }
             }";
@@ -180,7 +207,8 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void TryParse_OutlineSame_MapsOp()
         {
-            const string json = @"{
+            const string json =
+                @"{
               ""specVersion"": ""1.0"",
               ""outlineStencil"": { ""op"": ""same"" }
             }";
@@ -195,10 +223,12 @@ namespace UniVRMXT.Tests.Format
             var extras = new VrmcMaterialsMtoonxtExtension[4];
             extras[1] = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
-                null);
+                null
+            );
             extras[3] = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("write", null),
-                null);
+                null
+            );
 
             VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.IsTrue(body[3].Enabled);
@@ -213,12 +243,43 @@ namespace UniVRMXT.Tests.Format
         }
 
         [Test]
+        public void Compile_InsideOverlayWhite_AssignsEqualKeep()
+        {
+            var extras = new VrmcMaterialsMtoonxtExtension[2];
+            extras[0] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+                null
+            );
+            extras[1] = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("insideOverlay", new[] { 0 }),
+                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            );
+
+            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            Assert.AreEqual(1, body[1].Ref);
+            Assert.AreEqual("equal", body[1].Comp);
+            Assert.AreEqual("keep", body[1].Pass);
+            Assert.AreEqual(body[1].Ref, outline[1].Ref);
+            Assert.AreEqual("equal", outline[1].Comp);
+        }
+
+        [Test]
         public void Compile_GpuStateWithoutOp_IsDropped()
         {
             var extras = new VrmcMaterialsMtoonxtExtension[1];
             extras[0] = new VrmcMaterialsMtoonxtExtension(
-                new VrmcMaterialsMtoonxtStencil(true, 7, 255, 255, "always", "replace", "keep", "keep"),
-                null);
+                new VrmcMaterialsMtoonxtStencil(
+                    true,
+                    7,
+                    255,
+                    255,
+                    "always",
+                    "replace",
+                    "keep",
+                    "keep"
+                ),
+                null
+            );
 
             VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out _);
             Assert.IsNull(body[0]);
@@ -230,10 +291,12 @@ namespace UniVRMXT.Tests.Format
             var extras = new VrmcMaterialsMtoonxtExtension[2];
             extras[0] = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("write", null),
-                VrmcMaterialsMtoonxtStencil.FromOp("same", null));
+                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            );
             extras[1] = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("outside", new[] { 0 }),
-                VrmcMaterialsMtoonxtStencil.FromOp("same", null));
+                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            );
 
             VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.AreEqual(body[1].Ref, outline[1].Ref);
@@ -247,10 +310,12 @@ namespace UniVRMXT.Tests.Format
             var extras = new VrmcMaterialsMtoonxtExtension[4];
             extras[1] = new VrmcMaterialsMtoonxtExtension(
                 null,
-                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }));
+                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 })
+            );
             extras[3] = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("write", null),
-                null);
+                null
+            );
 
             VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.AreEqual(1, body[3].Ref);
@@ -267,10 +332,12 @@ namespace UniVRMXT.Tests.Format
             var extras = new VrmcMaterialsMtoonxtExtension[4];
             extras[1] = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
-                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }));
+                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 })
+            );
             extras[3] = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("write", null),
-                VrmcMaterialsMtoonxtStencil.FromOp("write", null));
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null)
+            );
 
             VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.AreEqual(body[3].Ref, outline[3].Ref);
@@ -283,10 +350,8 @@ namespace UniVRMXT.Tests.Format
         public void TryMapClipMaterialIndices_Miss_Fails()
         {
             Assert.IsFalse(
-                VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
-                    new[] { 3 },
-                    _ => null,
-                    out _));
+                VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(new[] { 3 }, _ => null, out _)
+            );
         }
 
         [Test]
@@ -296,7 +361,9 @@ namespace UniVRMXT.Tests.Format
                 VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
                     new[] { 3, 3 },
                     i => i + 1,
-                    out var mapped));
+                    out var mapped
+                )
+            );
             Assert.AreEqual(1, mapped.Length);
             Assert.AreEqual(4, mapped[0]);
         }

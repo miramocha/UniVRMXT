@@ -127,9 +127,57 @@ Shader "VRMXT/MToonXT10"
             #pragma multi_compile __ _MTOON_EMISSIVEMAP
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
+
+            #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
+            #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "FORWARD_BASE_OVERLAY"
+            Tags { "LightMode" = "ForwardBase" }
+
+            Cull [_M_CullMode]
+            Blend [_M_SrcBlend] [_M_DstBlend]
+            ZWrite Off
+            ZTest Always
+            BlendOp Add, Max
+            AlphaToMask [_M_AlphaToMask]
+
+            Stencil
+            {
+                Ref [_M_StencilRef]
+                ReadMask [_M_StencilReadMask]
+                WriteMask [_M_StencilWriteMask]
+                Comp [_M_StencilComp]
+                Pass [_M_StencilPass]
+                Fail [_M_StencilFail]
+                ZFail [_M_StencilZFail]
+            }
+
+            HLSLPROGRAM
+            #pragma target 3.0
+
+            #pragma multi_compile_fwdbase nolightmap nodynlightmap nodirlightmap novertexlight
+            #pragma multi_compile_fog
+            #pragma multi_compile_instancing
+
+            #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #pragma multi_compile __ _NORMALMAP
+            #pragma multi_compile __ _MTOON_EMISSIVEMAP
+            #pragma multi_compile __ _MTOON_RIMMAP
+            #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+
+            #pragma vertex MToonVertex
+            #pragma fragment MToonFragment
+
+            #define MTOONXT_OVERLAY_DEPTH_PASS
 
             #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
             #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
@@ -175,11 +223,62 @@ Shader "VRMXT/MToonXT10"
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
             #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
+            #pragma shader_feature_local _ _MTOONXT_OUTLINE_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
 
             #define MTOON_PASS_OUTLINE
+
+            #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
+            #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "FORWARD_BASE_OUTLINE_OVERLAY"
+            Tags { "LightMode" = "ForwardBase" }
+
+            Cull Front
+            Blend [_M_SrcBlend] [_M_DstBlend]
+            ZWrite Off
+            ZTest Always
+            Offset 1, 1
+            BlendOp Add, Max
+            AlphaToMask [_M_AlphaToMask]
+
+            Stencil
+            {
+                Ref [_M_OutlineStencilRef]
+                ReadMask [_M_OutlineStencilReadMask]
+                WriteMask [_M_OutlineStencilWriteMask]
+                Comp [_M_OutlineStencilComp]
+                Pass [_M_OutlineStencilPass]
+                Fail [_M_OutlineStencilFail]
+                ZFail [_M_OutlineStencilZFail]
+            }
+
+            HLSLPROGRAM
+            #pragma target 3.0
+
+            #pragma multi_compile_fwdbase nolightmap nodynlightmap nodirlightmap novertexlight
+            #pragma multi_compile_fog
+            #pragma multi_compile_instancing
+
+            #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #pragma multi_compile __ _NORMALMAP
+            #pragma multi_compile __ _MTOON_EMISSIVEMAP
+            #pragma multi_compile __ _MTOON_RIMMAP
+            #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
+            #pragma shader_feature_local _ _MTOONXT_OUTLINE_OVERLAY_DEPTH
+
+            #pragma vertex MToonVertex
+            #pragma fragment MToonFragment
+
+            #define MTOON_PASS_OUTLINE
+            #define MTOONXT_OVERLAY_DEPTH_PASS
 
             #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
             #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
@@ -223,9 +322,57 @@ Shader "VRMXT/MToonXT10"
             #pragma multi_compile __ _MTOON_EMISSIVEMAP
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
+
+            #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
+            #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "FORWARD_ADD_OVERLAY"
+            Tags { "LightMode" = "ForwardAdd" }
+
+            Cull [_M_CullMode]
+            Blend [_M_SrcBlend] One
+            ZWrite Off
+            ZTest Always
+            BlendOp Add, Max
+            AlphaToMask [_M_AlphaToMask]
+
+            Stencil
+            {
+                Ref [_M_StencilRef]
+                ReadMask [_M_StencilReadMask]
+                WriteMask [_M_StencilWriteMask]
+                Comp [_M_StencilComp]
+                Pass [_M_StencilPass]
+                Fail [_M_StencilFail]
+                ZFail [_M_StencilZFail]
+            }
+
+            HLSLPROGRAM
+            #pragma target 3.0
+
+            #pragma multi_compile_fwdadd_fullshadows nolightmap nodynlightmap nodirlightmap novertexlight
+            #pragma multi_compile_fog
+            #pragma multi_compile_instancing
+
+            #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #pragma multi_compile __ _NORMALMAP
+            #pragma multi_compile __ _MTOON_EMISSIVEMAP
+            #pragma multi_compile __ _MTOON_RIMMAP
+            #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+
+            #pragma vertex MToonVertex
+            #pragma fragment MToonFragment
+
+            #define MTOONXT_OVERLAY_DEPTH_PASS
 
             #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
             #include "./vrmc_materials_mtoon_forward_fragment.hlsl"

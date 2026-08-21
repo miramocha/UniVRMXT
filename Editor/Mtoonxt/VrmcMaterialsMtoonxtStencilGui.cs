@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
 using UniVRMXT.Format;
 using UniVRMXT.MaterialsOverride;
 using UniVRMXT.Mtoonxt;
-using UnityEditor;
-using UnityEngine;
 
 namespace UniVRMXT.Editor.Mtoonxt
 {
@@ -17,7 +17,8 @@ namespace UniVRMXT.Editor.Mtoonxt
         public static bool TryFindPair(
             Material material,
             out VrmcMaterialsMtoonxtInstance instance,
-            out VrmcMaterialsMtoonxtPair pair)
+            out VrmcMaterialsMtoonxtPair pair
+        )
         {
             instance = null;
             pair = null;
@@ -39,7 +40,8 @@ namespace UniVRMXT.Editor.Mtoonxt
 
             var found = UnityEngine.Object.FindObjectsByType<VrmcMaterialsMtoonxtInstance>(
                 FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+                FindObjectsSortMode.None
+            );
             for (var i = 0; i < found.Length; i++)
             {
                 if (TryFindPair(found[i], material, out pair))
@@ -55,7 +57,8 @@ namespace UniVRMXT.Editor.Mtoonxt
         public static bool TryAddExtras(
             Material material,
             out VrmcMaterialsMtoonxtInstance instance,
-            out VrmcMaterialsMtoonxtPair pair)
+            out VrmcMaterialsMtoonxtPair pair
+        )
         {
             instance = null;
             pair = null;
@@ -147,7 +150,8 @@ namespace UniVRMXT.Editor.Mtoonxt
 
             var renderers = UnityEngine.Object.FindObjectsByType<Renderer>(
                 FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+                FindObjectsSortMode.None
+            );
             for (var i = 0; i < renderers.Length; i++)
             {
                 if (!RendererUsesMaterial(renderers[i], material))
@@ -164,7 +168,8 @@ namespace UniVRMXT.Editor.Mtoonxt
 
         public static int IndexOfPair(
             VrmcMaterialsMtoonxtInstance instance,
-            VrmcMaterialsMtoonxtPair pair)
+            VrmcMaterialsMtoonxtPair pair
+        )
         {
             if (instance == null || pair == null)
             {
@@ -186,7 +191,8 @@ namespace UniVRMXT.Editor.Mtoonxt
             SerializedObject serializedInstance,
             VrmcMaterialsMtoonxtInstance instance,
             VrmcMaterialsMtoonxtPair pair,
-            int pairIndex)
+            int pairIndex
+        )
         {
             if (instance == null || pair == null || serializedInstance == null)
             {
@@ -207,31 +213,45 @@ namespace UniVRMXT.Editor.Mtoonxt
             var outlineList = element.FindPropertyRelative("OutlineStencilTargets");
 
             EditorGUILayout.PropertyField(bodyOp, new GUIContent("Stencil"));
-            var bodyOpValue = bodyOp != null
-                ? (VrmcMtoonxtBodyStencilOp)bodyOp.enumValueIndex
-                : VrmcMtoonxtBodyStencilOp.Off;
-            if ((bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInside ||
-                 bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipOutside) &&
-                bodyList != null)
+            var bodyOpValue =
+                bodyOp != null
+                    ? (VrmcMtoonxtBodyStencilOp)bodyOp.enumValueIndex
+                    : VrmcMtoonxtBodyStencilOp.Off;
+            if (
+                (
+                    bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInside
+                    || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInsideOverlay
+                    || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipOutside
+                )
+                && bodyList != null
+            )
             {
                 EditorGUILayout.PropertyField(
                     bodyList,
                     new GUIContent("Clip against writers"),
-                    true);
+                    true
+                );
             }
 
             EditorGUILayout.PropertyField(outlineOp, new GUIContent("Outline stencil"));
-            var outlineOpValue = outlineOp != null
-                ? (VrmcMtoonxtOutlineStencilOp)outlineOp.enumValueIndex
-                : VrmcMtoonxtOutlineStencilOp.Off;
-            if ((outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipInside ||
-                 outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipOutside) &&
-                outlineList != null)
+            var outlineOpValue =
+                outlineOp != null
+                    ? (VrmcMtoonxtOutlineStencilOp)outlineOp.enumValueIndex
+                    : VrmcMtoonxtOutlineStencilOp.Off;
+            if (
+                (
+                    outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipInside
+                    || outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipInsideOverlay
+                    || outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipOutside
+                )
+                && outlineList != null
+            )
             {
                 EditorGUILayout.PropertyField(
                     outlineList,
                     new GUIContent("Outline clip against writers"),
-                    true);
+                    true
+                );
             }
 
             serializedInstance.ApplyModifiedProperties();
@@ -242,14 +262,16 @@ namespace UniVRMXT.Editor.Mtoonxt
                 var warning = warnings[i];
                 EditorGUILayout.HelpBox(
                     warning.Headline + "\n" + warning.Detail,
-                    MessageType.Warning);
+                    MessageType.Warning
+                );
             }
         }
 
         private static bool TryFindPair(
             VrmcMaterialsMtoonxtInstance instance,
             Material material,
-            out VrmcMaterialsMtoonxtPair pair)
+            out VrmcMaterialsMtoonxtPair pair
+        )
         {
             pair = null;
             if (instance == null || material == null)
@@ -266,9 +288,12 @@ namespace UniVRMXT.Editor.Mtoonxt
                     continue;
                 }
 
-                foreach (var found in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
-                             root,
-                             candidate.MaterialName))
+                foreach (
+                    var found in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
+                        root,
+                        candidate.MaterialName
+                    )
+                )
                 {
                     if (found == material)
                     {
@@ -284,15 +309,20 @@ namespace UniVRMXT.Editor.Mtoonxt
         private static VrmcMaterialsMtoonxtPair CreatePair(
             VrmcMaterialsMtoonxtInstance instance,
             GameObject root,
-            Material material)
+            Material material
+        )
         {
             return new VrmcMaterialsMtoonxtPair(
                 MakeStoreKey(instance, root, material),
                 null,
-                NextGltfIndex(instance));
+                NextGltfIndex(instance)
+            );
         }
 
-        private static void AppendPair(VrmcMaterialsMtoonxtInstance instance, VrmcMaterialsMtoonxtPair pair)
+        private static void AppendPair(
+            VrmcMaterialsMtoonxtInstance instance,
+            VrmcMaterialsMtoonxtPair pair
+        )
         {
             Undo.RecordObject(instance, "Add MToonXT extras");
             var next = new List<VrmcMaterialsMtoonxtPair>(instance.Pairs.Count + 1);
@@ -346,7 +376,11 @@ namespace UniVRMXT.Editor.Mtoonxt
             return from.transform.root.gameObject;
         }
 
-        private static bool RendererUsesMaterial(GameObject gameObject, Material material, bool includeChildren)
+        private static bool RendererUsesMaterial(
+            GameObject gameObject,
+            Material material,
+            bool includeChildren
+        )
         {
             if (gameObject == null || material == null)
             {
@@ -401,7 +435,8 @@ namespace UniVRMXT.Editor.Mtoonxt
         private static string MakeStoreKey(
             VrmcMaterialsMtoonxtInstance instance,
             GameObject root,
-            Material material)
+            Material material
+        )
         {
             var baseName = VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix(material.name);
             if (string.IsNullOrEmpty(baseName))
@@ -415,7 +450,9 @@ namespace UniVRMXT.Editor.Mtoonxt
             }
 
             var occurrence = 0;
-            foreach (var candidate in VrmxtMaterialsOverrideApplier.FindMaterialsByName(root, baseName))
+            foreach (
+                var candidate in VrmxtMaterialsOverrideApplier.FindMaterialsByName(root, baseName)
+            )
             {
                 occurrence++;
                 if (candidate == material)
