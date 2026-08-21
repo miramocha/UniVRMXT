@@ -105,7 +105,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
                 "com.unity.render-pipelines.universal": "12.0.0"
             }
 
-            Name "UniversalForward"
+            Name "MToonForward"
             Tags { "LightMode" = "UniversalForward" }
 
             Cull [_M_CullMode]
@@ -234,7 +234,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
                 "com.unity.render-pipelines.universal": "12.0.0"
             }
 
-            Name "MToonOutline"
+            Name "MToonOutlineMain"
             Tags { "LightMode" = "MToonOutline" }
 
             Cull Front
@@ -269,7 +269,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
             #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+            #pragma shader_feature_local _ _MTOONXT_OUTLINE_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
@@ -324,7 +324,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
             #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+            #pragma shader_feature_local _ _MTOONXT_OUTLINE_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
@@ -361,7 +361,6 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile_instancing
 
             #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonDepthOnlyVertex
             #pragma fragment MToonDepthOnlyFragment
@@ -396,7 +395,6 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
 
             #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
             #pragma multi_compile __ _NORMALMAP
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonDepthNormalsVertex
             #pragma fragment MToonDepthNormalsFragment
@@ -431,7 +429,6 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile_instancing
 
             #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonShadowCasterVertex
             #pragma fragment MToonShadowCasterFragment

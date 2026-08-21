@@ -11,7 +11,6 @@
 #include "./vrmc_materials_mtoon_input.hlsl"
 #include "./vrmc_materials_mtoon_attribute.hlsl"
 #include "./vrmc_materials_mtoon_geometry_vertex.hlsl"
-#include "./vrmc_materials_mtoonxt_overlay_depth.hlsl"
 
 float3 _LightDirection;
 
@@ -39,10 +38,6 @@ Varyings MToonShadowCasterVertex(const Attributes v)
     UNITY_SETUP_INSTANCE_ID(v);
     UNITY_TRANSFER_INSTANCE_ID(v, output);
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
-
-#if defined(MTOONXT_SKIP_THIS_OVERLAY_DEPTH_PASS)
-    return output;
-#endif
 
     float3 normalWS = TransformObjectToWorldNormal(v.normalOS);
     const VertexPositionInfo position = MToon_GetShadowCasterVertex(v.vertex.xyz, normalWS);

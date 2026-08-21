@@ -197,12 +197,25 @@ namespace UniVRMXT.Tests.Mtoonxt
                 VrmcMaterialsMtoonxtStencil.FromOp("same", null)
             );
             Assert.IsTrue(VrmcMaterialsMtoonxtApplier.UsesOverlayDepth(overlay));
+            Assert.IsTrue(VrmcMaterialsMtoonxtApplier.UsesOutlineOverlayDepth(overlay));
 
             var inside = new VrmcMaterialsMtoonxtExtension(
                 VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 0 }),
                 VrmcMaterialsMtoonxtStencil.FromOp("same", null)
             );
             Assert.IsFalse(VrmcMaterialsMtoonxtApplier.UsesOverlayDepth(inside));
+            Assert.IsFalse(VrmcMaterialsMtoonxtApplier.UsesOutlineOverlayDepth(inside));
+        }
+
+        [Test]
+        public void UsesOverlayDepth_OutlineOnly_DoesNotForceBody()
+        {
+            var xt = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+                VrmcMaterialsMtoonxtStencil.FromOp("insideOverlay", new[] { 0 })
+            );
+            Assert.IsFalse(VrmcMaterialsMtoonxtApplier.UsesOverlayDepth(xt));
+            Assert.IsTrue(VrmcMaterialsMtoonxtApplier.UsesOutlineOverlayDepth(xt));
         }
 
         [Test]
@@ -277,12 +290,109 @@ namespace UniVRMXT.Tests.Mtoonxt
                 }
 
                 Assert.IsTrue(bone.IsKeywordEnabled(VrmcMaterialsMtoonxt.OverlayDepthKeyword));
+                Assert.IsTrue(
+                    bone.IsKeywordEnabled(VrmcMaterialsMtoonxt.OutlineOverlayDepthKeyword)
+                );
                 Assert.IsFalse(suit.IsKeywordEnabled(VrmcMaterialsMtoonxt.OverlayDepthKeyword));
+                Assert.IsFalse(
+                    suit.IsKeywordEnabled(VrmcMaterialsMtoonxt.OutlineOverlayDepthKeyword)
+                );
+
+                Assert.AreEqual(suit.renderQueue + 3, bone.renderQueue);
+
+                if (
+                    string.Equals(
+                        fork.name,
+                        VrmcMaterialsMtoonxt.BuiltinShaderName,
+                        StringComparison.Ordinal
+                    )
+                )
+                {
+                    Assert.IsFalse(
+                        bone.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase)
+                    );
+                    Assert.IsTrue(
+                        bone.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBaseOverlay)
+                    );
+                    Assert.IsTrue(
+                        suit.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase)
+                    );
+                    Assert.IsFalse(
+                        suit.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBaseOverlay)
+                    );
+                }
             }
             finally
             {
                 Object.DestroyImmediate(suit);
                 Object.DestroyImmediate(bone);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void Apply_OutlineInsideOverlay_LeavesBodyZTest()
+        {
+            var fork = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (fork == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            const string gltf =
+                @"
+            {
+              ""materials"": [
+                { ""name"": ""Body"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
+                    ""VRMC_materials_mtoonxt"": {
+                      ""specVersion"": ""1.0"",
+                      ""stencil"": { ""op"": ""write"" },
+                      ""outlineStencil"": { ""op"": ""insideOverlay"", ""materials"": [0] }
+                    }
+                }}
+              ]
+            }";
+
+            var root = new GameObject("root");
+            var mesh = new GameObject("mesh");
+            mesh.transform.SetParent(root.transform, false);
+            var material = new Material(fork) { name = "Body" };
+            mesh.AddComponent<MeshRenderer>().sharedMaterial = material;
+
+            try
+            {
+                var applied = VrmcMaterialsMtoonxtApplier.Apply(
+                    root,
+                    gltf,
+                    name => IsMtoonxtForkName(name) ? fork : null
+                );
+
+                Assert.AreEqual(1, applied);
+                Assert.AreEqual(4f, material.GetFloat(VrmcMaterialsMtoonxt.ZTestProp));
+                Assert.AreEqual(1f, material.GetFloat("_M_ZWrite"));
+                Assert.IsFalse(material.IsKeywordEnabled(VrmcMaterialsMtoonxt.OverlayDepthKeyword));
+                Assert.IsTrue(
+                    material.IsKeywordEnabled(VrmcMaterialsMtoonxt.OutlineOverlayDepthKeyword)
+                );
+                Assert.IsTrue(
+                    material.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase)
+                );
+                Assert.IsFalse(
+                    material.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBaseOverlay)
+                );
+                Assert.IsFalse(
+                    material.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBaseOutline)
+                );
+                Assert.IsTrue(
+                    material.GetShaderPassEnabled(
+                        VrmcMaterialsMtoonxt.PassForwardBaseOutlineOverlay
+                    )
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
                 Object.DestroyImmediate(root);
             }
         }

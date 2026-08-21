@@ -223,7 +223,7 @@ Shader "VRMXT/MToonXT10"
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
             #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+            #pragma shader_feature_local _ _MTOONXT_OUTLINE_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
@@ -272,7 +272,7 @@ Shader "VRMXT/MToonXT10"
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
             #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+            #pragma shader_feature_local _ _MTOONXT_OUTLINE_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
@@ -397,7 +397,6 @@ Shader "VRMXT/MToonXT10"
             #pragma multi_compile_instancing
 
             #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
-            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             // Use unity standard shadow implementation.
             // internal usage:
