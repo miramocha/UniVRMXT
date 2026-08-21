@@ -190,6 +190,104 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
+        public void UsesOverlayDepth_InsideOverlayAndSame()
+        {
+            var overlay = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("insideOverlay", new[] { 0 }),
+                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            );
+            Assert.IsTrue(VrmcMaterialsMtoonxtApplier.UsesOverlayDepth(overlay));
+
+            var inside = new VrmcMaterialsMtoonxtExtension(
+                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 0 }),
+                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            );
+            Assert.IsFalse(VrmcMaterialsMtoonxtApplier.UsesOverlayDepth(inside));
+        }
+
+        [Test]
+        public void Apply_OpInsideOverlay_WritesEqualRefAndZTestAlways()
+        {
+            var fork = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (fork == null)
+            {
+                fork = Shader.Find("Hidden/InternalErrorShader");
+            }
+
+            Assert.IsNotNull(fork);
+
+            const string gltf =
+                @"
+            {
+              ""materials"": [
+                { ""name"": ""Swimsuit"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
+                    ""VRMC_materials_mtoonxt"": {
+                      ""specVersion"": ""1.0"",
+                      ""stencil"": { ""op"": ""write"" }
+                    }
+                }},
+                { ""name"": ""Skeleton"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
+                    ""VRMC_materials_mtoonxt"": {
+                      ""specVersion"": ""1.0"",
+                      ""stencil"": { ""op"": ""insideOverlay"", ""materials"": [0] },
+                      ""outlineStencil"": { ""op"": ""same"" }
+                    }
+                }}
+              ]
+            }";
+
+            var root = new GameObject("root");
+            var suitGo = new GameObject("suit");
+            var boneGo = new GameObject("bone");
+            suitGo.transform.SetParent(root.transform, false);
+            boneGo.transform.SetParent(root.transform, false);
+            var suit = new Material(fork) { name = "Swimsuit" };
+            var bone = new Material(fork) { name = "Skeleton" };
+            suitGo.AddComponent<MeshRenderer>().sharedMaterial = suit;
+            boneGo.AddComponent<MeshRenderer>().sharedMaterial = bone;
+
+            try
+            {
+                var applied = VrmcMaterialsMtoonxtApplier.Apply(
+                    root,
+                    gltf,
+                    name => IsMtoonxtForkName(name) ? fork : null
+                );
+
+                Assert.AreEqual(2, applied);
+                if (bone.HasProperty(VrmcMaterialsMtoonxt.StencilPropRef))
+                {
+                    Assert.AreEqual(1f, bone.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
+                    Assert.AreEqual(3f, bone.GetFloat(VrmcMaterialsMtoonxt.StencilPropComp));
+                    Assert.AreEqual(0f, bone.GetFloat(VrmcMaterialsMtoonxt.StencilPropPass));
+                }
+
+                if (bone.HasProperty(VrmcMaterialsMtoonxt.ZTestProp))
+                {
+                    Assert.AreEqual(8f, bone.GetFloat(VrmcMaterialsMtoonxt.ZTestProp));
+                    Assert.AreEqual(4f, suit.GetFloat(VrmcMaterialsMtoonxt.ZTestProp));
+                }
+
+                if (bone.HasProperty("_M_ZWrite"))
+                {
+                    Assert.AreEqual(0f, bone.GetFloat("_M_ZWrite"));
+                    Assert.AreEqual(1f, suit.GetFloat("_M_ZWrite"));
+                }
+
+                Assert.IsTrue(bone.IsKeywordEnabled(VrmcMaterialsMtoonxt.OverlayDepthKeyword));
+                Assert.IsFalse(suit.IsKeywordEnabled(VrmcMaterialsMtoonxt.OverlayDepthKeyword));
+            }
+            finally
+            {
+                Object.DestroyImmediate(suit);
+                Object.DestroyImmediate(bone);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void Apply_MissingShader_LeavesStock()
         {
             var stock = Shader.Find("Standard");
@@ -532,6 +630,33 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var compiled = VrmcMaterialsMtoonxtStencil.Compiled(1, "equal", "keep");
                 VrmcMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
                 Assert.AreEqual(2449, material.renderQueue);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+
+        [Test]
+        public void ApplyStencilDrawOrder_InsideOverlay_AddsOne()
+        {
+            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            try
+            {
+                material.renderQueue = 2450;
+                var compiled = VrmcMaterialsMtoonxtStencil.Compiled(1, "equal", "keep");
+                VrmcMaterialsMtoonxtApplier.ApplyStencilDrawOrder(
+                    material,
+                    compiled,
+                    overlay: true
+                );
+                Assert.AreEqual(2451, material.renderQueue);
             }
             finally
             {

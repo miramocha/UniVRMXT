@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using UniVRMXT.MaterialsOverride;
 using UnityEngine;
+using UniVRMXT.MaterialsOverride;
 
 namespace UniVRMXT.Mtoonxt
 {
@@ -57,7 +57,8 @@ namespace UniVRMXT.Mtoonxt
 
         public static List<VrmcMaterialsMtoonxtDrawWarning> CollectForPair(
             VrmcMaterialsMtoonxtInstance instance,
-            VrmcMaterialsMtoonxtPair pair)
+            VrmcMaterialsMtoonxtPair pair
+        )
         {
             var warnings = new List<VrmcMaterialsMtoonxtDrawWarning>();
             if (instance == null || pair == null)
@@ -81,7 +82,13 @@ namespace UniVRMXT.Mtoonxt
 
             if (IsClip(pair.OutlineOp))
             {
-                AddWriterList(pair.OutlineStencilTargets, focus, writerIsSelf: false, seen, warnings);
+                AddWriterList(
+                    pair.OutlineStencilTargets,
+                    focus,
+                    writerIsSelf: false,
+                    seen,
+                    warnings
+                );
             }
 
             if (!IsWrite(pair.BodyOp) && !IsWrite(pair.OutlineOp))
@@ -122,7 +129,8 @@ namespace UniVRMXT.Mtoonxt
             Material reader,
             bool writerIsSelf,
             HashSet<long> seen,
-            List<VrmcMaterialsMtoonxtDrawWarning> warnings)
+            List<VrmcMaterialsMtoonxtDrawWarning> warnings
+        )
         {
             if (writers == null)
             {
@@ -140,11 +148,14 @@ namespace UniVRMXT.Mtoonxt
             Material reader,
             bool writerIsSelf,
             HashSet<long> seen,
-            List<VrmcMaterialsMtoonxtDrawWarning> warnings)
+            List<VrmcMaterialsMtoonxtDrawWarning> warnings
+        )
         {
-            if (!TryGetAlphaRank(writer, out var writerRank) ||
-                !TryGetAlphaRank(reader, out var readerRank) ||
-                !WriterDrawsAfterReader(writerRank, readerRank))
+            if (
+                !TryGetAlphaRank(writer, out var writerRank)
+                || !TryGetAlphaRank(reader, out var readerRank)
+                || !WriterDrawsAfterReader(writerRank, readerRank)
+            )
             {
                 return;
             }
@@ -164,14 +175,18 @@ namespace UniVRMXT.Mtoonxt
                 warnings.Add(
                     new VrmcMaterialsMtoonxtDrawWarning(
                         readerName + " is " + readerLabel + " and clips this Write material",
-                        "This material is " + writerLabel + ". Write may draw too late for clip"));
+                        "This material is " + writerLabel + ". Write may draw too late for clip"
+                    )
+                );
                 return;
             }
 
             warnings.Add(
                 new VrmcMaterialsMtoonxtDrawWarning(
                     writerName + " is " + writerLabel + " and set to Write",
-                    "This material is " + readerLabel + ". Write may draw too late for clip"));
+                    "This material is " + readerLabel + ". Write may draw too late for clip"
+                )
+            );
         }
 
         private static Material ResolvePairMaterial(GameObject root, VrmcMaterialsMtoonxtPair pair)
@@ -181,9 +196,12 @@ namespace UniVRMXT.Mtoonxt
                 return null;
             }
 
-            foreach (var found in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
-                         root,
-                         pair.MaterialName))
+            foreach (
+                var found in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
+                    root,
+                    pair.MaterialName
+                )
+            )
             {
                 if (found != null)
                 {
@@ -215,12 +233,14 @@ namespace UniVRMXT.Mtoonxt
         private static bool IsClip(VrmcMtoonxtBodyStencilOp op)
         {
             return op == VrmcMtoonxtBodyStencilOp.ClipInside
+                || op == VrmcMtoonxtBodyStencilOp.ClipInsideOverlay
                 || op == VrmcMtoonxtBodyStencilOp.ClipOutside;
         }
 
         private static bool IsClip(VrmcMtoonxtOutlineStencilOp op)
         {
             return op == VrmcMtoonxtOutlineStencilOp.ClipInside
+                || op == VrmcMtoonxtOutlineStencilOp.ClipInsideOverlay
                 || op == VrmcMtoonxtOutlineStencilOp.ClipOutside;
         }
 

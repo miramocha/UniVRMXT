@@ -138,6 +138,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile __ _MTOON_EMISSIVEMAP
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             // -------------------------------------
             // Universal Pipeline keywords
@@ -155,6 +156,69 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma fragment MToonFragment
 
             #define MTOON_URP
+
+            #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
+            #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            PackageRequirements
+            {
+                "unity": "2021.3"
+                "com.unity.render-pipelines.universal": "12.0.0"
+            }
+
+            Name "UniversalForwardOverlay"
+            Tags { "LightMode" = "UniversalForward" }
+
+            Cull [_M_CullMode]
+            Blend [_M_SrcBlend] [_M_DstBlend]
+            ZWrite Off
+            ZTest Always
+            BlendOp Add, Max
+            AlphaToMask [_M_AlphaToMask]
+
+            Stencil
+            {
+                Ref [_M_StencilRef]
+                ReadMask [_M_StencilReadMask]
+                WriteMask [_M_StencilWriteMask]
+                Comp [_M_StencilComp]
+                Pass [_M_StencilPass]
+                Fail [_M_StencilFail]
+                ZFail [_M_StencilZFail]
+            }
+
+            HLSLPROGRAM
+            #pragma target 3.0
+
+            #pragma multi_compile_fog
+            #pragma multi_compile_instancing
+
+            #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #pragma multi_compile __ _NORMALMAP
+            #pragma multi_compile __ _MTOON_EMISSIVEMAP
+            #pragma multi_compile __ _MTOON_RIMMAP
+            #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _FORWARD_PLUS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+
+            #pragma vertex MToonVertex
+            #pragma fragment MToonFragment
+
+            #define MTOON_URP
+            #define MTOONXT_OVERLAY_DEPTH_PASS
 
             #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
             #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
@@ -205,12 +269,69 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile __ _MTOON_RIMMAP
             #pragma multi_compile __ _MTOON_PARAMETERMAP
             #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonVertex
             #pragma fragment MToonFragment
 
             #define MTOON_URP
             #define MTOON_PASS_OUTLINE
+
+            #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
+            #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            PackageRequirements
+            {
+                "unity": "2021.3"
+                "com.unity.render-pipelines.universal": "12.0.0"
+            }
+
+            Name "MToonOutlineOverlay"
+            Tags { "LightMode" = "MToonOutline" }
+
+            Cull Front
+            Blend [_M_SrcBlend] [_M_DstBlend]
+            ZWrite Off
+            ZTest Always
+            Offset 1, 1
+            BlendOp Add, Max
+            AlphaToMask [_M_AlphaToMask]
+
+            Stencil
+            {
+                Ref [_M_OutlineStencilRef]
+                ReadMask [_M_OutlineStencilReadMask]
+                WriteMask [_M_OutlineStencilWriteMask]
+                Comp [_M_OutlineStencilComp]
+                Pass [_M_OutlineStencilPass]
+                Fail [_M_OutlineStencilFail]
+                ZFail [_M_OutlineStencilZFail]
+            }
+
+            HLSLPROGRAM
+            #pragma target 3.0
+
+            #pragma multi_compile_fog
+            #pragma multi_compile_instancing
+
+            #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #pragma multi_compile __ _NORMALMAP
+            #pragma multi_compile __ _MTOON_EMISSIVEMAP
+            #pragma multi_compile __ _MTOON_RIMMAP
+            #pragma multi_compile __ _MTOON_PARAMETERMAP
+            #pragma multi_compile __ _MTOON_OUTLINE_WORLD _MTOON_OUTLINE_SCREEN
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
+
+            #pragma vertex MToonVertex
+            #pragma fragment MToonFragment
+
+            #define MTOON_URP
+            #define MTOON_PASS_OUTLINE
+            #define MTOONXT_OVERLAY_DEPTH_PASS
 
             #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
             #include "./vrmc_materials_mtoon_forward_fragment.hlsl"
@@ -240,6 +361,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile_instancing
 
             #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonDepthOnlyVertex
             #pragma fragment MToonDepthOnlyFragment
@@ -274,6 +396,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
 
             #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
             #pragma multi_compile __ _NORMALMAP
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonDepthNormalsVertex
             #pragma fragment MToonDepthNormalsFragment
@@ -308,6 +431,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             #pragma multi_compile_instancing
 
             #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #pragma shader_feature_local _ _MTOONXT_OVERLAY_DEPTH
 
             #pragma vertex MToonShadowCasterVertex
             #pragma fragment MToonShadowCasterFragment

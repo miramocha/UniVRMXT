@@ -9,6 +9,9 @@ Pin: UniVRM 0.131.2 Packages/VRM10/MToon10/Shaders (MIT). See LICENSE.txt.
 URP passes use PackageRequirements (com.unity.render-pipelines.universal 12.0.0)
 so Built-in hosts skip compiling URP includes. XRMotionVectors pass omitted.
 
+`insideOverlay` enables `_MTOONXT_OVERLAY_DEPTH`: extra color/outline/add passes with
+hardcoded `ZTest Always` / `ZWrite Off`. Stock passes skip when that keyword is on.
+
 Warudo UMod Shader.Find is null. Warudo ships the same forks as shader UMods
 (`mira.shaders.mtoonxt.birp` / `.urp`) and warms via ModHost.Assets.Load. Those UMods
 do not include `MtoonxtInspector`.

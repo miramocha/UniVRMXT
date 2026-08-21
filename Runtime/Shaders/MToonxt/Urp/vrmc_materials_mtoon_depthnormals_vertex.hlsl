@@ -10,6 +10,7 @@
 #include "./vrmc_materials_mtoon_input.hlsl"
 #include "./vrmc_materials_mtoon_attribute.hlsl"
 #include "./vrmc_materials_mtoon_geometry_vertex.hlsl"
+#include "./vrmc_materials_mtoonxt_overlay_depth.hlsl"
 
 Varyings MToonDepthNormalsVertex(const Attributes v)
 {
@@ -18,6 +19,10 @@ Varyings MToonDepthNormalsVertex(const Attributes v)
     UNITY_SETUP_INSTANCE_ID(v);
     UNITY_TRANSFER_INSTANCE_ID(v, output);
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+
+#if defined(MTOONXT_SKIP_THIS_OVERLAY_DEPTH_PASS)
+    return output;
+#endif
 
 #if defined(_NORMALMAP)
     VertexNormalInputs normalInput = GetVertexNormalInputs(v.normalOS, v.tangentOS);
