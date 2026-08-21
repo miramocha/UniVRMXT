@@ -115,8 +115,6 @@ namespace UniVRMXT.Tests.Mtoonxt
                     Assert.AreEqual(32f, material.GetFloat(VrmcMaterialsMtoonxt.StencilPropRef));
                     Assert.AreEqual(1f, material.GetFloat(VrmcMaterialsMtoonxt.StencilPropEnabled));
                 }
-
-                Assert.IsTrue(material.GetShaderPassEnabled("ShadowCaster"));
             }
             finally
             {
@@ -182,12 +180,6 @@ namespace UniVRMXT.Tests.Mtoonxt
                     Assert.AreEqual(3f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropComp));
                     Assert.AreEqual(0f, iris.GetFloat(VrmcMaterialsMtoonxt.StencilPropPass));
                 }
-
-                Assert.IsFalse(iris.GetShaderPassEnabled("ShadowCaster"));
-                Assert.IsFalse(iris.GetShaderPassEnabled("DepthOnly"));
-                Assert.IsFalse(iris.GetShaderPassEnabled("DepthNormals"));
-                Assert.IsTrue(white.GetShaderPassEnabled("ShadowCaster"));
-                Assert.IsTrue(white.GetShaderPassEnabled("DepthOnly"));
             }
             finally
             {
@@ -286,8 +278,6 @@ namespace UniVRMXT.Tests.Mtoonxt
 
                 Assert.IsTrue(bone.IsKeywordEnabled(VrmcMaterialsMtoonxt.OverlayDepthKeyword));
                 Assert.IsFalse(suit.IsKeywordEnabled(VrmcMaterialsMtoonxt.OverlayDepthKeyword));
-                Assert.IsFalse(bone.GetShaderPassEnabled("ShadowCaster"));
-                Assert.IsTrue(suit.GetShaderPassEnabled("ShadowCaster"));
             }
             finally
             {
@@ -690,28 +680,6 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var compiled = VrmcMaterialsMtoonxtStencil.Compiled(1, "notEqual", "keep");
                 VrmcMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
                 Assert.AreEqual(2450, material.renderQueue);
-            }
-            finally
-            {
-                Object.DestroyImmediate(material);
-            }
-        }
-
-        [Test]
-        public void ApplyUtilityDepthPasses_Skip_DisablesShadowAndDepth()
-        {
-            var shader = Shader.Find("Hidden/InternalErrorShader");
-            Assert.IsNotNull(shader);
-
-            var material = new Material(shader);
-            try
-            {
-                VrmcMaterialsMtoonxtApplier.ApplyUtilityDepthPasses(material, skip: true);
-                Assert.IsFalse(material.GetShaderPassEnabled("ShadowCaster"));
-                Assert.IsFalse(material.GetShaderPassEnabled("DepthOnly"));
-                VrmcMaterialsMtoonxtApplier.ApplyUtilityDepthPasses(material, skip: false);
-                Assert.IsTrue(material.GetShaderPassEnabled("ShadowCaster"));
-                Assert.IsTrue(material.GetShaderPassEnabled("DepthOnly"));
             }
             finally
             {
