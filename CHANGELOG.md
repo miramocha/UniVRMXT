@@ -46,6 +46,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- MToonXT `inside` / `insideOverlay`: disable `ShadowCaster`, `DepthOnly`, and
+  `DepthNormals`. BIRP SSAO reads `_CameraDepthTexture` from ShadowCaster; that target
+  has no stencil, so the clip-inside card stayed in AO.
 - MToonXT export: PreHierarchy remaps `VRMXT/MToonXT10` to stock `VRM10/MToon10` on the export copy so UniVRM writes sibling `VRMC_materials_mtoon` (hub rule 3). UniVRM stays shader-name agnostic.
 - MToonXT shader swap: restore MToon blend / ZWrite / keywords / queue from `_AlphaMode` so transparent materials keep albedo
 - MToonXT inspector shader swap / OnGUI recover `_M_ZTest` Disabled (`0`) to LessEqual

@@ -217,10 +217,12 @@ namespace UniVRMXT.Editor.Mtoonxt
                 bodyOp != null
                     ? (VrmcMtoonxtBodyStencilOp)bodyOp.enumValueIndex
                     : VrmcMtoonxtBodyStencilOp.Off;
+            var bodyIsInsideClip =
+                bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInside
+                || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInsideOverlay;
             if (
                 (
-                    bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInside
-                    || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInsideOverlay
+                    bodyIsInsideClip
                     || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipOutside
                 )
                 && bodyList != null
@@ -256,6 +258,8 @@ namespace UniVRMXT.Editor.Mtoonxt
 
             serializedInstance.ApplyModifiedProperties();
 
+            ApplyUtilityDepthToPairMaterials(instance, pair, bodyIsInsideClip);
+
             var warnings = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(instance, pair);
             for (var i = 0; i < warnings.Count; i++)
             {
@@ -264,6 +268,28 @@ namespace UniVRMXT.Editor.Mtoonxt
                     warning.Headline + "\n" + warning.Detail,
                     MessageType.Warning
                 );
+            }
+        }
+
+        private static void ApplyUtilityDepthToPairMaterials(
+            VrmcMaterialsMtoonxtInstance instance,
+            VrmcMaterialsMtoonxtPair pair,
+            bool skip
+        )
+        {
+            if (instance == null || pair == null)
+            {
+                return;
+            }
+
+            foreach (
+                var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
+                    instance.gameObject,
+                    pair.MaterialName
+                )
+            )
+            {
+                VrmcMaterialsMtoonxtApplier.ApplyUtilityDepthPasses(material, skip);
             }
         }
 
