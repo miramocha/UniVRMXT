@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Breaking (unreleased):** MToonXT glTF key `VRMC_materials_mtoonxt` →
+  `VRMXT_materials_mtoonxt`. Parsers read the new name only.
 - **Breaking (unreleased):** UPM package id `com.miramocha.univrmxt` →
   `com.vrmxt.univrmxt`. Update `Packages/manifest.json`. New materials-override
   `provider.id` matches; existing files with the old id still load (`provider` is
@@ -33,11 +35,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - MToonXT stencil `insideOverlay` (`Clip inside overlay`): same clip as `inside`; Apply writes `_M_ZTest` Always, `_M_ZWrite` off, and `_MTOONXT_OVERLAY_DEPTH`; queue one slot after the mapped bucket
-- `VRMC_materials_mtoonxt` — parse/attach/apply stencil extras onto packaged `VRMXT/MToonXT10` / `VRMXT/Universal Render Pipeline/MToonXT10`; skip when `VRMXT_materials_override` would apply
+- `VRMXT_materials_mtoonxt` — parse/attach/apply stencil extras onto packaged `VRMXT/MToonXT10` / `VRMXT/Universal Render Pipeline/MToonXT10`; skip when `VRMXT_materials_override` would apply
 - MToonXT stencil **Enable stencil** / **Enable outline stencil** (`_M_StencilEnabled`, `_M_OutlineStencilEnabled`), default off
 - MToonXT `_M_ZTest` on forward/outline/add (default LessEqual). Overlay mats use Always so stencil Pass can run in front of closer hair
-- `VRMC_materials_mtoonxt.zTest` (`lessEqual` default; `always` for overlays). Apply writes `_M_ZTest`
-- `VRMC_materials_mtoonxt.zWrite` — optional Unity ZWrite override after MToon mapping (hair overlay: hair `false`)
+- `VRMXT_materials_mtoonxt.zTest` (`lessEqual` default; `always` for overlays). Apply writes `_M_ZTest`
+- `VRMXT_materials_mtoonxt.zWrite` — optional Unity ZWrite override after MToon mapping (hair overlay: hair `false`)
 - MToon10 stencil forks under `Runtime/Shaders/MToonxt/` (UniVRM 0.131.2 pin)
 - `VrmxtMaterialsOverrideApplier.ShaderResolveProvider` / `ResolveShader` — host can
   supply shaders when `Shader.Find` misses (Warudo/uMod ModHost cache); optional

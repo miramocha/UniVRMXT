@@ -7,7 +7,7 @@ using UniVRMXT.MaterialsOverride;
 namespace UniVRMXT.Mtoonxt
 {
     /// <summary>
-    /// Unity serialized stencil fields ↔ <c>VRMC_materials_mtoonxt</c> objects.
+    /// Unity serialized stencil fields ↔ <c>VRMXT_materials_mtoonxt</c> objects.
     /// Inspector edits the fields. Export (and Apply) build JSON / GPU from them.
     /// </summary>
     public static class VrmcMaterialsMtoonxtAuthoring

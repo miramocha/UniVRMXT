@@ -21,7 +21,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     ""VRMC_materials_mtoon"": {
                       ""specVersion"": ""1.0""
                     },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""write"" }
                     }
@@ -37,7 +37,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                 {
                   ""name"": ""Face"",
                   ""extensions"": {
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""write"" }
                     }
@@ -56,7 +56,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     ""VRMC_materials_mtoon"": {
                       ""specVersion"": ""1.0""
                     },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""write"" }
                     },
@@ -136,14 +136,14 @@ namespace UniVRMXT.Tests.Mtoonxt
               ""materials"": [
                 { ""name"": ""Iris"", ""extensions"": {
                     ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""inside"", ""materials"": [1] }
                     }
                 }},
                 { ""name"": ""White"", ""extensions"": {
                     ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""write"" }
                     }
@@ -236,14 +236,14 @@ namespace UniVRMXT.Tests.Mtoonxt
               ""materials"": [
                 { ""name"": ""Swimsuit"", ""extensions"": {
                     ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""write"" }
                     }
                 }},
                 { ""name"": ""Skeleton"", ""extensions"": {
                     ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""insideOverlay"", ""materials"": [0] },
                       ""outlineStencil"": { ""op"": ""same"" }
@@ -342,7 +342,7 @@ namespace UniVRMXT.Tests.Mtoonxt
               ""materials"": [
                 { ""name"": ""Body"", ""extensions"": {
                     ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0"",
                       ""stencil"": { ""op"": ""write"" },
                       ""outlineStencil"": { ""op"": ""insideOverlay"", ""materials"": [0] }
@@ -529,7 +529,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     ""VRMC_materials_mtoon"": {
                       ""specVersion"": ""1.0""
                     },
-                    ""VRMC_materials_mtoonxt"": {
+                    ""VRMXT_materials_mtoonxt"": {
                       ""specVersion"": ""1.0""
                     }
                   }

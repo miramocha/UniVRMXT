@@ -11,7 +11,7 @@ using UniVRMXT.Mtoonxt;
 namespace UniVRMXT.Editor.Mtoonxt
 {
     /// <summary>
-    /// Write attached <c>VRMC_materials_mtoonxt</c> JSON on VRM 1.0 export.
+    /// Write attached <c>VRMXT_materials_mtoonxt</c> JSON on VRM 1.0 export.
     /// </summary>
     [InitializeOnLoad]
     public static class VrmcMaterialsMtoonxtExportHookBootstrap
@@ -161,7 +161,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                     s_loggedMissingAddMaterialExtension = true;
                     Debug.LogWarning(
                         "UniVRMXT: Vrm10ExportExtensionContext.AddMaterialExtension is missing — "
-                            + "VRMC_materials_mtoonxt cannot be written per-material on stock UniVRM."
+                            + "VRMXT_materials_mtoonxt cannot be written per-material on stock UniVRM."
                     );
                 }
 
