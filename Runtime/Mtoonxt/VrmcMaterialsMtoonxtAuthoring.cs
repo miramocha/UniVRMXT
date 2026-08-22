@@ -12,6 +12,32 @@ namespace UniVRMXT.Mtoonxt
     /// </summary>
     public static class VrmcMaterialsMtoonxtAuthoring
     {
+        private static Dictionary<Material, Material> s_exportStockCopies;
+
+        /// <summary>
+        /// Export remap: stock MToon copy of <paramref name="source"/>. Clip lists still
+        /// point at authored assets; <see cref="ToExtension"/> matches via this map.
+        /// </summary>
+        public static void RegisterExportStockCopy(Material source, Material copy)
+        {
+            if (source == null || copy == null)
+            {
+                return;
+            }
+
+            if (s_exportStockCopies == null)
+            {
+                s_exportStockCopies = new Dictionary<Material, Material>();
+            }
+
+            s_exportStockCopies[source] = copy;
+        }
+
+        public static void ClearExportStockCopies()
+        {
+            s_exportStockCopies?.Clear();
+        }
+
         public static void PopulateFromExtensionJson(
             GameObject root,
             VrmcMaterialsMtoonxtInstance store
@@ -370,6 +396,7 @@ namespace UniVRMXT.Mtoonxt
                 return -1;
             }
 
+            var live = ExportLiveMaterial(material);
             for (var i = 0; i < store.Pairs.Count; i++)
             {
                 var pair = store.Pairs[i];
@@ -385,7 +412,7 @@ namespace UniVRMXT.Mtoonxt
                     )
                 )
                 {
-                    if (candidate == material)
+                    if (candidate == live || candidate == material)
                     {
                         return pair.GltfMaterialIndex;
                     }
@@ -395,10 +422,26 @@ namespace UniVRMXT.Mtoonxt
             return FindGltfIndexByUniqueStrippedName(store, material);
         }
 
+        private static Material ExportLiveMaterial(Material material)
+        {
+            if (
+                material == null
+                || s_exportStockCopies == null
+                || !s_exportStockCopies.TryGetValue(material, out var copy)
+                || copy == null
+            )
+            {
+                return material;
+            }
+
+            return copy;
+        }
+
         /// <summary>
         /// Export remaps MToonXT to throwaway stock MToon copies; clip lists keep authored
         /// assets. Name fallback only when a single store pair owns that stripped name so
-        /// <c>Hair#1</c> / <c>Hair#2</c> cannot steal each other's glTF index.
+        /// <c>Hair#1</c> / <c>Hair#2</c> cannot steal each other's glTF index when no copy map
+        /// is registered.
         /// </summary>
         private static int FindGltfIndexByUniqueStrippedName(
             VrmcMaterialsMtoonxtInstance store,

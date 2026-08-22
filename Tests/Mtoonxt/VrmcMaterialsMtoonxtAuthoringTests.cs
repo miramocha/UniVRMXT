@@ -9,7 +9,7 @@ namespace UniVRMXT.Tests.Mtoonxt
     public sealed class VrmcMaterialsMtoonxtAuthoringTests
     {
         [Test]
-        public void ToExtension_ClipListAuthoredAsset_MatchesThrowawayCopyByUniqueName()
+        public void ToExtension_ClipListAuthoredAsset_MatchesThrowawayStockCopy()
         {
             var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
@@ -34,6 +34,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     StencilTargets = new List<Material> { authored },
                 };
                 store.SetPairs(new[] { writer, clipper });
+                VrmcMaterialsMtoonxtAuthoring.RegisterExportStockCopy(authored, copy);
 
                 var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, clipper);
                 Assert.IsNotNull(xt);
@@ -44,6 +45,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             }
             finally
             {
+                VrmcMaterialsMtoonxtAuthoring.ClearExportStockCopies();
                 Object.DestroyImmediate(authored);
                 Object.DestroyImmediate(copy);
                 Object.DestroyImmediate(root);
@@ -79,18 +81,19 @@ namespace UniVRMXT.Tests.Mtoonxt
                     StencilTargets = new List<Material> { hair2 },
                 };
                 store.SetPairs(new[] { pair1, pair2 });
+                VrmcMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair1, copy1);
+                VrmcMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair2, copy2);
 
                 var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, pair2);
                 Assert.IsNotNull(xt);
                 Assert.IsNotNull(xt.Stencil);
                 Assert.AreEqual("outside", xt.Stencil.Op);
-                Assert.IsTrue(
-                    xt.Stencil.Materials == null || !xt.Stencil.Materials.Contains(0),
-                    "duplicate stripped names must not bind clip list to Hair#1"
-                );
+                Assert.AreEqual(1, xt.Stencil.Materials.Count);
+                Assert.AreEqual(1, xt.Stencil.Materials[0]);
             }
             finally
             {
+                VrmcMaterialsMtoonxtAuthoring.ClearExportStockCopies();
                 Object.DestroyImmediate(hair1);
                 Object.DestroyImmediate(hair2);
                 Object.DestroyImmediate(copy1);
