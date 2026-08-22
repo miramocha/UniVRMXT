@@ -9,7 +9,7 @@ namespace UniVRMXT.Mtoonxt
     /// its reader (Unity mapped queues). Spec: sibling <c>alphaMode</c> rank on
     /// <c>VRMC_materials_mtoon</c>.
     /// </summary>
-    public static class VrmcMaterialsMtoonxtDrawOrder
+    public static class VrmxtMaterialsMtoonxtDrawOrder
     {
         public const int RankOpaque = 0;
         public const int RankCutout = 1;
@@ -55,12 +55,12 @@ namespace UniVRMXT.Mtoonxt
             }
         }
 
-        public static List<VrmcMaterialsMtoonxtDrawWarning> CollectForPair(
-            VrmcMaterialsMtoonxtInstance instance,
-            VrmcMaterialsMtoonxtPair pair
+        public static List<VrmxtMaterialsMtoonxtDrawWarning> CollectForPair(
+            VrmxtMaterialsMtoonxtInstance instance,
+            VrmxtMaterialsMtoonxtPair pair
         )
         {
-            var warnings = new List<VrmcMaterialsMtoonxtDrawWarning>();
+            var warnings = new List<VrmxtMaterialsMtoonxtDrawWarning>();
             if (instance == null || pair == null)
             {
                 return warnings;
@@ -129,7 +129,7 @@ namespace UniVRMXT.Mtoonxt
             Material reader,
             bool writerIsSelf,
             HashSet<long> seen,
-            List<VrmcMaterialsMtoonxtDrawWarning> warnings
+            List<VrmxtMaterialsMtoonxtDrawWarning> warnings
         )
         {
             if (writers == null)
@@ -148,7 +148,7 @@ namespace UniVRMXT.Mtoonxt
             Material reader,
             bool writerIsSelf,
             HashSet<long> seen,
-            List<VrmcMaterialsMtoonxtDrawWarning> warnings
+            List<VrmxtMaterialsMtoonxtDrawWarning> warnings
         )
         {
             if (
@@ -173,7 +173,7 @@ namespace UniVRMXT.Mtoonxt
             if (writerIsSelf)
             {
                 warnings.Add(
-                    new VrmcMaterialsMtoonxtDrawWarning(
+                    new VrmxtMaterialsMtoonxtDrawWarning(
                         readerName + " is " + readerLabel + " and clips this Write material",
                         "This material is " + writerLabel + ". Write may draw too late for clip"
                     )
@@ -182,14 +182,14 @@ namespace UniVRMXT.Mtoonxt
             }
 
             warnings.Add(
-                new VrmcMaterialsMtoonxtDrawWarning(
+                new VrmxtMaterialsMtoonxtDrawWarning(
                     writerName + " is " + writerLabel + " and set to Write",
                     "This material is " + readerLabel + ". Write may draw too late for clip"
                 )
             );
         }
 
-        private static Material ResolvePairMaterial(GameObject root, VrmcMaterialsMtoonxtPair pair)
+        private static Material ResolvePairMaterial(GameObject root, VrmxtMaterialsMtoonxtPair pair)
         {
             if (root == null || pair == null)
             {

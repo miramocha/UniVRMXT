@@ -6,39 +6,39 @@ using UniVRMXT.Mtoonxt;
 
 namespace UniVRMXT.Tests.Mtoonxt
 {
-    public sealed class VrmcMaterialsMtoonxtDrawOrderTests
+    public sealed class VrmxtMaterialsMtoonxtDrawOrderTests
     {
         [Test]
         public void WriterDrawsAfterReader_Rank()
         {
             Assert.IsTrue(
-                VrmcMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
-                    VrmcMaterialsMtoonxtDrawOrder.RankBlend,
-                    VrmcMaterialsMtoonxtDrawOrder.RankCutout
+                VrmxtMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
+                    VrmxtMaterialsMtoonxtDrawOrder.RankBlend,
+                    VrmxtMaterialsMtoonxtDrawOrder.RankCutout
                 )
             );
             Assert.IsTrue(
-                VrmcMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
-                    VrmcMaterialsMtoonxtDrawOrder.RankCutout,
-                    VrmcMaterialsMtoonxtDrawOrder.RankOpaque
+                VrmxtMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
+                    VrmxtMaterialsMtoonxtDrawOrder.RankCutout,
+                    VrmxtMaterialsMtoonxtDrawOrder.RankOpaque
                 )
             );
             Assert.IsFalse(
-                VrmcMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
-                    VrmcMaterialsMtoonxtDrawOrder.RankCutout,
-                    VrmcMaterialsMtoonxtDrawOrder.RankCutout
+                VrmxtMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
+                    VrmxtMaterialsMtoonxtDrawOrder.RankCutout,
+                    VrmxtMaterialsMtoonxtDrawOrder.RankCutout
                 )
             );
             Assert.IsFalse(
-                VrmcMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
-                    VrmcMaterialsMtoonxtDrawOrder.RankCutout,
-                    VrmcMaterialsMtoonxtDrawOrder.RankBlend
+                VrmxtMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
+                    VrmxtMaterialsMtoonxtDrawOrder.RankCutout,
+                    VrmxtMaterialsMtoonxtDrawOrder.RankBlend
                 )
             );
             Assert.IsFalse(
-                VrmcMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
-                    VrmcMaterialsMtoonxtDrawOrder.RankOpaque,
-                    VrmcMaterialsMtoonxtDrawOrder.RankCutout
+                VrmxtMaterialsMtoonxtDrawOrder.WriterDrawsAfterReader(
+                    VrmxtMaterialsMtoonxtDrawOrder.RankOpaque,
+                    VrmxtMaterialsMtoonxtDrawOrder.RankCutout
                 )
             );
         }
@@ -46,7 +46,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         [Test]
         public void CollectForPair_TransparentWrite_CutoutReader_Warns()
         {
-            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
             {
                 Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
@@ -62,19 +62,19 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "BrowMesh", brow);
                 AddMesh(root, "HairMesh", hair);
 
-                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
-                var browPair = new VrmcMaterialsMtoonxtPair("Brow_Face-NoRim", null, 0)
+                var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
+                var browPair = new VrmxtMaterialsMtoonxtPair("Brow_Face-NoRim", null, 0)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.Write,
                 };
-                var hairPair = new VrmcMaterialsMtoonxtPair("Hair-Highlight", null, 1)
+                var hairPair = new VrmxtMaterialsMtoonxtPair("Hair-Highlight", null, 1)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { brow },
                 };
                 store.SetPairs(new[] { browPair, hairPair });
 
-                var hairWarn = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, hairPair);
+                var hairWarn = VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, hairPair);
                 Assert.AreEqual(1, hairWarn.Count);
                 Assert.AreEqual(
                     "Brow_Face-NoRim is Transparent and set to Write",
@@ -85,7 +85,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     hairWarn[0].Detail
                 );
 
-                var browWarn = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, browPair);
+                var browWarn = VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, browPair);
                 Assert.AreEqual(1, browWarn.Count);
                 Assert.AreEqual(
                     "Hair-Highlight is Cutout and clips this Write material",
@@ -107,7 +107,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         [Test]
         public void CollectForPair_SameCutout_Silent()
         {
-            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
             {
                 Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
@@ -123,12 +123,12 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "WhiteMesh", white);
                 AddMesh(root, "IrisMesh", iris);
 
-                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
-                var whitePair = new VrmcMaterialsMtoonxtPair("White", null, 0)
+                var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
+                var whitePair = new VrmxtMaterialsMtoonxtPair("White", null, 0)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.Write,
                 };
-                var irisPair = new VrmcMaterialsMtoonxtPair("Iris", null, 1)
+                var irisPair = new VrmxtMaterialsMtoonxtPair("Iris", null, 1)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.ClipInside,
                     StencilTargets = new List<Material> { white },
@@ -137,11 +137,11 @@ namespace UniVRMXT.Tests.Mtoonxt
 
                 Assert.AreEqual(
                     0,
-                    VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, irisPair).Count
+                    VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, irisPair).Count
                 );
                 Assert.AreEqual(
                     0,
-                    VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, whitePair).Count
+                    VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, whitePair).Count
                 );
             }
             finally
@@ -155,7 +155,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         [Test]
         public void CollectForPair_InsideOverlay_SameRank_NoWarn()
         {
-            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
             {
                 Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
@@ -171,12 +171,12 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "SuitMesh", suit);
                 AddMesh(root, "BoneMesh", bone);
 
-                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
-                var suitPair = new VrmcMaterialsMtoonxtPair("Swimsuit", null, 0)
+                var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
+                var suitPair = new VrmxtMaterialsMtoonxtPair("Swimsuit", null, 0)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.Write,
                 };
-                var bonePair = new VrmcMaterialsMtoonxtPair("Skeleton", null, 1)
+                var bonePair = new VrmxtMaterialsMtoonxtPair("Skeleton", null, 1)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.ClipInsideOverlay,
                     StencilTargets = new List<Material> { suit },
@@ -185,7 +185,7 @@ namespace UniVRMXT.Tests.Mtoonxt
 
                 Assert.AreEqual(
                     0,
-                    VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, bonePair).Count
+                    VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, bonePair).Count
                 );
             }
             finally
@@ -202,12 +202,12 @@ namespace UniVRMXT.Tests.Mtoonxt
             var root = new GameObject("AuthoringRoot");
             try
             {
-                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
+                var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
                 const string json =
                     @"{""specVersion"":""1.0"",""stencil"":{""op"":""insideOverlay"",""materials"":[0]}}";
-                var pair = new VrmcMaterialsMtoonxtPair("Skeleton", json, 1);
+                var pair = new VrmxtMaterialsMtoonxtPair("Skeleton", json, 1);
                 store.SetPairs(new[] { pair });
-                VrmcMaterialsMtoonxtAuthoring.PopulateFromExtensionJson(root, store, pair);
+                VrmxtMaterialsMtoonxtAuthoring.PopulateFromExtensionJson(root, store, pair);
                 Assert.AreEqual(VrmcMtoonxtBodyStencilOp.ClipInsideOverlay, pair.BodyOp);
             }
             finally
@@ -219,7 +219,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         [Test]
         public void CollectForPair_CutoutWrite_OpaqueReader_Warns()
         {
-            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
             {
                 Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
@@ -235,19 +235,19 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "WhiteMesh", writer);
                 AddMesh(root, "BodyMesh", reader);
 
-                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
-                var writePair = new VrmcMaterialsMtoonxtPair("White", null, 0)
+                var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
+                var writePair = new VrmxtMaterialsMtoonxtPair("White", null, 0)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.Write,
                 };
-                var readPair = new VrmcMaterialsMtoonxtPair("Body_Skin-Highlight", null, 1)
+                var readPair = new VrmxtMaterialsMtoonxtPair("Body_Skin-Highlight", null, 1)
                 {
                     BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { writer },
                 };
                 store.SetPairs(new[] { writePair, readPair });
 
-                var readWarn = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, readPair);
+                var readWarn = VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, readPair);
                 Assert.AreEqual(1, readWarn.Count);
                 Assert.AreEqual("White is Cutout and set to Write", readWarn[0].Headline);
                 Assert.AreEqual(
@@ -255,7 +255,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     readWarn[0].Detail
                 );
 
-                var writeWarn = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(store, writePair);
+                var writeWarn = VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, writePair);
                 Assert.AreEqual(1, writeWarn.Count);
                 Assert.AreEqual(
                     "Body_Skin-Highlight is Opaque and clips this Write material",

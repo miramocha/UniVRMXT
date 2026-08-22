@@ -8,7 +8,7 @@ namespace UniVRMXT.Editor.Mtoonxt
 {
     /// <summary>
     /// Reuses UniVRM <see cref="MToonInspector"/>. Stencil ops match the Blender panel
-    /// and write into <see cref="VrmcMaterialsMtoonxtInstance"/> pair JSON.
+    /// and write into <see cref="VrmxtMaterialsMtoonxtInstance"/> pair JSON.
     /// </summary>
     public sealed class MtoonxtInspector : ShaderGUI
     {
@@ -20,9 +20,9 @@ namespace UniVRMXT.Editor.Mtoonxt
             Shader newShader)
         {
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
-            VrmcMaterialsMtoonxtApplier.RestoreUnityMtoonPassSettings(material);
-            VrmcMaterialsMtoonxtApplier.ApplyStencilOffDefaults(material);
-            VrmcMaterialsMtoonxtApplier.ApplyZTest(material, VrmcMaterialsMtoonxt.ZTestDefault);
+            VrmxtMaterialsMtoonxtApplier.RestoreUnityMtoonPassSettings(material);
+            VrmxtMaterialsMtoonxtApplier.ApplyStencilOffDefaults(material);
+            VrmxtMaterialsMtoonxtApplier.ApplyZTest(material, VrmxtMaterialsMtoonxt.ZTestDefault);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
@@ -42,9 +42,9 @@ namespace UniVRMXT.Editor.Mtoonxt
                     continue;
                 }
 
-                VrmcMaterialsMtoonxtApplier.EnsureStencilOffIfUninitialized(material);
+                VrmxtMaterialsMtoonxtApplier.EnsureStencilOffIfUninitialized(material);
 
-                if (!VrmcMaterialsMtoonxtStencilGui.TryFindPair(
+                if (!VrmxtMaterialsMtoonxtStencilGui.TryFindPair(
                         material,
                         out var instance,
                         out var pair))
@@ -64,8 +64,8 @@ namespace UniVRMXT.Editor.Mtoonxt
                 }
 
                 var so = new SerializedObject(instance);
-                var pairIndex = VrmcMaterialsMtoonxtStencilGui.IndexOfPair(instance, pair);
-                VrmcMaterialsMtoonxtStencilGui.DrawPair(
+                var pairIndex = VrmxtMaterialsMtoonxtStencilGui.IndexOfPair(instance, pair);
+                VrmxtMaterialsMtoonxtStencilGui.DrawPair(
                     so,
                     instance,
                     pair,
@@ -78,7 +78,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             }
 
             if (firstMissing != null &&
-                VrmcMaterialsMtoonxtStencilGui.TryFindAvatarRoot(firstMissing, out _))
+                VrmxtMaterialsMtoonxtStencilGui.TryFindAvatarRoot(firstMissing, out _))
             {
                 EditorGUILayout.HelpBox(
                     "No stencil settings on this avatar yet. Click Add MToonXT extras, then set Write or clip.",
@@ -93,7 +93,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                             continue;
                         }
 
-                        VrmcMaterialsMtoonxtStencilGui.TryAddExtras(material, out _, out _);
+                        VrmxtMaterialsMtoonxtStencilGui.TryAddExtras(material, out _, out _);
                     }
 
                     GUIUtility.ExitGUI();

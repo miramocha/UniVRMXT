@@ -7,12 +7,12 @@ namespace UniVRMXT.Editor.Mtoonxt
     /// <summary>
     /// Author stencil <c>op</c> and clip target materials; writes glTF indices into pair JSON.
     /// </summary>
-    [CustomEditor(typeof(VrmcMaterialsMtoonxtInstance))]
-    public sealed class VrmcMaterialsMtoonxtInstanceEditor : UnityEditor.Editor
+    [CustomEditor(typeof(VrmxtMaterialsMtoonxtInstance))]
+    public sealed class VrmxtMaterialsMtoonxtInstanceEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
-            var instance = (VrmcMaterialsMtoonxtInstance)target;
+            var instance = (VrmxtMaterialsMtoonxtInstance)target;
 
             serializedObject.Update();
 
@@ -23,7 +23,7 @@ namespace UniVRMXT.Editor.Mtoonxt
 
             if (GUILayout.Button("Add extras from MToonXT materials"))
             {
-                VrmcMaterialsMtoonxtStencilGui.AddExtrasFromRenderers(instance);
+                VrmxtMaterialsMtoonxtStencilGui.AddExtrasFromRenderers(instance);
                 GUIUtility.ExitGUI();
             }
 
@@ -45,7 +45,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 EditorGUILayout.LabelField(
                     string.IsNullOrEmpty(pair.MaterialName) ? "[" + i + "]" : pair.MaterialName,
                     EditorStyles.boldLabel);
-                VrmcMaterialsMtoonxtStencilGui.DrawPair(
+                VrmxtMaterialsMtoonxtStencilGui.DrawPair(
                     serializedObject,
                     instance,
                     pair,

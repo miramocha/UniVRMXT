@@ -9,7 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Breaking (unreleased):** MToonXT glTF key `VRMC_materials_mtoonxt` →
-  `VRMXT_materials_mtoonxt`. Parsers read the new name only.
+  `VRMXT_materials_mtoonxt`. Parsers read the new name only. C# types
+  `VrmcMaterialsMtoonxt*` → `VrmxtMaterialsMtoonxt*`. Shader files
+  `vrmc_materials_mtoonxt*` → `vrmxt_materials_mtoonxt*` (ShaderLab names
+  `VRMXT/MToonXT10` unchanged).
 - **Breaking (unreleased):** UPM package id `com.miramocha.univrmxt` →
   `com.vrmxt.univrmxt`. Update `Packages/manifest.json`. New materials-override
   `provider.id` matches; existing files with the old id still load (`provider` is
@@ -27,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Export hook writes `VRMXT_sprite_particle`; Extended-UniVRM `AddRootExtension` registers
   `extensionsUsed` once (never `extensionsRequired`).
 - MToonXT export clip lists (`inside` / `outside` / `insideOverlay`) match throwaway MToonXT→stock MToon copies by export remap map (authored clip asset → copy), then identity, then unique stripped name (duplicate `Name#N` keys do not steal the first index).
-- MToonXT stencil `op` (`write` / `inside` / `insideOverlay` / `outside` / outline `same`) plus glTF material indices; compile to GPU Ref from one table (clip lists resolve body `write`). `insideOverlay` uses the same stencil mapping as `inside`; Apply sets `_M_ZTest` Always, `_M_ZWrite` off, `_MTOONXT_OVERLAY_DEPTH` (compile-time Always / ZWrite Off color pass), queue one slot after mapped. `ref`/`comp`/`pass` are not read. Avatar `VrmcMaterialsMtoonxtInstance` editor lists clip materials. Body `write` draws two Unity queue slots earlier and `inside` one slot earlier so clip readers see the stamp before later face cutout. `renderQueueOffset` on the XT object is ignored. Export keeps original clip indices when material remap fails.
+- MToonXT stencil `op` (`write` / `inside` / `insideOverlay` / `outside` / outline `same`) plus glTF material indices; compile to GPU Ref from one table (clip lists resolve body `write`). `insideOverlay` uses the same stencil mapping as `inside`; Apply sets `_M_ZTest` Always, `_M_ZWrite` off, `_MTOONXT_OVERLAY_DEPTH` (compile-time Always / ZWrite Off color pass), queue one slot after mapped. `ref`/`comp`/`pass` are not read. Avatar `VrmxtMaterialsMtoonxtInstance` editor lists clip materials. Body `write` draws two Unity queue slots earlier and `inside` one slot earlier so clip readers see the stamp before later face cutout. `renderQueueOffset` on the XT object is ignored. Export keeps original clip indices when material remap fails.
 - MToonXT stencil inspector: warn when a Write material's `_AlphaMode` bucket is later than a clip reader (Transparent Write vs Cutout/Opaque, Cutout Write vs Opaque). Same copy as Blender. File stays valid.
 - MToonXT Apply assigns a per-root GPU stencil Ref band starting at 32 (skip 0, 1, 51, 255) so two loaded avatars do not share file-local Ref 1. Not stored in glTF.
 - `MtoonxtInspector` authors serialized stencil ops and writer lists on the avatar instance (Unity fields), including **Clip inside overlay**. glTF JSON is written on export only. Z test is not an inspector field; parse/apply of research `zTest` / `zWrite` from imported leftover JSON is unchanged. **Add MToonXT extras** creates pairs on a loaded avatar without Blender (shader swap to `VRMXT/MToonXT10` still required).

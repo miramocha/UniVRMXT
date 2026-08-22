@@ -1,8 +1,8 @@
 BIRP and URP MToon10 forks with pass stencil for VRMXT_materials_mtoonxt.
 
 ShaderLab:
-  Builtin/vrmc_materials_mtoonxt.shader → VRMXT/MToonXT10
-  Urp/vrmc_materials_mtoonxt_urp.shader → VRMXT/Universal Render Pipeline/MToonXT10
+  Builtin/vrmxt_materials_mtoonxt.shader → VRMXT/MToonXT10
+  Urp/vrmxt_materials_mtoonxt_urp.shader → VRMXT/Universal Render Pipeline/MToonXT10
 
 Pin: UniVRM 0.131.2 Packages/VRM10/MToon10/Shaders (MIT). See LICENSE.txt.
 

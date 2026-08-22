@@ -14,7 +14,7 @@ namespace UniVRMXT.Editor.Mtoonxt
     /// Write attached <c>VRMXT_materials_mtoonxt</c> JSON on VRM 1.0 export.
     /// </summary>
     [InitializeOnLoad]
-    public static class VrmcMaterialsMtoonxtExportHookBootstrap
+    public static class VrmxtMaterialsMtoonxtExportHookBootstrap
     {
         private const string RegistryTypeName = "UniVRM10.Vrm10ExportExtensionRegistry, VRM10";
 
@@ -22,7 +22,7 @@ namespace UniVRMXT.Editor.Mtoonxt
         private static bool s_registered;
         private static bool s_loggedMissingAddMaterialExtension;
 
-        static VrmcMaterialsMtoonxtExportHookBootstrap()
+        static VrmxtMaterialsMtoonxtExportHookBootstrap()
         {
             TryRegister();
         }
@@ -119,7 +119,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             var phase = phaseObj.ToString();
             if (phase == "PreHierarchy")
             {
-                VrmcMaterialsMtoonxtAuthoring.ClearExportStockCopies();
+                VrmxtMaterialsMtoonxtAuthoring.ClearExportStockCopies();
                 RemapMtoonxtShadersToStockMtoon(root);
                 return;
             }
@@ -135,13 +135,13 @@ namespace UniVRMXT.Editor.Mtoonxt
             }
             finally
             {
-                VrmcMaterialsMtoonxtAuthoring.ClearExportStockCopies();
+                VrmxtMaterialsMtoonxtAuthoring.ClearExportStockCopies();
             }
         }
 
         private static void WriteMtoonxtExtensions(object contextObj, Type type, GameObject root)
         {
-            var store = root.GetComponent<VrmcMaterialsMtoonxtInstance>();
+            var store = root.GetComponent<VrmxtMaterialsMtoonxtInstance>();
             if (store == null || store.Pairs.Count == 0)
             {
                 return;
@@ -184,7 +184,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                     continue;
                 }
 
-                var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, pair);
+                var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, pair);
                 if (xt == null)
                 {
                     continue;
@@ -195,7 +195,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                     continue;
                 }
 
-                var payload = VrmcMaterialsMtoonxt.ToJson(xt);
+                var payload = VrmxtMaterialsMtoonxt.ToJson(xt);
                 if (NeedsClipIndexRewrite(xt) && tryGetMaterialIndex != null)
                 {
                     payload = RewriteClipIndices(
@@ -236,7 +236,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                         new object[]
                         {
                             materialIndex.Value,
-                            VrmcMaterialsMtoonxt.ExtensionName,
+                            VrmxtMaterialsMtoonxt.ExtensionName,
                             utf8,
                         }
                     );
@@ -249,7 +249,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                         new object[]
                         {
                             pair.GltfMaterialIndex,
-                            VrmcMaterialsMtoonxt.ExtensionName,
+                            VrmxtMaterialsMtoonxt.ExtensionName,
                             utf8,
                         }
                     );
@@ -281,27 +281,27 @@ namespace UniVRMXT.Editor.Mtoonxt
             return null;
         }
 
-        private static bool NeedsClipIndexRewrite(VrmcMaterialsMtoonxtExtension xt)
+        private static bool NeedsClipIndexRewrite(VrmxtMaterialsMtoonxtExtension xt)
         {
             return xt != null
                 && (
                     (
                         xt.Stencil != null
                         && xt.Stencil.HasOp
-                        && VrmcMaterialsMtoonxt.UsesMaterialsList(xt.Stencil.Op)
+                        && VrmxtMaterialsMtoonxt.UsesMaterialsList(xt.Stencil.Op)
                     )
                     || (
                         xt.OutlineStencil != null
                         && xt.OutlineStencil.HasOp
-                        && VrmcMaterialsMtoonxt.UsesMaterialsList(xt.OutlineStencil.Op)
+                        && VrmxtMaterialsMtoonxt.UsesMaterialsList(xt.OutlineStencil.Op)
                     )
                 );
         }
 
         private static string RewriteClipIndices(
-            VrmcMaterialsMtoonxtExtension xt,
+            VrmxtMaterialsMtoonxtExtension xt,
             GameObject root,
-            VrmcMaterialsMtoonxtInstance store,
+            VrmxtMaterialsMtoonxtInstance store,
             object contextObj,
             Type type,
             MethodInfo tryGetMaterialIndex
@@ -323,14 +323,14 @@ namespace UniVRMXT.Editor.Mtoonxt
                 type,
                 tryGetMaterialIndex
             );
-            var next = new VrmcMaterialsMtoonxtExtension(body, outline, xt.ZTest, xt.ZWrite);
-            return VrmcMaterialsMtoonxt.ToJson(next);
+            var next = new VrmxtMaterialsMtoonxtExtension(body, outline, xt.ZTest, xt.ZWrite);
+            return VrmxtMaterialsMtoonxt.ToJson(next);
         }
 
-        private static VrmcMaterialsMtoonxtStencil RewriteStencil(
-            VrmcMaterialsMtoonxtStencil stencil,
+        private static VrmxtMaterialsMtoonxtStencil RewriteStencil(
+            VrmxtMaterialsMtoonxtStencil stencil,
             GameObject root,
-            VrmcMaterialsMtoonxtInstance store,
+            VrmxtMaterialsMtoonxtInstance store,
             object contextObj,
             Type type,
             MethodInfo tryGetMaterialIndex
@@ -339,7 +339,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             if (
                 stencil == null
                 || !stencil.HasOp
-                || !VrmcMaterialsMtoonxt.UsesMaterialsList(stencil.Op)
+                || !VrmxtMaterialsMtoonxt.UsesMaterialsList(stencil.Op)
                 || stencil.Materials == null
             )
             {
@@ -347,7 +347,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             }
 
             if (
-                !VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
+                !VrmxtMaterialsMtoonxt.TryMapClipMaterialIndices(
                     stencil.Materials,
                     source =>
                         ResolveMaterialIndex(
@@ -363,12 +363,12 @@ namespace UniVRMXT.Editor.Mtoonxt
                 return stencil;
             }
 
-            return VrmcMaterialsMtoonxtStencil.FromOp(stencil.Op, mapped);
+            return VrmxtMaterialsMtoonxtStencil.FromOp(stencil.Op, mapped);
         }
 
         private static Material FindMaterialForGltfIndex(
             GameObject root,
-            VrmcMaterialsMtoonxtInstance store,
+            VrmxtMaterialsMtoonxtInstance store,
             int gltfIndex
         )
         {
@@ -430,7 +430,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                     copy.shader = stock;
                     copy.name = src.name;
                     copy.hideFlags = HideFlags.HideAndDontSave;
-                    VrmcMaterialsMtoonxtAuthoring.RegisterExportStockCopy(src, copy);
+                    VrmxtMaterialsMtoonxtAuthoring.RegisterExportStockCopy(src, copy);
                     next[j] = copy;
                 }
 
@@ -449,12 +449,12 @@ namespace UniVRMXT.Editor.Mtoonxt
             }
 
             var name = src.shader.name;
-            if (name == VrmcMaterialsMtoonxt.BuiltinShaderName)
+            if (name == VrmxtMaterialsMtoonxt.BuiltinShaderName)
             {
                 return stockBirp;
             }
 
-            if (name == VrmcMaterialsMtoonxt.UrpShaderName)
+            if (name == VrmxtMaterialsMtoonxt.UrpShaderName)
             {
                 return stockUrp;
             }
