@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using UniVRMXT.Format;
 using UniVRMXT.MaterialsOverride;
 using UniVRMXT.Mtoonxt;
+using Object = UnityEngine.Object;
 
 namespace UniVRMXT.Tests.Mtoonxt
 {
@@ -308,15 +309,11 @@ namespace UniVRMXT.Tests.Mtoonxt
                     )
                 )
                 {
-                    Assert.IsFalse(
-                        bone.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase)
-                    );
+                    Assert.IsFalse(bone.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase));
                     Assert.IsTrue(
                         bone.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBaseOverlay)
                     );
-                    Assert.IsTrue(
-                        suit.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase)
-                    );
+                    Assert.IsTrue(suit.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase));
                     Assert.IsFalse(
                         suit.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBaseOverlay)
                     );
@@ -375,9 +372,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                 Assert.IsTrue(
                     material.IsKeywordEnabled(VrmcMaterialsMtoonxt.OutlineOverlayDepthKeyword)
                 );
-                Assert.IsTrue(
-                    material.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase)
-                );
+                Assert.IsTrue(material.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBase));
                 Assert.IsFalse(
                     material.GetShaderPassEnabled(VrmcMaterialsMtoonxt.PassForwardBaseOverlay)
                 );
