@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UniVRMXT.Format;
@@ -384,7 +385,7 @@ namespace UniVRMXT.Mtoonxt
                     )
                 )
                 {
-                    if (candidate == material)
+                    if (IsSameClipMaterial(candidate, material))
                     {
                         return pair.GltfMaterialIndex;
                     }
@@ -392,6 +393,27 @@ namespace UniVRMXT.Mtoonxt
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Export remaps MToonXT to stock MToon on throwaway material copies.
+        /// Clip lists still hold the authored assets; match those copies by name.
+        /// </summary>
+        private static bool IsSameClipMaterial(Material candidate, Material material)
+        {
+            if (candidate == null || material == null)
+            {
+                return false;
+            }
+
+            if (candidate == material)
+            {
+                return true;
+            }
+
+            var a = VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix(candidate.name);
+            var b = VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix(material.name);
+            return !string.IsNullOrEmpty(a) && string.Equals(a, b, StringComparison.Ordinal);
         }
     }
 }
