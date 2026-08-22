@@ -58,7 +58,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
         [Enum(Never,1,Less,2,Equal,3,LessEqual,4,Greater,5,NotEqual,6,GreaterEqual,7,Always,8)] _M_ZTest ("ZTest", Float) = 4
         _M_AlphaToMask ("_AlphaToMask", Float) = 0.0
 
-        // Body / forward stencil (VRMC_materials_mtoonxt). Off until Enable stencil.
+        // Body / forward stencil (VRMXT_materials_mtoonxt). Off until Enable stencil.
         [ToggleUI] _M_StencilEnabled ("Enable stencil", Float) = 0
         _M_StencilRef ("Stencil Ref", Range(0, 255)) = 0
         _M_StencilReadMask ("Stencil ReadMask", Range(0, 255)) = 255

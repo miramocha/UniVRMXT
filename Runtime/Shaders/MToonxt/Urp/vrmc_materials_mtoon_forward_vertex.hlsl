@@ -7,7 +7,7 @@
 #include "./vrmc_materials_mtoon_input.hlsl"
 #include "./vrmc_materials_mtoon_attribute.hlsl"
 #include "./vrmc_materials_mtoon_geometry_vertex.hlsl"
-#include "./vrmc_materials_mtoonxt_overlay_depth.hlsl"
+#include "./vrmxt_materials_mtoonxt_overlay_depth.hlsl"
 
 Varyings MToonVertex(const Attributes v) // v is UnityCG macro specified name.
 {

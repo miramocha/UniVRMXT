@@ -12,12 +12,12 @@ namespace UniVRMXT.Editor.Mtoonxt
     /// Shared stencil authoring widgets. Edits Unity fields on the avatar instance.
     /// Export writes glTF JSON.
     /// </summary>
-    internal static class VrmcMaterialsMtoonxtStencilGui
+    internal static class VrmxtMaterialsMtoonxtStencilGui
     {
         public static bool TryFindPair(
             Material material,
-            out VrmcMaterialsMtoonxtInstance instance,
-            out VrmcMaterialsMtoonxtPair pair
+            out VrmxtMaterialsMtoonxtInstance instance,
+            out VrmxtMaterialsMtoonxtPair pair
         )
         {
             instance = null;
@@ -30,7 +30,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             var selected = Selection.activeGameObject;
             if (selected != null)
             {
-                var fromSelection = selected.GetComponentInParent<VrmcMaterialsMtoonxtInstance>();
+                var fromSelection = selected.GetComponentInParent<VrmxtMaterialsMtoonxtInstance>();
                 if (fromSelection != null && TryFindPair(fromSelection, material, out pair))
                 {
                     instance = fromSelection;
@@ -38,7 +38,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 }
             }
 
-            var found = UnityEngine.Object.FindObjectsByType<VrmcMaterialsMtoonxtInstance>(
+            var found = UnityEngine.Object.FindObjectsByType<VrmxtMaterialsMtoonxtInstance>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None
             );
@@ -56,8 +56,8 @@ namespace UniVRMXT.Editor.Mtoonxt
 
         public static bool TryAddExtras(
             Material material,
-            out VrmcMaterialsMtoonxtInstance instance,
-            out VrmcMaterialsMtoonxtPair pair
+            out VrmxtMaterialsMtoonxtInstance instance,
+            out VrmxtMaterialsMtoonxtPair pair
         )
         {
             instance = null;
@@ -93,7 +93,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             return true;
         }
 
-        public static int AddExtrasFromRenderers(VrmcMaterialsMtoonxtInstance instance)
+        public static int AddExtrasFromRenderers(VrmxtMaterialsMtoonxtInstance instance)
         {
             if (instance == null)
             {
@@ -167,8 +167,8 @@ namespace UniVRMXT.Editor.Mtoonxt
         }
 
         public static int IndexOfPair(
-            VrmcMaterialsMtoonxtInstance instance,
-            VrmcMaterialsMtoonxtPair pair
+            VrmxtMaterialsMtoonxtInstance instance,
+            VrmxtMaterialsMtoonxtPair pair
         )
         {
             if (instance == null || pair == null)
@@ -189,8 +189,8 @@ namespace UniVRMXT.Editor.Mtoonxt
 
         public static void DrawPair(
             SerializedObject serializedInstance,
-            VrmcMaterialsMtoonxtInstance instance,
-            VrmcMaterialsMtoonxtPair pair,
+            VrmxtMaterialsMtoonxtInstance instance,
+            VrmxtMaterialsMtoonxtPair pair,
             int pairIndex
         )
         {
@@ -215,13 +215,13 @@ namespace UniVRMXT.Editor.Mtoonxt
             EditorGUILayout.PropertyField(bodyOp, new GUIContent("Stencil"));
             var bodyOpValue =
                 bodyOp != null
-                    ? (VrmcMtoonxtBodyStencilOp)bodyOp.enumValueIndex
-                    : VrmcMtoonxtBodyStencilOp.Off;
+                    ? (VrmxtMtoonxtBodyStencilOp)bodyOp.enumValueIndex
+                    : VrmxtMtoonxtBodyStencilOp.Off;
             if (
                 (
-                    bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInside
-                    || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInsideOverlay
-                    || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipOutside
+                    bodyOpValue == VrmxtMtoonxtBodyStencilOp.ClipInside
+                    || bodyOpValue == VrmxtMtoonxtBodyStencilOp.ClipInsideOverlay
+                    || bodyOpValue == VrmxtMtoonxtBodyStencilOp.ClipOutside
                 )
                 && bodyList != null
             )
@@ -236,13 +236,13 @@ namespace UniVRMXT.Editor.Mtoonxt
             EditorGUILayout.PropertyField(outlineOp, new GUIContent("Outline stencil"));
             var outlineOpValue =
                 outlineOp != null
-                    ? (VrmcMtoonxtOutlineStencilOp)outlineOp.enumValueIndex
-                    : VrmcMtoonxtOutlineStencilOp.Off;
+                    ? (VrmxtMtoonxtOutlineStencilOp)outlineOp.enumValueIndex
+                    : VrmxtMtoonxtOutlineStencilOp.Off;
             if (
                 (
-                    outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipInside
-                    || outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipInsideOverlay
-                    || outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipOutside
+                    outlineOpValue == VrmxtMtoonxtOutlineStencilOp.ClipInside
+                    || outlineOpValue == VrmxtMtoonxtOutlineStencilOp.ClipInsideOverlay
+                    || outlineOpValue == VrmxtMtoonxtOutlineStencilOp.ClipOutside
                 )
                 && outlineList != null
             )
@@ -256,7 +256,7 @@ namespace UniVRMXT.Editor.Mtoonxt
 
             serializedInstance.ApplyModifiedProperties();
 
-            var warnings = VrmcMaterialsMtoonxtDrawOrder.CollectForPair(instance, pair);
+            var warnings = VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(instance, pair);
             for (var i = 0; i < warnings.Count; i++)
             {
                 var warning = warnings[i];
@@ -268,9 +268,9 @@ namespace UniVRMXT.Editor.Mtoonxt
         }
 
         private static bool TryFindPair(
-            VrmcMaterialsMtoonxtInstance instance,
+            VrmxtMaterialsMtoonxtInstance instance,
             Material material,
-            out VrmcMaterialsMtoonxtPair pair
+            out VrmxtMaterialsMtoonxtPair pair
         )
         {
             pair = null;
@@ -306,13 +306,13 @@ namespace UniVRMXT.Editor.Mtoonxt
             return false;
         }
 
-        private static VrmcMaterialsMtoonxtPair CreatePair(
-            VrmcMaterialsMtoonxtInstance instance,
+        private static VrmxtMaterialsMtoonxtPair CreatePair(
+            VrmxtMaterialsMtoonxtInstance instance,
             GameObject root,
             Material material
         )
         {
-            return new VrmcMaterialsMtoonxtPair(
+            return new VrmxtMaterialsMtoonxtPair(
                 MakeStoreKey(instance, root, material),
                 null,
                 NextGltfIndex(instance)
@@ -320,12 +320,12 @@ namespace UniVRMXT.Editor.Mtoonxt
         }
 
         private static void AppendPair(
-            VrmcMaterialsMtoonxtInstance instance,
-            VrmcMaterialsMtoonxtPair pair
+            VrmxtMaterialsMtoonxtInstance instance,
+            VrmxtMaterialsMtoonxtPair pair
         )
         {
             Undo.RecordObject(instance, "Add MToonXT extras");
-            var next = new List<VrmcMaterialsMtoonxtPair>(instance.Pairs.Count + 1);
+            var next = new List<VrmxtMaterialsMtoonxtPair>(instance.Pairs.Count + 1);
             for (var i = 0; i < instance.Pairs.Count; i++)
             {
                 next.Add(instance.Pairs[i]);
@@ -337,15 +337,15 @@ namespace UniVRMXT.Editor.Mtoonxt
             PrefabUtility.RecordPrefabInstancePropertyModifications(instance);
         }
 
-        private static VrmcMaterialsMtoonxtInstance EnsureInstance(GameObject root)
+        private static VrmxtMaterialsMtoonxtInstance EnsureInstance(GameObject root)
         {
-            var instance = root.GetComponent<VrmcMaterialsMtoonxtInstance>();
+            var instance = root.GetComponent<VrmxtMaterialsMtoonxtInstance>();
             if (instance != null)
             {
                 return instance;
             }
 
-            return Undo.AddComponent<VrmcMaterialsMtoonxtInstance>(root);
+            return Undo.AddComponent<VrmxtMaterialsMtoonxtInstance>(root);
         }
 
         private static GameObject ResolveAvatarRoot(GameObject from)
@@ -355,7 +355,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 return null;
             }
 
-            var xt = from.GetComponentInParent<VrmcMaterialsMtoonxtInstance>();
+            var xt = from.GetComponentInParent<VrmxtMaterialsMtoonxtInstance>();
             if (xt != null)
             {
                 return xt.gameObject;
@@ -428,12 +428,12 @@ namespace UniVRMXT.Editor.Mtoonxt
             }
 
             var name = material.shader.name;
-            return name == VrmcMaterialsMtoonxt.BuiltinShaderName
-                || name == VrmcMaterialsMtoonxt.UrpShaderName;
+            return name == VrmxtMaterialsMtoonxt.BuiltinShaderName
+                || name == VrmxtMaterialsMtoonxt.UrpShaderName;
         }
 
         private static string MakeStoreKey(
-            VrmcMaterialsMtoonxtInstance instance,
+            VrmxtMaterialsMtoonxtInstance instance,
             GameObject root,
             Material material
         )
@@ -481,7 +481,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             return baseName + "#" + suffix;
         }
 
-        private static bool StoreKeyTaken(VrmcMaterialsMtoonxtInstance instance, string key)
+        private static bool StoreKeyTaken(VrmxtMaterialsMtoonxtInstance instance, string key)
         {
             if (instance == null)
             {
@@ -500,7 +500,7 @@ namespace UniVRMXT.Editor.Mtoonxt
             return false;
         }
 
-        private static int NextGltfIndex(VrmcMaterialsMtoonxtInstance instance)
+        private static int NextGltfIndex(VrmxtMaterialsMtoonxtInstance instance)
         {
             var next = 0;
             if (instance == null)

@@ -3,7 +3,7 @@ using UniVRMXT.Format;
 
 namespace UniVRMXT.Tests.Format
 {
-    public sealed class VrmcMaterialsMtoonxtFormatTests
+    public sealed class VrmxtMaterialsMtoonxtFormatTests
     {
         [Test]
         public void TryParse_HappyPath_MapsOpStencil()
@@ -16,7 +16,7 @@ namespace UniVRMXT.Tests.Format
               ""faceSdf"": { ""enabled"": true }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNotNull(xt.Stencil);
             Assert.AreEqual("write", xt.Stencil.Op);
             Assert.IsNotNull(xt.OutlineStencil);
@@ -35,7 +35,7 @@ namespace UniVRMXT.Tests.Format
               ""outlineStencil"": { ""op"": ""write"" }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNull(xt.Stencil);
             Assert.IsNotNull(xt.OutlineStencil);
             Assert.AreEqual("write", xt.OutlineStencil.Op);
@@ -50,7 +50,7 @@ namespace UniVRMXT.Tests.Format
               ""stencil"": { ""ref"": 1, ""comp"": ""always"", ""pass"": ""replace"" }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNull(xt.Stencil);
         }
 
@@ -63,7 +63,7 @@ namespace UniVRMXT.Tests.Format
               ""stencil"": { ""op"": ""inside"", ""materials"": [-1] }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNull(xt.Stencil);
         }
 
@@ -71,14 +71,28 @@ namespace UniVRMXT.Tests.Format
         public void TryParse_WrongSpecVersion_Fails()
         {
             const string json = @"{ ""specVersion"": ""0.9"" }";
-            Assert.IsFalse(VrmcMaterialsMtoonxt.TryParse(json, out _));
+            Assert.IsFalse(VrmxtMaterialsMtoonxt.TryParse(json, out _));
+        }
+
+        [Test]
+        public void TryParse_RetiredGltfKey_Fails()
+        {
+            const string json =
+                @"{
+              ""VRMC_materials_mtoonxt"": {
+                ""specVersion"": ""1.0"",
+                ""stencil"": { ""op"": ""write"" }
+              }
+            }";
+
+            Assert.IsFalse(VrmxtMaterialsMtoonxt.TryParse(json, out _));
         }
 
         [Test]
         public void TryMap_UnknownCompare_Fails()
         {
-            Assert.IsFalse(VrmcMaterialsMtoonxt.TryMapCompareFunction("Always", out _));
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryMapCompareFunction("always", out var always));
+            Assert.IsFalse(VrmxtMaterialsMtoonxt.TryMapCompareFunction("Always", out _));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryMapCompareFunction("always", out var always));
             Assert.AreEqual(8, always);
         }
 
@@ -91,7 +105,7 @@ namespace UniVRMXT.Tests.Format
               ""zTest"": ""always""
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.AreEqual("always", xt.ZTest);
             Assert.AreEqual(8, xt.ZTestUnityInt);
         }
@@ -100,7 +114,7 @@ namespace UniVRMXT.Tests.Format
         public void TryParse_MissingZTest_DefaultsLessEqual()
         {
             const string json = @"{ ""specVersion"": ""1.0"" }";
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.AreEqual("lessEqual", xt.ZTest);
             Assert.AreEqual(4, xt.ZTestUnityInt);
         }
@@ -114,7 +128,7 @@ namespace UniVRMXT.Tests.Format
               ""zWrite"": false
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsTrue(xt.ZWrite.HasValue);
             Assert.IsFalse(xt.ZWrite.Value);
         }
@@ -128,7 +142,7 @@ namespace UniVRMXT.Tests.Format
               ""zTest"": ""nope""
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.AreEqual("lessEqual", xt.ZTest);
             Assert.AreEqual(4, xt.ZTestUnityInt);
         }
@@ -142,8 +156,8 @@ namespace UniVRMXT.Tests.Format
               ""renderQueueOffset"": -1
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
-            Assert.That(VrmcMaterialsMtoonxt.ToJson(xt), Does.Not.Contain("renderQueueOffset"));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.That(VrmxtMaterialsMtoonxt.ToJson(xt), Does.Not.Contain("renderQueueOffset"));
         }
 
         [Test]
@@ -155,7 +169,7 @@ namespace UniVRMXT.Tests.Format
               ""stencil"": { ""op"": ""inside"", ""materials"": [3] }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNotNull(xt.Stencil);
             Assert.AreEqual("inside", xt.Stencil.Op);
             Assert.AreEqual(1, xt.Stencil.Materials.Count);
@@ -171,7 +185,7 @@ namespace UniVRMXT.Tests.Format
               ""stencil"": { ""op"": ""insideOverlay"", ""materials"": [0] }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNotNull(xt.Stencil);
             Assert.AreEqual("insideOverlay", xt.Stencil.Op);
             Assert.AreEqual(1, xt.Stencil.Materials.Count);
@@ -187,7 +201,7 @@ namespace UniVRMXT.Tests.Format
               ""stencil"": { ""op"": ""write"", ""materials"": [1] }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNull(xt.Stencil);
         }
 
@@ -200,7 +214,7 @@ namespace UniVRMXT.Tests.Format
               ""stencil"": { ""op"": ""same"" }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.IsNull(xt.Stencil);
         }
 
@@ -213,24 +227,24 @@ namespace UniVRMXT.Tests.Format
               ""outlineStencil"": { ""op"": ""same"" }
             }";
 
-            Assert.IsTrue(VrmcMaterialsMtoonxt.TryParse(json, out var xt));
+            Assert.IsTrue(VrmxtMaterialsMtoonxt.TryParse(json, out var xt));
             Assert.AreEqual("same", xt.OutlineStencil.Op);
         }
 
         [Test]
         public void Compile_InsideWhite_AssignsSharedRef()
         {
-            var extras = new VrmcMaterialsMtoonxtExtension[4];
-            extras[1] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
+            var extras = new VrmxtMaterialsMtoonxtExtension[4];
+            extras[1] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
                 null
             );
-            extras[3] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+            extras[3] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("write", null),
                 null
             );
 
-            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            VrmxtMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.IsTrue(body[3].Enabled);
             Assert.AreEqual(1, body[3].Ref);
             Assert.AreEqual("always", body[3].Comp);
@@ -245,17 +259,17 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_InsideOverlayWhite_AssignsEqualKeep()
         {
-            var extras = new VrmcMaterialsMtoonxtExtension[2];
-            extras[0] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+            var extras = new VrmxtMaterialsMtoonxtExtension[2];
+            extras[0] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("write", null),
                 null
             );
-            extras[1] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("insideOverlay", new[] { 0 }),
-                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            extras[1] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("insideOverlay", new[] { 0 }),
+                VrmxtMaterialsMtoonxtStencil.FromOp("same", null)
             );
 
-            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            VrmxtMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.AreEqual(1, body[1].Ref);
             Assert.AreEqual("equal", body[1].Comp);
             Assert.AreEqual("keep", body[1].Pass);
@@ -266,9 +280,9 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_GpuStateWithoutOp_IsDropped()
         {
-            var extras = new VrmcMaterialsMtoonxtExtension[1];
-            extras[0] = new VrmcMaterialsMtoonxtExtension(
-                new VrmcMaterialsMtoonxtStencil(
+            var extras = new VrmxtMaterialsMtoonxtExtension[1];
+            extras[0] = new VrmxtMaterialsMtoonxtExtension(
+                new VrmxtMaterialsMtoonxtStencil(
                     true,
                     7,
                     255,
@@ -281,24 +295,24 @@ namespace UniVRMXT.Tests.Format
                 null
             );
 
-            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out _);
+            VrmxtMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out _);
             Assert.IsNull(body[0]);
         }
 
         [Test]
         public void Compile_OutlineSame_CopiesBody()
         {
-            var extras = new VrmcMaterialsMtoonxtExtension[2];
-            extras[0] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
-                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            var extras = new VrmxtMaterialsMtoonxtExtension[2];
+            extras[0] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("write", null),
+                VrmxtMaterialsMtoonxtStencil.FromOp("same", null)
             );
-            extras[1] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("outside", new[] { 0 }),
-                VrmcMaterialsMtoonxtStencil.FromOp("same", null)
+            extras[1] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("outside", new[] { 0 }),
+                VrmxtMaterialsMtoonxtStencil.FromOp("same", null)
             );
 
-            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            VrmxtMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.AreEqual(body[1].Ref, outline[1].Ref);
             Assert.AreEqual(body[1].Comp, outline[1].Comp);
             Assert.AreEqual(body[0].Ref, outline[0].Ref);
@@ -307,17 +321,17 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_OutlineInside_UsesBodyWriteRef()
         {
-            var extras = new VrmcMaterialsMtoonxtExtension[4];
-            extras[1] = new VrmcMaterialsMtoonxtExtension(
+            var extras = new VrmxtMaterialsMtoonxtExtension[4];
+            extras[1] = new VrmxtMaterialsMtoonxtExtension(
                 null,
-                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 })
+                VrmxtMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 })
             );
-            extras[3] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
+            extras[3] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("write", null),
                 null
             );
 
-            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            VrmxtMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.AreEqual(1, body[3].Ref);
             Assert.AreEqual("replace", body[3].Pass);
             Assert.IsNull(body[1]);
@@ -329,17 +343,17 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_OutlineWrite_SharesBodyWriterRef()
         {
-            var extras = new VrmcMaterialsMtoonxtExtension[4];
-            extras[1] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
-                VrmcMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 })
+            var extras = new VrmxtMaterialsMtoonxtExtension[4];
+            extras[1] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 }),
+                VrmxtMaterialsMtoonxtStencil.FromOp("inside", new[] { 3 })
             );
-            extras[3] = new VrmcMaterialsMtoonxtExtension(
-                VrmcMaterialsMtoonxtStencil.FromOp("write", null),
-                VrmcMaterialsMtoonxtStencil.FromOp("write", null)
+            extras[3] = new VrmxtMaterialsMtoonxtExtension(
+                VrmxtMaterialsMtoonxtStencil.FromOp("write", null),
+                VrmxtMaterialsMtoonxtStencil.FromOp("write", null)
             );
 
-            VrmcMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
+            VrmxtMaterialsMtoonxtStencilCompiler.Compile(extras, out var body, out var outline);
             Assert.AreEqual(body[3].Ref, outline[3].Ref);
             Assert.AreEqual(body[1].Ref, outline[1].Ref);
             Assert.AreEqual(body[3].Ref, body[1].Ref);
@@ -350,7 +364,7 @@ namespace UniVRMXT.Tests.Format
         public void TryMapClipMaterialIndices_Miss_Fails()
         {
             Assert.IsFalse(
-                VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(new[] { 3 }, _ => null, out _)
+                VrmxtMaterialsMtoonxt.TryMapClipMaterialIndices(new[] { 3 }, _ => null, out _)
             );
         }
 
@@ -358,7 +372,7 @@ namespace UniVRMXT.Tests.Format
         public void TryMapClipMaterialIndices_MapsUnique()
         {
             Assert.IsTrue(
-                VrmcMaterialsMtoonxt.TryMapClipMaterialIndices(
+                VrmxtMaterialsMtoonxt.TryMapClipMaterialIndices(
                     new[] { 3, 3 },
                     i => i + 1,
                     out var mapped

@@ -6,12 +6,12 @@ using UniVRMXT.Mtoonxt;
 
 namespace UniVRMXT.Tests.Mtoonxt
 {
-    public sealed class VrmcMaterialsMtoonxtAuthoringTests
+    public sealed class VrmxtMaterialsMtoonxtAuthoringTests
     {
         [Test]
         public void ToExtension_ClipListAuthoredAsset_MatchesThrowawayStockCopy()
         {
-            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
             {
                 Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
@@ -23,20 +23,20 @@ namespace UniVRMXT.Tests.Mtoonxt
             try
             {
                 AddMesh(root, "HairMesh", copy);
-                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
-                var writer = new VrmcMaterialsMtoonxtPair("Writer", null, 0)
+                var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
+                var writer = new VrmxtMaterialsMtoonxtPair("Writer", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
-                var clipper = new VrmcMaterialsMtoonxtPair("HairStencil", null, 1)
+                var clipper = new VrmxtMaterialsMtoonxtPair("HairStencil", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { authored },
                 };
                 store.SetPairs(new[] { writer, clipper });
-                VrmcMaterialsMtoonxtAuthoring.RegisterExportStockCopy(authored, copy);
+                VrmxtMaterialsMtoonxtAuthoring.RegisterExportStockCopy(authored, copy);
 
-                var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, clipper);
+                var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, clipper);
                 Assert.IsNotNull(xt);
                 Assert.IsNotNull(xt.Stencil);
                 Assert.AreEqual("outside", xt.Stencil.Op);
@@ -45,7 +45,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             }
             finally
             {
-                VrmcMaterialsMtoonxtAuthoring.ClearExportStockCopies();
+                VrmxtMaterialsMtoonxtAuthoring.ClearExportStockCopies();
                 Object.DestroyImmediate(authored);
                 Object.DestroyImmediate(copy);
                 Object.DestroyImmediate(root);
@@ -55,7 +55,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         [Test]
         public void ToExtension_DuplicateStoreKeys_DoesNotStealFirstHairIndex()
         {
-            var shader = Shader.Find(VrmcMaterialsMtoonxt.BuiltinShaderName);
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
             {
                 Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
@@ -70,21 +70,21 @@ namespace UniVRMXT.Tests.Mtoonxt
             {
                 AddMesh(root, "HairMesh1", copy1);
                 AddMesh(root, "HairMesh2", copy2);
-                var store = root.AddComponent<VrmcMaterialsMtoonxtInstance>();
-                var pair1 = new VrmcMaterialsMtoonxtPair("Hair#1", null, 0)
+                var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
+                var pair1 = new VrmxtMaterialsMtoonxtPair("Hair#1", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
-                var pair2 = new VrmcMaterialsMtoonxtPair("Hair#2", null, 1)
+                var pair2 = new VrmxtMaterialsMtoonxtPair("Hair#2", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { hair2 },
                 };
                 store.SetPairs(new[] { pair1, pair2 });
-                VrmcMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair1, copy1);
-                VrmcMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair2, copy2);
+                VrmxtMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair1, copy1);
+                VrmxtMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair2, copy2);
 
-                var xt = VrmcMaterialsMtoonxtAuthoring.ToExtension(root, store, pair2);
+                var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, pair2);
                 Assert.IsNotNull(xt);
                 Assert.IsNotNull(xt.Stencil);
                 Assert.AreEqual("outside", xt.Stencil.Op);
@@ -93,7 +93,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             }
             finally
             {
-                VrmcMaterialsMtoonxtAuthoring.ClearExportStockCopies();
+                VrmxtMaterialsMtoonxtAuthoring.ClearExportStockCopies();
                 Object.DestroyImmediate(hair1);
                 Object.DestroyImmediate(hair2);
                 Object.DestroyImmediate(copy1);
