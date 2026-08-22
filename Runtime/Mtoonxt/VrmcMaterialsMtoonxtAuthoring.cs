@@ -385,35 +385,79 @@ namespace UniVRMXT.Mtoonxt
                     )
                 )
                 {
-                    if (IsSameClipMaterial(candidate, material))
+                    if (candidate == material)
                     {
                         return pair.GltfMaterialIndex;
                     }
                 }
             }
 
-            return -1;
+            return FindGltfIndexByUniqueStrippedName(store, material);
         }
 
         /// <summary>
-        /// Export remaps MToonXT to stock MToon on throwaway material copies.
-        /// Clip lists still hold the authored assets; match those copies by name.
+        /// Export remaps MToonXT to throwaway stock MToon copies; clip lists keep authored
+        /// assets. Name fallback only when a single store pair owns that stripped name so
+        /// <c>Hair#1</c> / <c>Hair#2</c> cannot steal each other's glTF index.
         /// </summary>
-        private static bool IsSameClipMaterial(Material candidate, Material material)
+        private static int FindGltfIndexByUniqueStrippedName(
+            VrmcMaterialsMtoonxtInstance store,
+            Material material
+        )
         {
-            if (candidate == null || material == null)
+            var clipped = VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix(material.name);
+            if (string.IsNullOrEmpty(clipped))
+            {
+                return -1;
+            }
+
+            var match = -1;
+            var hits = 0;
+            for (var i = 0; i < store.Pairs.Count; i++)
+            {
+                var pair = store.Pairs[i];
+                if (pair == null)
+                {
+                    continue;
+                }
+
+                if (!StoreKeyBaseEquals(pair.MaterialName, clipped))
+                {
+                    continue;
+                }
+
+                hits++;
+                match = pair.GltfMaterialIndex;
+                if (hits > 1)
+                {
+                    return -1;
+                }
+            }
+
+            return hits == 1 ? match : -1;
+        }
+
+        private static bool StoreKeyBaseEquals(string storeKey, string strippedMaterialName)
+        {
+            if (string.IsNullOrEmpty(storeKey))
             {
                 return false;
             }
 
-            if (candidate == material)
+            if (
+                VrmxtMaterialsOverrideRuntime.TryGetDisambiguatedStoreKey(
+                    storeKey,
+                    out var baseName,
+                    out _
+                )
+            )
             {
-                return true;
+                storeKey = baseName;
             }
 
-            var a = VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix(candidate.name);
-            var b = VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix(material.name);
-            return !string.IsNullOrEmpty(a) && string.Equals(a, b, StringComparison.Ordinal);
+            var strippedKey = VrmxtMaterialsOverrideRuntime.StripUnityInstanceSuffix(storeKey);
+            return !string.IsNullOrEmpty(strippedKey)
+                && string.Equals(strippedKey, strippedMaterialName, StringComparison.Ordinal);
         }
     }
 }
