@@ -10,9 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Breaking (unreleased):** MToonXT glTF key `VRMC_materials_mtoonxt` →
   `VRMXT_materials_mtoonxt`. Parsers read the new name only. C# types
-  `VrmcMaterialsMtoonxt*` → `VrmxtMaterialsMtoonxt*`. Shader files
+  `VrmcMaterialsMtoonxt*` → `VrmxtMaterialsMtoonxt*`; enums
+  `VrmcMtoonxt*StencilOp` → `VrmxtMtoonxt*StencilOp`. Shader files
   `vrmc_materials_mtoonxt*` → `vrmxt_materials_mtoonxt*` (ShaderLab names
-  `VRMXT/MToonXT10` unchanged).
+  `VRMXT/MToonXT10` unchanged). Overlay include guards
+  `VRMXT_MATERIALS_MTOONXT_OVERLAY_DEPTH_INCLUDED`.
 - **Breaking (unreleased):** UPM package id `com.miramocha.univrmxt` →
   `com.vrmxt.univrmxt`. Update `Packages/manifest.json`. New materials-override
   `provider.id` matches; existing files with the old id still load (`provider` is

@@ -65,11 +65,11 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
                 var browPair = new VrmxtMaterialsMtoonxtPair("Brow_Face-NoRim", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
                 var hairPair = new VrmxtMaterialsMtoonxtPair("Hair-Highlight", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { brow },
                 };
                 store.SetPairs(new[] { browPair, hairPair });
@@ -126,11 +126,11 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
                 var whitePair = new VrmxtMaterialsMtoonxtPair("White", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
                 var irisPair = new VrmxtMaterialsMtoonxtPair("Iris", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipInside,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipInside,
                     StencilTargets = new List<Material> { white },
                 };
                 store.SetPairs(new[] { whitePair, irisPair });
@@ -174,11 +174,11 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
                 var suitPair = new VrmxtMaterialsMtoonxtPair("Swimsuit", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
                 var bonePair = new VrmxtMaterialsMtoonxtPair("Skeleton", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipInsideOverlay,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipInsideOverlay,
                     StencilTargets = new List<Material> { suit },
                 };
                 store.SetPairs(new[] { suitPair, bonePair });
@@ -208,7 +208,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var pair = new VrmxtMaterialsMtoonxtPair("Skeleton", json, 1);
                 store.SetPairs(new[] { pair });
                 VrmxtMaterialsMtoonxtAuthoring.PopulateFromExtensionJson(root, store, pair);
-                Assert.AreEqual(VrmcMtoonxtBodyStencilOp.ClipInsideOverlay, pair.BodyOp);
+                Assert.AreEqual(VrmxtMtoonxtBodyStencilOp.ClipInsideOverlay, pair.BodyOp);
             }
             finally
             {
@@ -238,11 +238,11 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
                 var writePair = new VrmxtMaterialsMtoonxtPair("White", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
                 var readPair = new VrmxtMaterialsMtoonxtPair("Body_Skin-Highlight", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { writer },
                 };
                 store.SetPairs(new[] { writePair, readPair });

@@ -26,11 +26,11 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
                 var writer = new VrmxtMaterialsMtoonxtPair("Writer", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
                 var clipper = new VrmxtMaterialsMtoonxtPair("HairStencil", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { authored },
                 };
                 store.SetPairs(new[] { writer, clipper });
@@ -73,11 +73,11 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
                 var pair1 = new VrmxtMaterialsMtoonxtPair("Hair#1", null, 0)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.Write,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
                 };
                 var pair2 = new VrmxtMaterialsMtoonxtPair("Hair#2", null, 1)
                 {
-                    BodyOp = VrmcMtoonxtBodyStencilOp.ClipOutside,
+                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
                     StencilTargets = new List<Material> { hair2 },
                 };
                 store.SetPairs(new[] { pair1, pair2 });

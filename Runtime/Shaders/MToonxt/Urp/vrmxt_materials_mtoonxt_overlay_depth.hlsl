@@ -1,5 +1,5 @@
-#ifndef VRMC_MATERIALS_MTOONXT_OVERLAY_DEPTH_INCLUDED
-#define VRMC_MATERIALS_MTOONXT_OVERLAY_DEPTH_INCLUDED
+#ifndef VRMXT_MATERIALS_MTOONXT_OVERLAY_DEPTH_INCLUDED
+#define VRMXT_MATERIALS_MTOONXT_OVERLAY_DEPTH_INCLUDED
 
 // Color overlay passes define MTOONXT_OVERLAY_DEPTH_PASS and hardcode ZTest Always /
 // ZWrite Off. Other color passes omit that define. Skip when the matching keyword

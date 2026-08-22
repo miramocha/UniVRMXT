@@ -230,28 +230,28 @@ namespace UniVRMXT.Mtoonxt
             return false;
         }
 
-        private static bool IsClip(VrmcMtoonxtBodyStencilOp op)
+        private static bool IsClip(VrmxtMtoonxtBodyStencilOp op)
         {
-            return op == VrmcMtoonxtBodyStencilOp.ClipInside
-                || op == VrmcMtoonxtBodyStencilOp.ClipInsideOverlay
-                || op == VrmcMtoonxtBodyStencilOp.ClipOutside;
+            return op == VrmxtMtoonxtBodyStencilOp.ClipInside
+                || op == VrmxtMtoonxtBodyStencilOp.ClipInsideOverlay
+                || op == VrmxtMtoonxtBodyStencilOp.ClipOutside;
         }
 
-        private static bool IsClip(VrmcMtoonxtOutlineStencilOp op)
+        private static bool IsClip(VrmxtMtoonxtOutlineStencilOp op)
         {
-            return op == VrmcMtoonxtOutlineStencilOp.ClipInside
-                || op == VrmcMtoonxtOutlineStencilOp.ClipInsideOverlay
-                || op == VrmcMtoonxtOutlineStencilOp.ClipOutside;
+            return op == VrmxtMtoonxtOutlineStencilOp.ClipInside
+                || op == VrmxtMtoonxtOutlineStencilOp.ClipInsideOverlay
+                || op == VrmxtMtoonxtOutlineStencilOp.ClipOutside;
         }
 
-        private static bool IsWrite(VrmcMtoonxtBodyStencilOp op)
+        private static bool IsWrite(VrmxtMtoonxtBodyStencilOp op)
         {
-            return op == VrmcMtoonxtBodyStencilOp.Write;
+            return op == VrmxtMtoonxtBodyStencilOp.Write;
         }
 
-        private static bool IsWrite(VrmcMtoonxtOutlineStencilOp op)
+        private static bool IsWrite(VrmxtMtoonxtOutlineStencilOp op)
         {
-            return op == VrmcMtoonxtOutlineStencilOp.Write;
+            return op == VrmxtMtoonxtOutlineStencilOp.Write;
         }
     }
 }

@@ -215,13 +215,13 @@ namespace UniVRMXT.Editor.Mtoonxt
             EditorGUILayout.PropertyField(bodyOp, new GUIContent("Stencil"));
             var bodyOpValue =
                 bodyOp != null
-                    ? (VrmcMtoonxtBodyStencilOp)bodyOp.enumValueIndex
-                    : VrmcMtoonxtBodyStencilOp.Off;
+                    ? (VrmxtMtoonxtBodyStencilOp)bodyOp.enumValueIndex
+                    : VrmxtMtoonxtBodyStencilOp.Off;
             if (
                 (
-                    bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInside
-                    || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipInsideOverlay
-                    || bodyOpValue == VrmcMtoonxtBodyStencilOp.ClipOutside
+                    bodyOpValue == VrmxtMtoonxtBodyStencilOp.ClipInside
+                    || bodyOpValue == VrmxtMtoonxtBodyStencilOp.ClipInsideOverlay
+                    || bodyOpValue == VrmxtMtoonxtBodyStencilOp.ClipOutside
                 )
                 && bodyList != null
             )
@@ -236,13 +236,13 @@ namespace UniVRMXT.Editor.Mtoonxt
             EditorGUILayout.PropertyField(outlineOp, new GUIContent("Outline stencil"));
             var outlineOpValue =
                 outlineOp != null
-                    ? (VrmcMtoonxtOutlineStencilOp)outlineOp.enumValueIndex
-                    : VrmcMtoonxtOutlineStencilOp.Off;
+                    ? (VrmxtMtoonxtOutlineStencilOp)outlineOp.enumValueIndex
+                    : VrmxtMtoonxtOutlineStencilOp.Off;
             if (
                 (
-                    outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipInside
-                    || outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipInsideOverlay
-                    || outlineOpValue == VrmcMtoonxtOutlineStencilOp.ClipOutside
+                    outlineOpValue == VrmxtMtoonxtOutlineStencilOp.ClipInside
+                    || outlineOpValue == VrmxtMtoonxtOutlineStencilOp.ClipInsideOverlay
+                    || outlineOpValue == VrmxtMtoonxtOutlineStencilOp.ClipOutside
                 )
                 && outlineList != null
             )
