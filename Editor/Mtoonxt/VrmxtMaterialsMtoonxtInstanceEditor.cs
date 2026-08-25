@@ -30,28 +30,46 @@ namespace UniVRMXT.Editor.Mtoonxt
             if (instance == null || instance.Pairs.Count == 0)
             {
                 EditorGUILayout.LabelField("No stencil settings attached.");
-                return;
             }
-
-            for (var i = 0; i < instance.Pairs.Count; i++)
+            else
             {
-                var pair = instance.Pairs[i];
-                if (pair == null)
+                for (var i = 0; i < instance.Pairs.Count; i++)
                 {
-                    continue;
-                }
+                    var pair = instance.Pairs[i];
+                    if (pair == null)
+                    {
+                        continue;
+                    }
 
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField(
-                    string.IsNullOrEmpty(pair.MaterialName) ? "[" + i + "]" : pair.MaterialName,
-                    EditorStyles.boldLabel);
-                VrmxtMaterialsMtoonxtStencilGui.DrawPair(
-                    serializedObject,
-                    instance,
-                    pair,
-                    i);
-                EditorGUILayout.EndVertical();
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                    EditorGUILayout.LabelField(
+                        string.IsNullOrEmpty(pair.MaterialName)
+                            ? "[" + i + "]"
+                            : pair.MaterialName,
+                        EditorStyles.boldLabel
+                    );
+                    VrmxtMaterialsMtoonxtStencilGui.DrawPair(
+                        serializedObject,
+                        instance,
+                        pair,
+                        i
+                    );
+                    EditorGUILayout.EndVertical();
+                }
             }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Stencil Relationships", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Portable root-level writer/reader presentation. These settings round-trip "
+                    + "with Blender VRMXT and compile to Unity stencil, depth, cull, and retained auxiliary passes.",
+                MessageType.Info
+            );
+            EditorGUILayout.PropertyField(
+                serializedObject.FindProperty("stencilRelationships"),
+                includeChildren: true
+            );
+            serializedObject.ApplyModifiedProperties();
         }
     }
 }

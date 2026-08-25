@@ -39,6 +39,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Root `VRMXT_materials_mtoonxt.stencilRelationships[]` import, authoring, export,
+  and Built-in runtime pass compilation for the confirmed M01-M10/A01-A03 stencil
+  parity modes. Relationship metadata is owned entirely by UniVRMXT; host tools may
+  populate `VrmxtMaterialsMtoonxtInstance` without becoming exporter dependencies.
+- Retained per-camera auxiliary stencil draws for compound inside/outside/background
+  coverage modes. Simple relationships remain single-pass material state.
 - MToonXT stencil `insideOverlay` (`Clip inside overlay`): same clip as `inside`; Apply writes `_M_ZTest` Always, `_M_ZWrite` off, and `_MTOONXT_OVERLAY_DEPTH`; queue one slot after the mapped bucket
 - `VRMXT_materials_mtoonxt` — parse/attach/apply stencil extras onto packaged `VRMXT/MToonXT10` / `VRMXT/Universal Render Pipeline/MToonXT10`; skip when `VRMXT_materials_override` would apply
 - MToonXT stencil **Enable stencil** / **Enable outline stencil** (`_M_StencilEnabled`, `_M_OutlineStencilEnabled`), default off
@@ -54,6 +60,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Unity 2022.3 material inspector compatibility: use the built-in
+  `UnityEngine.Rendering.CompareFunction` enum drawer instead of an eight-pair custom
+  enum drawer.
+- Release per-root stencil Ref leases when authoring components are destroyed in Edit
+  Mode as well as Play Mode.
 - MToonXT export: PreHierarchy remaps `VRMXT/MToonXT10` to stock `VRM10/MToon10` on the export copy so UniVRM writes sibling `VRMC_materials_mtoon` (hub rule 3). UniVRM stays shader-name agnostic.
 - MToonXT shader swap: restore MToon blend / ZWrite / keywords / queue from `_AlphaMode` so transparent materials keep albedo
 - MToonXT inspector shader swap / OnGUI recover `_M_ZTest` Disabled (`0`) to LessEqual

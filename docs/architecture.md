@@ -9,6 +9,7 @@ UniVRMXT is an optional consumer package for [Extended VRM](https://github.com/m
 | Format | `Runtime/Format/` | `Newtonsoft.Json` only |
 | VFX runtime | `Runtime/Vfx/` | Format, UnityEngine |
 | Materials override | `Runtime/MaterialsOverride/` | Format, UnityEngine |
+| MToonXT relationships | `Runtime/Mtoonxt/` | Format, UnityEngine |
 | Editor integration | `Editor/` | Runtime |
 | Tests | `Tests/Format/`, `Tests/Vfx/`, `Tests/MaterialsOverride/` | Runtime (Editor, NUnit) |
 
@@ -64,10 +65,17 @@ VrmxtVfxRuntime.TryAttach(
 ### VRMXT_materials_mtoonxt
 
 - Per-material extension: `materials[i].extensions.VRMXT_materials_mtoonxt`
+- Root relationship graph: `extensions.VRMXT_materials_mtoonxt.stencilRelationships[]`
 - Spec: [vrmxt-materials-mtoonxt](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmxt-materials-mtoonxt/README.md)
 - `VrmxtMaterialsMtoonxt.TryParse` — `specVersion` `1.0`; `stencil.op` (`write`/`inside`/`insideOverlay`/`outside`) plus material indices; experimental `zTest` / `zWrite` still parsed (not hub extras); `renderQueueOffset` ignored; invalid stencil object skipped
 - `VrmxtMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmxtMaterialsMtoonxtApplier.Apply` — swap to packaged `VRMXT/MToonXT10` or `VRMXT/Universal Render Pipeline/MToonXT10` from the active RP; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply. ShaderLab lives in `Runtime/Shaders/MToonxt/`. Apply offsets compiled stencil Refs per loaded root (`VrmxtMaterialsMtoonxtStencilRefs`, band 32, skip 0/1/51/255).
+- `VrmxtMaterialsMtoonxtRelationships` parses and serializes the portable root graph. Invalid relationships are skipped individually so one bad entry does not discard valid siblings.
+- `VrmxtMaterialsMtoonxtRelationshipCompiler` maps each relationship to retained Unity passes. `VrmxtMaterialsMtoonxtRelationshipApplier` applies primary passes to imported materials and creates auxiliary draws only for compound modes that cannot be expressed by one ShaderLab pass. The Built-in renderer uses per-camera command buffers without per-frame material or topology rebuilding.
+- Import maps glTF material indices back to live renderer slots. Export remaps authored Unity materials through Extended-UniVRM's final material index table and writes the root extension with `AddRootExtension`; BVT is not required.
 - `MtoonxtInspector` wraps UniVRM `MToonInspector`, then serialized stencil ops / writer lists on `VrmxtMaterialsMtoonxtInstance`. Inspector warns when Write `_AlphaMode` would stamp after a clip reader. Export writes glTF JSON. **Add MToonXT extras** creates pairs on a loaded avatar without a prior glTF extra.
+
+See [MToonXT stencil relationships](mtoonxt-stencil-relationships.md) for field defaults,
+pass choreography, and render-pipeline notes.
 
 ## UniVRM integration
 

@@ -55,7 +55,7 @@ Shader "VRMXT/MToonXT10"
         _M_SrcBlend ("_SrcBlend", Float) = 1.0
         _M_DstBlend ("_DstBlend", Float) = 0.0
         _M_ZWrite ("_ZWrite", Float) = 1.0
-        [Enum(Never,1,Less,2,Equal,3,LessEqual,4,Greater,5,NotEqual,6,GreaterEqual,7,Always,8)] _M_ZTest ("ZTest", Float) = 4
+        [Enum(UnityEngine.Rendering.CompareFunction)] _M_ZTest ("ZTest", Float) = 4
         _M_AlphaToMask ("_AlphaToMask", Float) = 0.0
 
         // Body / forward stencil (VRMXT_materials_mtoonxt). Off until Enable stencil.
@@ -63,7 +63,7 @@ Shader "VRMXT/MToonXT10"
         _M_StencilRef ("Stencil Ref", Range(0, 255)) = 0
         _M_StencilReadMask ("Stencil ReadMask", Range(0, 255)) = 255
         _M_StencilWriteMask ("Stencil WriteMask", Range(0, 255)) = 255
-        [Enum(Never,1,Less,2,Equal,3,LessEqual,4,Greater,5,NotEqual,6,GreaterEqual,7,Always,8)] _M_StencilComp ("Stencil Comp", Float) = 8
+        [Enum(UnityEngine.Rendering.CompareFunction)] _M_StencilComp ("Stencil Comp", Float) = 8
         [Enum(UnityEngine.Rendering.StencilOp)] _M_StencilPass ("Stencil Pass", Float) = 0
         [Enum(UnityEngine.Rendering.StencilOp)] _M_StencilFail ("Stencil Fail", Float) = 0
         [Enum(UnityEngine.Rendering.StencilOp)] _M_StencilZFail ("Stencil ZFail", Float) = 0
@@ -73,7 +73,7 @@ Shader "VRMXT/MToonXT10"
         _M_OutlineStencilRef ("Outline Stencil Ref", Range(0, 255)) = 0
         _M_OutlineStencilReadMask ("Outline Stencil ReadMask", Range(0, 255)) = 255
         _M_OutlineStencilWriteMask ("Outline Stencil WriteMask", Range(0, 255)) = 255
-        [Enum(Never,1,Less,2,Equal,3,LessEqual,4,Greater,5,NotEqual,6,GreaterEqual,7,Always,8)] _M_OutlineStencilComp ("Outline Stencil Comp", Float) = 8
+        [Enum(UnityEngine.Rendering.CompareFunction)] _M_OutlineStencilComp ("Outline Stencil Comp", Float) = 8
         [Enum(UnityEngine.Rendering.StencilOp)] _M_OutlineStencilPass ("Outline Stencil Pass", Float) = 0
         [Enum(UnityEngine.Rendering.StencilOp)] _M_OutlineStencilFail ("Outline Stencil Fail", Float) = 0
         [Enum(UnityEngine.Rendering.StencilOp)] _M_OutlineStencilZFail ("Outline Stencil ZFail", Float) = 0

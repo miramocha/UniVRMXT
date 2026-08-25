@@ -72,7 +72,17 @@ namespace UniVRMXT.Mtoonxt
                 out var compiledBody,
                 out var compiledOutline
             );
-            var gpuBase = AcquireGpuBase(root, compiledBody, compiledOutline);
+            var legacyRefCount = MaxEnabledRef(compiledBody, compiledOutline);
+            VrmxtMaterialsMtoonxtRelationships.TryParseRoot(
+                gltfRoot,
+                extrasByIndex.Length,
+                out var relationships
+            );
+            var relationshipPlans = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
+                relationships,
+                legacyRefCount + 1
+            );
+            var gpuBase = AcquireGpuBase(root, legacyRefCount + relationshipPlans.Count);
 
             var applied = 0;
             var pairs = store.Pairs;
@@ -165,6 +175,12 @@ namespace UniVRMXT.Mtoonxt
                 }
             }
 
+            VrmxtMaterialsMtoonxtRelationshipApplier.Apply(
+                root,
+                store,
+                relationshipPlans,
+                gpuBase
+            );
             return applied;
         }
 
@@ -180,6 +196,22 @@ namespace UniVRMXT.Mtoonxt
             }
 
             var span = MaxEnabledRef(compiledBody, compiledOutline);
+            if (span < 1)
+            {
+                VrmxtMaterialsMtoonxtStencilRefs.Release(root.GetInstanceID());
+                return 0;
+            }
+
+            return VrmxtMaterialsMtoonxtStencilRefs.Acquire(root.GetInstanceID(), span);
+        }
+
+        private static int AcquireGpuBase(GameObject root, int span)
+        {
+            if (root == null)
+            {
+                return 0;
+            }
+
             if (span < 1)
             {
                 VrmxtMaterialsMtoonxtStencilRefs.Release(root.GetInstanceID());
@@ -676,6 +708,33 @@ namespace UniVRMXT.Mtoonxt
             }
 
             TrySetFloat(material, "_M_ZWrite", zWrite.Value ? 1f : 0f);
+        }
+
+        public static void ApplyRelationshipPass(
+            Material material,
+            VrmxtMtoonxtRelationshipPass pass,
+            int localRef,
+            int gpuBase
+        )
+        {
+            if (material == null || pass == null)
+            {
+                return;
+            }
+
+            var stencil = VrmxtMaterialsMtoonxtStencil.Compiled(
+                localRef,
+                pass.Comp,
+                pass.Pass
+            );
+            ApplyStencil(material, stencil, outline: false, gpuBase);
+            ApplyStencil(material, stencil, outline: true, gpuBase);
+            ApplyZTest(material, pass.ZTest);
+            ApplyZWrite(material, pass.ZWrite);
+            TrySetFloat(material, "_M_CullMode", pass.CullBack ? 2f : 0f);
+            SetKeyword(material, VrmxtMaterialsMtoonxt.OverlayDepthKeyword, false);
+            SetKeyword(material, VrmxtMaterialsMtoonxt.OutlineOverlayDepthKeyword, false);
+            ApplyOverlayColorPasses(material, bodyOverlay: false, outlineOverlay: false);
         }
 
         /// <summary>

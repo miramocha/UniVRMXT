@@ -21,6 +21,7 @@ namespace UniVRMXT.Editor.Mtoonxt
         private static readonly Action<object> Handler = OnVrmExport;
         private static bool s_registered;
         private static bool s_loggedMissingAddMaterialExtension;
+        private static bool s_loggedMissingAddRootExtension;
 
         static VrmxtMaterialsMtoonxtExportHookBootstrap()
         {
@@ -142,7 +143,27 @@ namespace UniVRMXT.Editor.Mtoonxt
         private static void WriteMtoonxtExtensions(object contextObj, Type type, GameObject root)
         {
             var store = root.GetComponent<VrmxtMaterialsMtoonxtInstance>();
-            if (store == null || store.Pairs.Count == 0)
+            if (store == null)
+            {
+                return;
+            }
+
+            var tryGetMaterialIndex = type.GetMethod(
+                "TryGetMaterialIndex",
+                BindingFlags.Instance | BindingFlags.Public,
+                binder: null,
+                types: new[] { typeof(Material) },
+                modifiers: null
+            );
+
+            WriteRootStencilRelationships(
+                contextObj,
+                type,
+                store,
+                tryGetMaterialIndex
+            );
+
+            if (store.Pairs.Count == 0)
             {
                 return;
             }
@@ -167,14 +188,6 @@ namespace UniVRMXT.Editor.Mtoonxt
 
                 return;
             }
-
-            var tryGetMaterialIndex = type.GetMethod(
-                "TryGetMaterialIndex",
-                BindingFlags.Instance | BindingFlags.Public,
-                binder: null,
-                types: new[] { typeof(Material) },
-                modifiers: null
-            );
 
             for (var i = 0; i < store.Pairs.Count; i++)
             {
@@ -255,6 +268,65 @@ namespace UniVRMXT.Editor.Mtoonxt
                     );
                 }
             }
+        }
+
+        private static void WriteRootStencilRelationships(
+            object contextObj,
+            Type type,
+            VrmxtMaterialsMtoonxtInstance store,
+            MethodInfo tryGetMaterialIndex
+        )
+        {
+            if (store.StencilRelationships.Count == 0 || tryGetMaterialIndex == null)
+            {
+                return;
+            }
+
+            var addRootExtension = type.GetMethod(
+                "AddRootExtension",
+                BindingFlags.Instance | BindingFlags.Public,
+                binder: null,
+                types: new[] { typeof(string), typeof(byte[]) },
+                modifiers: null
+            );
+            if (addRootExtension == null)
+            {
+                if (!s_loggedMissingAddRootExtension)
+                {
+                    s_loggedMissingAddRootExtension = true;
+                    Debug.LogWarning(
+                        "UniVRMXT: Vrm10ExportExtensionContext.AddRootExtension is missing — "
+                            + "VRMXT_materials_mtoonxt stencilRelationships cannot be exported."
+                    );
+                }
+
+                return;
+            }
+
+            var relationships = VrmxtMaterialsMtoonxtAuthoring.ToExportRelationships(
+                store,
+                material => ResolveMaterialIndex(
+                    contextObj,
+                    type,
+                    tryGetMaterialIndex,
+                    material
+                )
+            );
+            if (relationships.Count == 0)
+            {
+                return;
+            }
+
+            addRootExtension.Invoke(
+                contextObj,
+                new object[]
+                {
+                    VrmxtMaterialsMtoonxt.ExtensionName,
+                    Encoding.UTF8.GetBytes(
+                        VrmxtMaterialsMtoonxtRelationships.ToJson(relationships)
+                    ),
+                }
+            );
         }
 
         private static int? ResolveMaterialIndex(
