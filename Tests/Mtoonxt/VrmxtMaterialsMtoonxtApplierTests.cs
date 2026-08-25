@@ -65,6 +65,145 @@ namespace UniVRMXT.Tests.Mtoonxt
               ]
             }";
 
+        private const string GltfRelationshipBaseline =
+            @"
+            {
+              ""extensions"": {
+                ""VRMXT_materials_mtoonxt"": {
+                  ""specVersion"": ""1.0"",
+                  ""stencilRelationships"": [{
+                    ""writers"": [0],
+                    ""readers"": [1]
+                  }]
+                }
+              },
+              ""materials"": [
+                { ""name"": ""Writer"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" }
+                }},
+                { ""name"": ""Reader"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" }
+                }}
+              ]
+            }";
+
+        private const string GltfRelationshipShowThrough =
+            @"
+            {
+              ""extensions"": {
+                ""VRMXT_materials_mtoonxt"": {
+                  ""specVersion"": ""1.0"",
+                  ""stencilRelationships"": [{
+                    ""writers"": [0],
+                    ""readers"": [1],
+                    ""showWritersThroughOccluders"": true,
+                    ""writersSelfOcclude"": false
+                  }]
+                }
+              },
+              ""materials"": [
+                { ""name"": ""Writer"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" }
+                }},
+                { ""name"": ""Reader"", ""extensions"": {
+                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" }
+                }}
+              ]
+            }";
+
+        [Test]
+        public void Apply_RelationshipBaseline_UsesConfirmedWriterThenReaderQueues()
+        {
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var root = new GameObject("root");
+            var writerObject = new GameObject("writer");
+            var readerObject = new GameObject("reader");
+            writerObject.transform.SetParent(root.transform, false);
+            readerObject.transform.SetParent(root.transform, false);
+            var writer = new Material(shader) { name = "Writer" };
+            var reader = new Material(shader) { name = "Reader" };
+            writerObject.AddComponent<MeshRenderer>().sharedMaterial = writer;
+            readerObject.AddComponent<MeshRenderer>().sharedMaterial = reader;
+
+            try
+            {
+                Assert.AreEqual(
+                    2,
+                    VrmxtMaterialsMtoonxtApplier.Apply(
+                        root,
+                        GltfRelationshipBaseline,
+                        name => IsMtoonxtForkName(name) ? shader : null
+                    )
+                );
+                Assert.AreEqual(2451, writer.renderQueue);
+                Assert.AreEqual(2452, reader.renderQueue);
+                Assert.IsNull(root.GetComponent<VrmxtMaterialsMtoonxtAuxiliaryRenderer>());
+            }
+            finally
+            {
+                Object.DestroyImmediate(writer);
+                Object.DestroyImmediate(reader);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ReapplyRelationships_RestoresShowThroughAuxiliaryDrawAfterReload()
+        {
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var root = new GameObject("root");
+            var writerObject = new GameObject("writer");
+            var readerObject = new GameObject("reader");
+            writerObject.transform.SetParent(root.transform, false);
+            readerObject.transform.SetParent(root.transform, false);
+            var writer = new Material(shader) { name = "Writer" };
+            var reader = new Material(shader) { name = "Reader" };
+            writerObject.AddComponent<MeshRenderer>().sharedMaterial = writer;
+            readerObject.AddComponent<MeshRenderer>().sharedMaterial = reader;
+
+            try
+            {
+                Assert.AreEqual(
+                    2,
+                    VrmxtMaterialsMtoonxtApplier.Apply(
+                        root,
+                        GltfRelationshipShowThrough,
+                        name => IsMtoonxtForkName(name) ? shader : null
+                    )
+                );
+                var store = root.GetComponent<VrmxtMaterialsMtoonxtInstance>();
+                var auxiliary = root.GetComponent<VrmxtMaterialsMtoonxtAuxiliaryRenderer>();
+                Assert.IsNotNull(store);
+                Assert.IsNotNull(auxiliary);
+                Assert.AreEqual(1, auxiliary.DrawCount);
+                Assert.AreEqual(2452, writer.renderQueue);
+                Assert.AreEqual(2451, reader.renderQueue);
+
+                auxiliary.Configure(null, null);
+                Assert.AreEqual(0, auxiliary.DrawCount);
+                Assert.AreEqual(1, VrmxtMaterialsMtoonxtApplier.ReapplyRelationships(root, store));
+                Assert.AreEqual(1, auxiliary.DrawCount);
+                Assert.AreEqual(2452, writer.renderQueue);
+                Assert.AreEqual(2451, reader.renderQueue);
+            }
+            finally
+            {
+                Object.DestroyImmediate(writer);
+                Object.DestroyImmediate(reader);
+                Object.DestroyImmediate(root);
+            }
+        }
+
         private const string GltfWithOverride =
             @"
             {

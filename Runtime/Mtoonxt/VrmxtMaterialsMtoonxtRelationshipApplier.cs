@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UniVRMXT.Format;
 using UniVRMXT.MaterialsOverride;
@@ -9,6 +8,9 @@ namespace UniVRMXT.Mtoonxt
     public static class VrmxtMaterialsMtoonxtRelationshipApplier
     {
         private const string CoverageShaderName = "Hidden/UniVRMXT/StencilCoverageMask";
+        private const int RelationshipMaskQueue = 2451;
+        private const int RelationshipSubjectQueue = 2452;
+        private const int RelationshipOverlayQueue = 2453;
 
         public static int Apply(
             GameObject root,
@@ -42,11 +44,16 @@ namespace UniVRMXT.Mtoonxt
                     continue;
                 }
 
-                var baseQueue = FindBaseQueue(writerSlots, readerSlots);
-                ApplyPass(writerSlots, plan.WriterPrimary, plan.LocalRef, gpuBase, baseQueue + 1);
+                var writerQueue = plan.WritersStampMask
+                    ? RelationshipMaskQueue
+                    : RelationshipSubjectQueue;
+                var readerQueue = plan.ReadersStampMask
+                    ? RelationshipMaskQueue
+                    : RelationshipSubjectQueue;
+                ApplyPass(writerSlots, plan.WriterPrimary, plan.LocalRef, gpuBase, writerQueue);
                 if (plan.Reader != null)
                 {
-                    ApplyPass(readerSlots, plan.Reader, plan.LocalRef, gpuBase, baseQueue);
+                    ApplyPass(readerSlots, plan.Reader, plan.LocalRef, gpuBase, readerQueue);
                 }
 
                 if (plan.WriterSecondary != null)
@@ -55,7 +62,7 @@ namespace UniVRMXT.Mtoonxt
                         writerSlots,
                         plan,
                         gpuBase,
-                        baseQueue + 2,
+                        RelationshipOverlayQueue,
                         draws,
                         owned
                     );
@@ -179,34 +186,6 @@ namespace UniVRMXT.Mtoonxt
             }
 
             return false;
-        }
-
-        private static int FindBaseQueue(
-            IReadOnlyList<MaterialSlot> writers,
-            IReadOnlyList<MaterialSlot> readers
-        )
-        {
-            var queue = int.MaxValue;
-            FindBaseQueue(writers, ref queue);
-            FindBaseQueue(readers, ref queue);
-            if (queue == int.MaxValue || queue < 0)
-            {
-                return 2000;
-            }
-
-            return Mathf.Clamp(queue, 0, 4997);
-        }
-
-        private static void FindBaseQueue(IReadOnlyList<MaterialSlot> slots, ref int queue)
-        {
-            for (var i = 0; i < slots.Count; i++)
-            {
-                var material = slots[i].Material;
-                if (material != null && material.renderQueue >= 0)
-                {
-                    queue = Math.Min(queue, material.renderQueue);
-                }
-            }
         }
 
         private static void ApplyPass(

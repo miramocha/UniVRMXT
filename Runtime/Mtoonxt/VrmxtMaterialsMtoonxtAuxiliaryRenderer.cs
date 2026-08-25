@@ -27,6 +27,8 @@ namespace UniVRMXT.Mtoonxt
         private readonly Dictionary<Camera, CameraBuffers> cameras =
             new Dictionary<Camera, CameraBuffers>();
 
+        public int DrawCount => draws.Count;
+
         public void Configure(
             IEnumerable<VrmxtMtoonxtAuxiliaryDraw> values,
             IEnumerable<Material> materials
@@ -146,7 +148,14 @@ namespace UniVRMXT.Mtoonxt
                 var material = ownedMaterials[i];
                 if (material != null)
                 {
-                    Destroy(material);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(material);
+                    }
+                    else
+                    {
+                        DestroyImmediate(material);
+                    }
                 }
             }
 

@@ -184,6 +184,42 @@ namespace UniVRMXT.Mtoonxt
             return applied;
         }
 
+        /// <summary>
+        /// Rebuild relationship-only material state and auxiliary passes from the serialized
+        /// authoring component. Unity does not serialize the retained command-buffer draw list,
+        /// so imported roots must call this after domain reload and scene/object enable.
+        /// </summary>
+        public static int ReapplyRelationships(
+            GameObject root,
+            VrmxtMaterialsMtoonxtInstance store
+        )
+        {
+            if (root == null || store == null)
+            {
+                return 0;
+            }
+
+            var extrasByIndex = BuildExtrasByIndex(root, store);
+            VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                extrasByIndex,
+                out var compiledBody,
+                out var compiledOutline
+            );
+            var legacyRefCount = MaxEnabledRef(compiledBody, compiledOutline);
+            var relationships = VrmxtMaterialsMtoonxtAuthoring.ToRelationships(root, store);
+            var relationshipPlans = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
+                relationships,
+                legacyRefCount + 1
+            );
+            var gpuBase = AcquireGpuBase(root, legacyRefCount + relationshipPlans.Count);
+            return VrmxtMaterialsMtoonxtRelationshipApplier.Apply(
+                root,
+                store,
+                relationshipPlans,
+                gpuBase
+            );
+        }
+
         private static int AcquireGpuBase(
             GameObject root,
             VrmxtMaterialsMtoonxtStencil[] compiledBody,
@@ -273,6 +309,44 @@ namespace UniVRMXT.Mtoonxt
                 if (xt != null)
                 {
                     extras[pair.GltfMaterialIndex] = xt;
+                }
+            }
+
+            return extras;
+        }
+
+        private static VrmxtMaterialsMtoonxtExtension[] BuildExtrasByIndex(
+            GameObject root,
+            VrmxtMaterialsMtoonxtInstance store
+        )
+        {
+            var count = 0;
+            for (var i = 0; i < store.Pairs.Count; i++)
+            {
+                var pair = store.Pairs[i];
+                if (pair != null && pair.GltfMaterialIndex >= count)
+                {
+                    count = pair.GltfMaterialIndex + 1;
+                }
+            }
+
+            var extras = new VrmxtMaterialsMtoonxtExtension[count];
+            for (var i = 0; i < store.Pairs.Count; i++)
+            {
+                var pair = store.Pairs[i];
+                if (
+                    pair == null
+                    || pair.GltfMaterialIndex < 0
+                    || pair.GltfMaterialIndex >= count
+                )
+                {
+                    continue;
+                }
+
+                var extension = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, pair);
+                if (extension != null)
+                {
+                    extras[pair.GltfMaterialIndex] = extension;
                 }
             }
 

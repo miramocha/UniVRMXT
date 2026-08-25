@@ -76,6 +76,16 @@ namespace UniVRMXT.Mtoonxt
         public IReadOnlyList<VrmxtMaterialsMtoonxtRelationshipAuthoring> StencilRelationships =>
             stencilRelationships;
 
+        private void OnEnable()
+        {
+            // Relationship overlays and coverage masks are retained runtime command-buffer
+            // state, not serialized Unity assets. Rebuild them after a domain reload, scene
+            // reopen, or object re-enable from the serialized authoring graph on this store.
+            // The initial import path may invoke this before SetPairs/SetStencilRelationships;
+            // that empty reapply is harmless and the importer performs the complete Apply next.
+            VrmxtMaterialsMtoonxtApplier.ReapplyRelationships(gameObject, this);
+        }
+
         private void OnDestroy()
         {
             VrmxtMaterialsMtoonxtStencilRefs.Release(gameObject.GetInstanceID());
