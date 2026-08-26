@@ -23,12 +23,16 @@ Each entry contains non-empty, disjoint glTF material-index arrays named `writer
 | `writersOnlyOutsideReaders` | `false` |
 | `writersSelfOcclude` | `true` |
 | `ignoreOccludedReaderAreas` | `true` |
+| `writersWriteColor` | `true` |
 | `writersWriteDepth` | `true` |
 | `readersWriteDepth` | `true` |
 | `writerDepthTest` | `lessEqual` |
 | `readerDepthTest` | `lessEqual` |
 
 `writersOnlyInsideReaders` and `writersOnlyOutsideReaders` are mutually exclusive.
+`writersWriteColor` independently controls writer body and outline color. Set it to
+`false` for invisible stencil controls such as a moving avatar reveal plane; stencil
+writes and `writersWriteDepth` remain independently active.
 Depth-test values use the existing MToonXT comparison vocabulary: `never`, `less`,
 `equal`, `lessEqual`, `greater`, `notEqual`, `greaterEqual`, and `always`.
 

@@ -18,7 +18,8 @@ namespace UniVRMXT.Mtoonxt
             string pass,
             string zTest,
             bool zWrite,
-            bool cullBack
+            bool cullBack,
+            bool writeColor
         )
         {
             Comp = comp;
@@ -26,6 +27,7 @@ namespace UniVRMXT.Mtoonxt
             ZTest = zTest;
             ZWrite = zWrite;
             CullBack = cullBack;
+            WriteColor = writeColor;
         }
 
         public string Comp { get; }
@@ -33,6 +35,7 @@ namespace UniVRMXT.Mtoonxt
         public string ZTest { get; }
         public bool ZWrite { get; }
         public bool CullBack { get; }
+        public bool WriteColor { get; }
     }
 
     public sealed class VrmxtMtoonxtRelationshipPlan
@@ -85,10 +88,11 @@ namespace UniVRMXT.Mtoonxt
                 return result;
             }
 
+            var compiledRelationships = CoalesceCompatibleWriters(relationships);
             var nextRef = Math.Max(1, firstLocalRef);
-            for (var i = 0; i < relationships.Count && nextRef <= 255; i++)
+            for (var i = 0; i < compiledRelationships.Count && nextRef <= 255; i++)
             {
-                var relationship = relationships[i];
+                var relationship = compiledRelationships[i];
                 if (relationship == null)
                 {
                     continue;
@@ -99,6 +103,112 @@ namespace UniVRMXT.Mtoonxt
             }
 
             return result;
+        }
+
+        private static List<VrmxtMaterialsMtoonxtRelationship> CoalesceCompatibleWriters(
+            IReadOnlyList<VrmxtMaterialsMtoonxtRelationship> relationships
+        )
+        {
+            var result = new List<VrmxtMaterialsMtoonxtRelationship>();
+            for (var i = 0; i < relationships.Count; i++)
+            {
+                var relationship = relationships[i];
+                if (relationship == null)
+                {
+                    continue;
+                }
+
+                var match = -1;
+                for (var j = 0; j < result.Count; j++)
+                {
+                    if (SameWriterPresentation(result[j], relationship))
+                    {
+                        match = j;
+                        break;
+                    }
+                }
+
+                if (match < 0)
+                {
+                    result.Add(relationship);
+                    continue;
+                }
+
+                var readers = new List<int>(result[match].Readers);
+                for (var j = 0; j < relationship.Readers.Count; j++)
+                {
+                    var reader = relationship.Readers[j];
+                    if (!readers.Contains(reader) && !Contains(result[match].Writers, reader))
+                    {
+                        readers.Add(reader);
+                    }
+                }
+
+                result[match] = result[match].WithMaterialIndices(
+                    result[match].Writers,
+                    readers
+                );
+            }
+
+            return result;
+        }
+
+        private static bool SameWriterPresentation(
+            VrmxtMaterialsMtoonxtRelationship left,
+            VrmxtMaterialsMtoonxtRelationship right
+        )
+        {
+            return SameSet(left.Writers, right.Writers)
+                && string.Equals(left.Comparison, right.Comparison, StringComparison.Ordinal)
+                && left.ShowWritersThroughOccluders == right.ShowWritersThroughOccluders
+                && left.WritersOnlyInsideReaders == right.WritersOnlyInsideReaders
+                && left.WritersOnlyOutsideReaders == right.WritersOnlyOutsideReaders
+                && left.WritersSelfOcclude == right.WritersSelfOcclude
+                && left.IgnoreOccludedReaderAreas == right.IgnoreOccludedReaderAreas
+                && left.WritersWriteColor == right.WritersWriteColor
+                && left.WritersWriteDepth == right.WritersWriteDepth
+                && left.ReadersWriteDepth == right.ReadersWriteDepth
+                && string.Equals(
+                    left.WriterDepthTest,
+                    right.WriterDepthTest,
+                    StringComparison.Ordinal
+                )
+                && string.Equals(
+                    left.ReaderDepthTest,
+                    right.ReaderDepthTest,
+                    StringComparison.Ordinal
+                );
+        }
+
+        private static bool SameSet(IReadOnlyList<int> left, IReadOnlyList<int> right)
+        {
+            if (left == null || right == null || left.Count != right.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < left.Count; i++)
+            {
+                if (!Contains(right, left[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool Contains(IReadOnlyList<int> values, int value)
+        {
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (values[i] == value)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static VrmxtMtoonxtRelationshipPlan CompileOne(
@@ -119,7 +229,8 @@ namespace UniVRMXT.Mtoonxt
                         "equal",
                         relationship.ShowWritersThroughOccluders ? "always" : writerDepth,
                         relationship.WritersWriteDepth,
-                        cullBack
+                        cullBack,
+                        relationship.WritersWriteColor
                     ),
                     null,
                     Mask(readerDepth, relationship.ReadersWriteDepth),
@@ -141,7 +252,8 @@ namespace UniVRMXT.Mtoonxt
                         "notEqual",
                         writerDepth,
                         relationship.WritersWriteDepth,
-                        cullBack
+                        cullBack,
+                        relationship.WritersWriteColor
                     ),
                     null,
                     backgroundOnly
@@ -168,13 +280,15 @@ namespace UniVRMXT.Mtoonxt
                         "notEqual",
                         writerDepth,
                         relationship.WritersWriteDepth,
-                        cullBack
+                        cullBack,
+                        relationship.WritersWriteColor
                     ),
                     Subject(
                         "equal",
                         "always",
                         relationship.WritersWriteDepth,
-                        cullBack
+                        cullBack,
+                        relationship.WritersWriteColor
                     ),
                     Mask(readerDepth, relationship.ReadersWriteDepth),
                     writersStampMask: false,
@@ -195,7 +309,11 @@ namespace UniVRMXT.Mtoonxt
             return new VrmxtMtoonxtRelationshipPlan(
                 relationship,
                 localRef,
-                Mask(writerDepth, relationship.WritersWriteDepth),
+                Mask(
+                    writerDepth,
+                    relationship.WritersWriteDepth,
+                    relationship.WritersWriteColor
+                ),
                 null,
                 Subject(
                     readerComp,
@@ -209,14 +327,19 @@ namespace UniVRMXT.Mtoonxt
             );
         }
 
-        private static VrmxtMtoonxtRelationshipPass Mask(string zTest, bool zWrite)
+        private static VrmxtMtoonxtRelationshipPass Mask(
+            string zTest,
+            bool zWrite,
+            bool writeColor = true
+        )
         {
             return new VrmxtMtoonxtRelationshipPass(
                 "always",
                 "replace",
                 zTest,
                 zWrite,
-                cullBack: false
+                cullBack: false,
+                writeColor: writeColor
             );
         }
 
@@ -224,10 +347,18 @@ namespace UniVRMXT.Mtoonxt
             string comp,
             string zTest,
             bool zWrite,
-            bool cullBack
+            bool cullBack,
+            bool writeColor = true
         )
         {
-            return new VrmxtMtoonxtRelationshipPass(comp, "keep", zTest, zWrite, cullBack);
+            return new VrmxtMtoonxtRelationshipPass(
+                comp,
+                "keep",
+                zTest,
+                zWrite,
+                cullBack,
+                writeColor
+            );
         }
     }
 }

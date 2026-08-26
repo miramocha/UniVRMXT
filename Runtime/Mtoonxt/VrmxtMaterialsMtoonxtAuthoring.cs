@@ -92,6 +92,7 @@ namespace UniVRMXT.Mtoonxt
                     WritersOnlyOutsideReaders = relationship.WritersOnlyOutsideReaders,
                     WritersSelfOcclude = relationship.WritersSelfOcclude,
                     IgnoreOccludedReaderAreas = relationship.IgnoreOccludedReaderAreas,
+                    WritersWriteColor = relationship.WritersWriteColor,
                     WritersWriteDepth = relationship.WritersWriteDepth,
                     ReadersWriteDepth = relationship.ReadersWriteDepth,
                     WriterDepthTest = DepthTestFromPortable(relationship.WriterDepthTest),
@@ -147,7 +148,8 @@ namespace UniVRMXT.Mtoonxt
                         authored.WritersWriteDepth,
                         authored.ReadersWriteDepth,
                         DepthTestToPortable(authored.WriterDepthTest),
-                        DepthTestToPortable(authored.ReaderDepthTest)
+                        DepthTestToPortable(authored.ReaderDepthTest),
+                        writersWriteColor: authored.WritersWriteColor
                     )
                 );
             }
@@ -203,7 +205,8 @@ namespace UniVRMXT.Mtoonxt
                         authored.WritersWriteDepth,
                         authored.ReadersWriteDepth,
                         DepthTestToPortable(authored.WriterDepthTest),
-                        DepthTestToPortable(authored.ReaderDepthTest)
+                        DepthTestToPortable(authored.ReaderDepthTest),
+                        writersWriteColor: authored.WritersWriteColor
                     )
                 );
             }

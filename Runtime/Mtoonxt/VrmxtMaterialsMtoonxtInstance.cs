@@ -155,6 +155,7 @@ namespace UniVRMXT.Mtoonxt
         public bool WritersOnlyOutsideReaders;
         public bool WritersSelfOcclude = true;
         public bool IgnoreOccludedReaderAreas = true;
+        public bool WritersWriteColor = true;
         public bool WritersWriteDepth = true;
         public bool ReadersWriteDepth = true;
         public VrmxtMtoonxtDepthTest WriterDepthTest = VrmxtMtoonxtDepthTest.LessEqual;

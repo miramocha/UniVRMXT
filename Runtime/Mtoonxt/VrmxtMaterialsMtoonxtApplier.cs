@@ -554,6 +554,7 @@ namespace UniVRMXT.Mtoonxt
             }
 
             TrySetFloat(material, "_M_CullMode", doubleSided ? 0f : 2f);
+            TrySetFloat(material, "_M_ColorMask", 15f);
             SetKeyword(material, VrmxtMaterialsMtoonxt.OverlayDepthKeyword, false);
             SetKeyword(material, VrmxtMaterialsMtoonxt.OutlineOverlayDepthKeyword, false);
             ApplyOverlayColorPasses(material, bodyOverlay: false, outlineOverlay: false);
@@ -806,6 +807,7 @@ namespace UniVRMXT.Mtoonxt
             ApplyZTest(material, pass.ZTest);
             ApplyZWrite(material, pass.ZWrite);
             TrySetFloat(material, "_M_CullMode", pass.CullBack ? 2f : 0f);
+            TrySetFloat(material, "_M_ColorMask", pass.WriteColor ? 15f : 0f);
             SetKeyword(material, VrmxtMaterialsMtoonxt.OverlayDepthKeyword, false);
             SetKeyword(material, VrmxtMaterialsMtoonxt.OutlineOverlayDepthKeyword, false);
             ApplyOverlayColorPasses(material, bodyOverlay: false, outlineOverlay: false);

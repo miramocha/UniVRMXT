@@ -57,6 +57,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
         _M_ZWrite ("_ZWrite", Float) = 1.0
         [Enum(UnityEngine.Rendering.CompareFunction)] _M_ZTest ("ZTest", Float) = 4
         _M_AlphaToMask ("_AlphaToMask", Float) = 0.0
+        _M_ColorMask ("_ColorMask", Float) = 15.0
 
         // Body / forward stencil (VRMXT_materials_mtoonxt). Off until Enable stencil.
         [ToggleUI] _M_StencilEnabled ("Enable stencil", Float) = 0
@@ -112,6 +113,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             Blend [_M_SrcBlend] [_M_DstBlend]
             ZWrite [_M_ZWrite]
             ZTest [_M_ZTest]
+            ColorMask [_M_ColorMask]
             BlendOp Add, Max
             AlphaToMask [_M_AlphaToMask]
 
@@ -177,6 +179,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             Blend [_M_SrcBlend] [_M_DstBlend]
             ZWrite Off
             ZTest Always
+            ColorMask [_M_ColorMask]
             BlendOp Add, Max
             AlphaToMask [_M_AlphaToMask]
 
@@ -241,6 +244,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             Blend [_M_SrcBlend] [_M_DstBlend]
             ZWrite [_M_ZWrite]
             ZTest [_M_ZTest]
+            ColorMask [_M_ColorMask]
             Offset 1, 1
             BlendOp Add, Max
             AlphaToMask [_M_AlphaToMask]
@@ -297,6 +301,7 @@ Shader "VRMXT/Universal Render Pipeline/MToonXT10"
             Blend [_M_SrcBlend] [_M_DstBlend]
             ZWrite Off
             ZTest Always
+            ColorMask [_M_ColorMask]
             Offset 1, 1
             BlendOp Add, Max
             AlphaToMask [_M_AlphaToMask]

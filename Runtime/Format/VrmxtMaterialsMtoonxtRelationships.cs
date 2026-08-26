@@ -111,6 +111,7 @@ namespace UniVRMXT.Format
                 || !TryReadBool(obj, "writersOnlyOutsideReaders", false, out var outsideOnly)
                 || !TryReadBool(obj, "writersSelfOcclude", true, out var selfOcclude)
                 || !TryReadBool(obj, "ignoreOccludedReaderAreas", true, out var ignoreOccluded)
+                || !TryReadBool(obj, "writersWriteColor", true, out var writersWriteColor)
                 || !TryReadBool(obj, "writersWriteDepth", true, out var writersWriteDepth)
                 || !TryReadBool(obj, "readersWriteDepth", true, out var readersWriteDepth)
                 || (insideOnly && outsideOnly)
@@ -131,7 +132,8 @@ namespace UniVRMXT.Format
                 writersWriteDepth,
                 readersWriteDepth,
                 writerDepthTest,
-                readerDepthTest
+                readerDepthTest,
+                writersWriteColor: writersWriteColor
             );
             return true;
         }
@@ -223,6 +225,7 @@ namespace UniVRMXT.Format
                 relationship.IgnoreOccludedReaderAreas,
                 true
             );
+            AddIfDifferent(obj, "writersWriteColor", relationship.WritersWriteColor, true);
             AddIfDifferent(obj, "writersWriteDepth", relationship.WritersWriteDepth, true);
             AddIfDifferent(obj, "readersWriteDepth", relationship.ReadersWriteDepth, true);
             AddIfDifferent(
@@ -420,7 +423,8 @@ namespace UniVRMXT.Format
             bool writersWriteDepth = true,
             bool readersWriteDepth = true,
             string writerDepthTest = VrmxtMaterialsMtoonxt.ZTestDefault,
-            string readerDepthTest = VrmxtMaterialsMtoonxt.ZTestDefault
+            string readerDepthTest = VrmxtMaterialsMtoonxt.ZTestDefault,
+            bool writersWriteColor = true
         )
         {
             Writers = writers;
@@ -431,6 +435,7 @@ namespace UniVRMXT.Format
             WritersOnlyOutsideReaders = writersOnlyOutsideReaders;
             WritersSelfOcclude = writersSelfOcclude;
             IgnoreOccludedReaderAreas = ignoreOccludedReaderAreas;
+            WritersWriteColor = writersWriteColor;
             WritersWriteDepth = writersWriteDepth;
             ReadersWriteDepth = readersWriteDepth;
             WriterDepthTest = writerDepthTest;
@@ -445,6 +450,7 @@ namespace UniVRMXT.Format
         public bool WritersOnlyOutsideReaders { get; }
         public bool WritersSelfOcclude { get; }
         public bool IgnoreOccludedReaderAreas { get; }
+        public bool WritersWriteColor { get; }
         public bool WritersWriteDepth { get; }
         public bool ReadersWriteDepth { get; }
         public string WriterDepthTest { get; }
@@ -467,7 +473,8 @@ namespace UniVRMXT.Format
                 WritersWriteDepth,
                 ReadersWriteDepth,
                 WriterDepthTest,
-                ReaderDepthTest
+                ReaderDepthTest,
+                writersWriteColor: WritersWriteColor
             );
         }
     }

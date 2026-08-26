@@ -39,6 +39,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Portable `writersWriteColor` stencil relationships now round-trip through import,
+  authoring, export, and Built-in/URP MToonXT passes, allowing invisible avatar masks
+  without disabling their stencil or depth effects.
+
 - Root `VRMXT_materials_mtoonxt.stencilRelationships[]` import, authoring, export,
   and Built-in runtime pass compilation for the confirmed M01-M10/A01-A03 stencil
   parity modes. Relationship metadata is owned entirely by UniVRMXT; host tools may

@@ -18,6 +18,7 @@ namespace UniVRMXT.Tests.Format
                 ""comparison"": ""inside"",
                 ""showWritersThroughOccluders"": true,
                 ""writersSelfOcclude"": false,
+                ""writersWriteColor"": false,
                 ""writersWriteDepth"": false,
                 ""readerDepthTest"": ""always""
               }]
@@ -40,12 +41,14 @@ namespace UniVRMXT.Tests.Format
             Assert.AreEqual("inside", relationship.Comparison);
             Assert.IsTrue(relationship.ShowWritersThroughOccluders);
             Assert.IsFalse(relationship.WritersSelfOcclude);
+            Assert.IsFalse(relationship.WritersWriteColor);
             Assert.IsFalse(relationship.WritersWriteDepth);
             Assert.AreEqual("always", relationship.ReaderDepthTest);
 
             var serialized = VrmxtMaterialsMtoonxtRelationships.ToJson(relationships);
             Assert.That(serialized, Does.Contain("stencilRelationships"));
             Assert.That(serialized, Does.Contain("showWritersThroughOccluders"));
+            Assert.That(serialized, Does.Contain("writersWriteColor"));
             Assert.That(serialized, Does.Not.Contain("readersWriteDepth"));
         }
 
@@ -154,6 +157,48 @@ namespace UniVRMXT.Tests.Format
             Assert.IsFalse(plan.WriterPrimary.ZWrite);
             Assert.IsFalse(plan.WriterSecondary.CullBack);
             Assert.IsFalse(plan.WriterSecondary.ZWrite);
+        }
+
+        [Test]
+        public void Compile_ColorlessWriter_PreservesStencilAndSuppressesWriterColor()
+        {
+            var relationship = new VrmxtMaterialsMtoonxtRelationship(
+                new[] { 1 },
+                new[] { 0 },
+                writersWriteColor: false
+            );
+            var plan = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
+                new[] { relationship },
+                1
+            )[0];
+
+            Assert.IsFalse(plan.WriterPrimary.WriteColor);
+            Assert.IsTrue(plan.Reader.WriteColor);
+            Assert.IsTrue(plan.WritersStampMask);
+        }
+
+        [Test]
+        public void Compile_EquivalentWriters_CoalescesReaderMasks()
+        {
+            var plans = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
+                new[]
+                {
+                    new VrmxtMaterialsMtoonxtRelationship(
+                        new[] { 0 },
+                        new[] { 1 },
+                        writersWriteColor: false
+                    ),
+                    new VrmxtMaterialsMtoonxtRelationship(
+                        new[] { 0 },
+                        new[] { 2 },
+                        writersWriteColor: false
+                    ),
+                },
+                1
+            );
+
+            Assert.AreEqual(1, plans.Count);
+            CollectionAssert.AreEquivalent(new[] { 1, 2 }, plans[0].Source.Readers);
         }
 
         private static VrmxtMaterialsMtoonxtRelationship Relationship(bool showThrough)
