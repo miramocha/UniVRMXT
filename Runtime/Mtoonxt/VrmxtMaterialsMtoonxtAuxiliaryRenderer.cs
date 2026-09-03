@@ -18,6 +18,7 @@ namespace UniVRMXT.Mtoonxt
     /// Retained Built-in-pipeline passes for relationship modes that cannot be
     /// represented by one material pass (M02/M07/M08 and coverage masks).
     /// </summary>
+    [ExecuteAlways]
     [DisallowMultipleComponent]
     public sealed class VrmxtMaterialsMtoonxtAuxiliaryRenderer : MonoBehaviour
     {
@@ -52,6 +53,15 @@ namespace UniVRMXT.Mtoonxt
 
         private void OnEnable()
         {
+            if (draws.Count == 0)
+            {
+                var store = GetComponent<VrmxtMaterialsMtoonxtInstance>();
+                if (store != null && store.StencilRelationships.Count > 0)
+                {
+                    VrmxtMaterialsMtoonxtApplier.ReapplyRelationships(gameObject, store);
+                }
+            }
+
             Camera.onPreCull -= OnCameraPreCull;
             Camera.onPreCull += OnCameraPreCull;
         }

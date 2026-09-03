@@ -191,7 +191,7 @@ namespace UniVRMXT.Tests.Mtoonxt
 
                 auxiliary.Configure(null, null);
                 Assert.AreEqual(0, auxiliary.DrawCount);
-                Assert.AreEqual(1, VrmxtMaterialsMtoonxtApplier.ReapplyRelationships(root, store));
+                auxiliary.enabled = true;
                 Assert.AreEqual(1, auxiliary.DrawCount);
                 Assert.AreEqual(2452, writer.renderQueue);
                 Assert.AreEqual(2451, reader.renderQueue);
@@ -201,6 +201,41 @@ namespace UniVRMXT.Tests.Mtoonxt
                 Object.DestroyImmediate(writer);
                 Object.DestroyImmediate(reader);
                 Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ApplyRelationshipPass_PreservesDoubleSidedCulling()
+        {
+            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
+            if (shader == null)
+            {
+                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
+            }
+
+            var material = new Material(shader);
+            var pass = new VrmxtMtoonxtRelationshipPass(
+                "notEqual",
+                "keep",
+                "lessEqual",
+                zWrite: true,
+                cullBack: true,
+                writeColor: true
+            );
+
+            try
+            {
+                material.SetInt("_DoubleSided", 1);
+                VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(material, pass, 1, 0);
+                Assert.AreEqual(0f, material.GetFloat("_M_CullMode"));
+
+                material.SetInt("_DoubleSided", 0);
+                VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(material, pass, 1, 0);
+                Assert.AreEqual(2f, material.GetFloat("_M_CullMode"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
             }
         }
 

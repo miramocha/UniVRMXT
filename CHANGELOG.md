@@ -64,6 +64,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Preserve an imported material's `doubleSided` state when stencil relationship
+  passes apply writer self-occlusion, and rebuild retained auxiliary
+  show-through draws when an imported avatar instance enables in Edit Mode.
 - Unity 2022.3 material inspector compatibility: use the built-in
   `UnityEngine.Rendering.CompareFunction` enum drawer instead of an eight-pair custom
   enum drawer.

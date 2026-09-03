@@ -806,7 +806,9 @@ namespace UniVRMXT.Mtoonxt
             ApplyStencil(material, stencil, outline: true, gpuBase);
             ApplyZTest(material, pass.ZTest);
             ApplyZWrite(material, pass.ZWrite);
-            TrySetFloat(material, "_M_CullMode", pass.CullBack ? 2f : 0f);
+            var doubleSided =
+                material.HasProperty("_DoubleSided") && material.GetInt("_DoubleSided") != 0;
+            TrySetFloat(material, "_M_CullMode", pass.CullBack && !doubleSided ? 2f : 0f);
             TrySetFloat(material, "_M_ColorMask", pass.WriteColor ? 15f : 0f);
             SetKeyword(material, VrmxtMaterialsMtoonxt.OverlayDepthKeyword, false);
             SetKeyword(material, VrmxtMaterialsMtoonxt.OutlineOverlayDepthKeyword, false);
