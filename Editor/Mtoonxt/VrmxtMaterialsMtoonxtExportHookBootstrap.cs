@@ -120,6 +120,10 @@ namespace UniVRMXT.Editor.Mtoonxt
             var phase = phaseObj.ToString();
             if (phase == "PreHierarchy")
             {
+                foreach (var auxiliary in root.GetComponentsInChildren<VrmxtMaterialsMtoonxtAuxiliaryRenderer>(true))
+                {
+                    auxiliary.PrepareExportCopy();
+                }
                 VrmxtMaterialsMtoonxtAuthoring.ClearExportStockCopies();
                 RemapMtoonxtShadersToStockMtoon(root);
                 return;

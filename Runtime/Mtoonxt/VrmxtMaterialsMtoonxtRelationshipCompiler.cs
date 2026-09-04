@@ -88,7 +88,7 @@ namespace UniVRMXT.Mtoonxt
                 return result;
             }
 
-            var compiledRelationships = CoalesceCompatibleWriters(relationships);
+            var compiledRelationships = CoalesceCompatibleRelationships(relationships);
             var nextRef = Math.Max(1, firstLocalRef);
             for (var i = 0; i < compiledRelationships.Count && nextRef <= 255; i++)
             {
@@ -105,7 +105,7 @@ namespace UniVRMXT.Mtoonxt
             return result;
         }
 
-        private static List<VrmxtMaterialsMtoonxtRelationship> CoalesceCompatibleWriters(
+        private static List<VrmxtMaterialsMtoonxtRelationship> CoalesceCompatibleRelationships(
             IReadOnlyList<VrmxtMaterialsMtoonxtRelationship> relationships
         )
         {
@@ -119,6 +119,7 @@ namespace UniVRMXT.Mtoonxt
                 }
 
                 var match = -1;
+                var mergeWriters = false;
                 for (var j = 0; j < result.Count; j++)
                 {
                     if (SameWriterPresentation(result[j], relationship))
@@ -126,11 +127,37 @@ namespace UniVRMXT.Mtoonxt
                         match = j;
                         break;
                     }
+
+                    if (SameReaderPresentation(result[j], relationship))
+                    {
+                        match = j;
+                        mergeWriters = true;
+                        break;
+                    }
                 }
 
                 if (match < 0)
                 {
                     result.Add(relationship);
+                    continue;
+                }
+
+                if (mergeWriters)
+                {
+                    var writers = new List<int>(result[match].Writers);
+                    for (var j = 0; j < relationship.Writers.Count; j++)
+                    {
+                        var writer = relationship.Writers[j];
+                        if (!writers.Contains(writer) && !Contains(result[match].Readers, writer))
+                        {
+                            writers.Add(writer);
+                        }
+                    }
+
+                    result[match] = result[match].WithMaterialIndices(
+                        writers,
+                        result[match].Readers
+                    );
                     continue;
                 }
 
@@ -159,7 +186,24 @@ namespace UniVRMXT.Mtoonxt
         )
         {
             return SameSet(left.Writers, right.Writers)
-                && string.Equals(left.Comparison, right.Comparison, StringComparison.Ordinal)
+                && SamePresentation(left, right);
+        }
+
+        private static bool SameReaderPresentation(
+            VrmxtMaterialsMtoonxtRelationship left,
+            VrmxtMaterialsMtoonxtRelationship right
+        )
+        {
+            return SameSet(left.Readers, right.Readers)
+                && SamePresentation(left, right);
+        }
+
+        private static bool SamePresentation(
+            VrmxtMaterialsMtoonxtRelationship left,
+            VrmxtMaterialsMtoonxtRelationship right
+        )
+        {
+            return string.Equals(left.Comparison, right.Comparison, StringComparison.Ordinal)
                 && left.ShowWritersThroughOccluders == right.ShowWritersThroughOccluders
                 && left.WritersOnlyInsideReaders == right.WritersOnlyInsideReaders
                 && left.WritersOnlyOutsideReaders == right.WritersOnlyOutsideReaders

@@ -25,6 +25,7 @@ namespace UniVRMXT.Mtoonxt
                 return 0;
             }
 
+            root.GetComponent<VrmxtMaterialsMtoonxtAuxiliaryRenderer>()?.RestoreNativeMaterials();
             var slots = BuildSlots(root, store);
             var draws = new List<VrmxtMtoonxtAuxiliaryDraw>();
             var owned = new List<Material>();
@@ -247,6 +248,13 @@ namespace UniVRMXT.Mtoonxt
                         plan.LocalRef,
                         gpuBase
                     );
+                    // Approved M02 setup: keep source double-sided rendering unchanged,
+                    // but suppress rear faces in the show-through layer when requested.
+                    // M07 explicitly opts out. This is not arbitrary concave self-depth.
+                    clone.SetFloat("_M_CullMode", plan.Source.WritersSelfOcclude ? 2f : 0f);
+                    // Native lighting includes shadow reception; the original surface
+                    // remains the sole caster, not the additional color layer.
+                    clone.SetShaderPassEnabled("ShadowCaster", false);
                     cloneBySource[slot.Material] = clone;
                     owned.Add(clone);
                 }

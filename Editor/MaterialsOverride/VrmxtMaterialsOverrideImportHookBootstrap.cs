@@ -148,6 +148,10 @@ namespace UniVRMXT.Editor.MaterialsOverride
             // MToonXT Apply uses packaged VRMXT/MToonXT10 (Shader.Find).
             VrmxtMaterialsMtoonxtRuntime.TryAttachFromGltfJson(root, json, out _);
             VrmxtMaterialsMtoonxtApplier.Apply(root, json);
+            // Persist only the portable authoring graph and original mesh/material slots.
+            // Generated native layers are DontSave resources; the store's OnEnable
+            // reconstructs them on an instantiated avatar, including player builds.
+            root.GetComponent<VrmxtMaterialsMtoonxtAuxiliaryRenderer>()?.Configure(null, null);
 
             if (!VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store))
             {

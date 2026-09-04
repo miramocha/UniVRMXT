@@ -59,6 +59,44 @@ namespace UniVRMXT.Tests.Mtoonxt
             Assert.AreEqual(expected, Snapshot(plans[0]), row);
         }
 
+        [Test]
+        public void Compile_SameReadersAndPresentation_CoalescesWriters()
+        {
+            var first = Relationship(new[] { 0 }, new[] { 4, 5 });
+            var second = Relationship(new[] { 1 }, new[] { 4, 5 });
+            var third = Relationship(new[] { 2, 3 }, new[] { 4, 5 });
+
+            var plans = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
+                new List<VrmxtMaterialsMtoonxtRelationship> { first, second, third },
+                1
+            );
+
+            Assert.AreEqual(1, plans.Count);
+            CollectionAssert.AreEquivalent(new[] { 0, 1, 2, 3 }, plans[0].Source.Writers);
+            CollectionAssert.AreEquivalent(new[] { 4, 5 }, plans[0].Source.Readers);
+        }
+
+        private static VrmxtMaterialsMtoonxtRelationship Relationship(
+            IReadOnlyList<int> writers,
+            IReadOnlyList<int> readers
+        )
+        {
+            return new VrmxtMaterialsMtoonxtRelationship(
+                writers,
+                readers,
+                "outside",
+                showWritersThroughOccluders: true,
+                writersOnlyInsideReaders: false,
+                writersOnlyOutsideReaders: false,
+                writersSelfOcclude: true,
+                ignoreOccludedReaderAreas: true,
+                writersWriteDepth: true,
+                readersWriteDepth: true,
+                writerDepthTest: "lessEqual",
+                readerDepthTest: "lessEqual"
+            );
+        }
+
         private static string Snapshot(VrmxtMtoonxtRelationshipPlan plan)
         {
             return "W=" + Pass(plan.WriterPrimary)
