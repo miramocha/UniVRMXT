@@ -109,7 +109,53 @@ that require an extra render phase need an equivalent URP renderer feature; the
 Built-in command-buffer helper deliberately stays inactive under SRP instead of
 injecting at an unsafe phase.
 
-## Validation of the native-layer importer change
+## Matrix checkpoint — 2026-09-06
+
+[Watch the published Blender / Unity matrix](https://tdw46.github.io/BVT-Stencil-Matrix/).
+The canonical [13-scenario settings and evidence profile](https://github.com/tdw46/Extended-VRM-Specs/blob/codex/mtoonxt-stencil-parity/examples/stencil-parity-matrix.md)
+now covers M01–M10 and A01–A03 with explicit control variants and limitations.
+This is a recorded review checkpoint, **not full-matrix conformance sign-off**.
+
+| Rows | Current progress |
+| --- | --- |
+| M01–M03 | Fresh matched-camera/light configured/control round trips recorded 2026-09-06. Old Blender approvals remain scoped to historical recordings; fresh pairs await individual review. |
+| M02 supplemental | User-approved Mira Bunny closed-box native-shadow/self-occlusion setup remains supported. |
+| M04 | Animated stationary-visor lens-clipped HUD and comparison recordings approved; replaces the earlier unfinished visor/shadow concept. |
+| M05–M06 | Recorded spirit-ribbon / background-only controls; broad positive batch feedback, not exhaustive conformance sign-off. |
+| M07 | Transparent aura blend and replacement surrounding magical aura explicitly approved. |
+| M08 | Through-cover anatomical X-ray versus M02 visible-body X-ray recorded for review. |
+| M09–M10 | Flight-crest writer-depth and crystal-iris reader-depth visor tests recorded for review. |
+| A01–A03 | Detailed character recolor, amber familiar and violet shuttered projection recorded for review. |
+
+All 24 configured/control graph transports (the 12-row extended batch excluding
+the separately approved M04) matched exported fields/material targets to actual
+Unity authoring read-back. The batch contains 48 real 96-frame capture streams and
+38 validated MP4s. Camera/light/clip/pose/timeline inputs match; pixel identity is
+not claimed. A separate timeline drives animation; VRM does not carry that timing.
+
+### Preserve these runtime boundaries
+
+- M07 must preserve source alpha and reader color underneath complementary writer
+  passes. Its Blender preview correction did not require a Unity importer change.
+- M09 disables writer depth only; M10 disables reader depth only. Their late HUDs
+  expose depth ownership, not alpha changes. Do not force opacity or turn off depth
+  tests to reproduce them.
+- M08 uses full hidden-reader coverage, not visible reader color through cover.
+  A02 instead bypasses writer depth globally; A03 bypasses reader color depth.
+- A02/A03 use camera-locked single-atlas, sorted-face projections. Exported
+  `doubleSided=false` versus active Unity stencil Cull Off is a documented limit,
+  not an all-angle culling-parity pass. The closed-box Cull Back recipe above is
+  not a general nearest-surface implementation for arbitrary writer topology.
+- M05/M06 use one textured writer; prior multi-material interference is not
+  claimed fixed. New ornament surface captures do not newly validate outlines or
+  cast shadows. Keep the original native-renderer shadow ownership intact.
+- Compound URP coverage and spring-bone subasset identity/reimport stability remain
+  outside this checkpoint. Existing collider-identifier warnings remain open.
+
+No renderer, shader or importer code changed for these new recordings. Capture
+helpers are test tooling, not additional runtime dependencies.
+
+## Historical validation of the native-layer importer change (2026-09-04)
 
 **Checkpoint, not full-matrix sign-off.** Full Blender-to-Unity visual validation is
 underway. Compiler coverage is not a substitute for row-by-row visual acceptance.
@@ -119,12 +165,12 @@ underway. Compiler coverage is not a substitute for row-by-row visual acceptance
 | M01 | Blender reveal approved; Unity capture exists, user review pending. |
 | M02 | Supplemental Mira Bunny closed-box live Unity result approved; automated fresh import and reload checked. Original facial-feature comparison videos still need review. |
 | M03 | Blender face-only shadow approved; Unity capture exists, user review pending. |
-| M04 | Blender visor/shadow case under active investigation; presentation being redesigned as a stationary-visor stencil OFF/ON comparison. No Unity visual approval. |
+| M04 | At this earlier checkpoint, visor/shadow redesign was pending. Superseded by the approved animated HUD above. |
 | M05-M10, A01-A03 | Visual acceptance pending. Related native-lighting behavior is documented, not claimed fully validated. |
 
-Next gate: user approval of the revised Blender M04 example, then matched Unity
-capture and side-by-side/overlay review. Do not label older videos as validating this
-new importer checkpoint, or infer general double-sided self-depth support from M02.
+The then-pending M04 gate is now complete with the animated HUD. Do not label older
+videos as validating newer fixtures, or infer general double-sided self-depth
+support from M02. Preserve the dated evidence below as history.
 
 Validated in Unity 2022.3.22f1 / Built-in on 2026-09-04:
 

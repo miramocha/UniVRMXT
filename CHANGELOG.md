@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Document the 2026-09-06 13-scenario stencil checkpoint and published comparison
+  matrix: 24 configured/control transports verified, M04/M07 approvals recorded,
+  and remaining topology, alpha-ordering, culling and pipeline limits explicit.
+  This documentation checkpoint makes no new runtime or full-conformance claim.
 - **Breaking (unreleased):** MToonXT glTF key `VRMC_materials_mtoonxt` →
   `VRMXT_materials_mtoonxt`. Parsers read the new name only. C# types
   `VrmcMaterialsMtoonxt*` → `VrmxtMaterialsMtoonxt*`; enums
