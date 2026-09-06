@@ -80,7 +80,9 @@ DefaultImporter:
 
 def write_meta(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8", newline="\n")
+    # Keep the repository helper usable with the Python 3.9 runtime shipped on
+    # older supported authoring hosts. The generated strings already use LF.
+    path.write_text(content, encoding="utf-8")
     print(f"wrote {path.relative_to(ROOT)}")
 
 
@@ -107,7 +109,10 @@ def ensure_asset_meta(asset: Path, preferred_guid: str | None = None) -> None:
 
 
 def ensure_folder_meta(folder: Path) -> None:
-    if folder == ROOT or ".git" in folder.parts:
+    # Unity's UPM convention intentionally hides roots such as Samples~ from the
+    # AssetDatabase until the sample is imported. Do not create a sibling meta
+    # that turns that hidden package folder into an ordinary asset root.
+    if folder == ROOT or ".git" in folder.parts or folder.name.endswith("~"):
         return
     meta_path = sibling_folder_meta(folder)
     if meta_path.exists():
@@ -119,7 +124,7 @@ def main() -> None:
     runtime_asmdef = ROOT / "Runtime" / "UniVRMXT.asmdef"
 
     tracked_assets: list[Path] = []
-    for suffix in (".cs", ".asmdef"):
+    for suffix in (".cs", ".asmdef", ".shader"):
         tracked_assets.extend(
             path
             for path in ROOT.rglob(f"*{suffix}")
