@@ -58,7 +58,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         private VrmxtMaterialsMtoonxtAuxiliaryRenderer Apply(string extra = "")
         {
             var json = "{\"extensions\":{\"VRMXT_materials_mtoonxt\":{\"specVersion\":\"1.0\","
-                + "\"stencilRelationships\":[{\"writers\":[0],\"readers\":[1],\"showWritersThroughOccluders\":true"
+                + "\"stencil\":[{\"writers\":[0],\"readers\":[1],\"showWritersThroughOccluders\":true"
                 + extra + "}]}},\"materials\":["
                 + "{\"name\":\"Writer\",\"extensions\":{\"VRMC_materials_mtoon\":{\"specVersion\":\"1.0\"}}},"
                 + "{\"name\":\"Reader\",\"extensions\":{\"VRMC_materials_mtoon\":{\"specVersion\":\"1.0\"}}}]}";

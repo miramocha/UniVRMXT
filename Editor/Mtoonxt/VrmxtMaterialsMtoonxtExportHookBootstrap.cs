@@ -20,7 +20,6 @@ namespace UniVRMXT.Editor.Mtoonxt
 
         private static readonly Action<object> Handler = OnVrmExport;
         private static bool s_registered;
-        private static bool s_loggedMissingAddMaterialExtension;
         private static bool s_loggedMissingAddRootExtension;
 
         static VrmxtMaterialsMtoonxtExportHookBootstrap()
@@ -167,111 +166,6 @@ namespace UniVRMXT.Editor.Mtoonxt
                 tryGetMaterialIndex
             );
 
-            if (store.Pairs.Count == 0)
-            {
-                return;
-            }
-
-            var addMaterialExtension = type.GetMethod(
-                "AddMaterialExtension",
-                BindingFlags.Instance | BindingFlags.Public,
-                binder: null,
-                types: new[] { typeof(int), typeof(string), typeof(byte[]) },
-                modifiers: null
-            );
-            if (addMaterialExtension == null)
-            {
-                if (!s_loggedMissingAddMaterialExtension)
-                {
-                    s_loggedMissingAddMaterialExtension = true;
-                    Debug.LogWarning(
-                        "UniVRMXT: Vrm10ExportExtensionContext.AddMaterialExtension is missing — "
-                            + "VRMXT_materials_mtoonxt cannot be written per-material on stock UniVRM."
-                    );
-                }
-
-                return;
-            }
-
-            for (var i = 0; i < store.Pairs.Count; i++)
-            {
-                var pair = store.Pairs[i];
-                if (pair == null)
-                {
-                    continue;
-                }
-
-                var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, pair);
-                if (xt == null)
-                {
-                    continue;
-                }
-
-                if (xt.Stencil == null && xt.OutlineStencil == null)
-                {
-                    continue;
-                }
-
-                var payload = VrmxtMaterialsMtoonxt.ToJson(xt);
-                if (NeedsClipIndexRewrite(xt) && tryGetMaterialIndex != null)
-                {
-                    payload = RewriteClipIndices(
-                        xt,
-                        root,
-                        store,
-                        contextObj,
-                        type,
-                        tryGetMaterialIndex
-                    );
-                }
-
-                var utf8 = Encoding.UTF8.GetBytes(payload);
-                var written = new HashSet<int>();
-                var matchedAny = false;
-
-                foreach (
-                    var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
-                        root,
-                        pair.MaterialName
-                    )
-                )
-                {
-                    matchedAny = true;
-                    var materialIndex = ResolveMaterialIndex(
-                        contextObj,
-                        type,
-                        tryGetMaterialIndex,
-                        material
-                    );
-                    if (!materialIndex.HasValue || !written.Add(materialIndex.Value))
-                    {
-                        continue;
-                    }
-
-                    addMaterialExtension.Invoke(
-                        contextObj,
-                        new object[]
-                        {
-                            materialIndex.Value,
-                            VrmxtMaterialsMtoonxt.ExtensionName,
-                            utf8,
-                        }
-                    );
-                }
-
-                if (!matchedAny && pair.GltfMaterialIndex >= 0)
-                {
-                    addMaterialExtension.Invoke(
-                        contextObj,
-                        new object[]
-                        {
-                            pair.GltfMaterialIndex,
-                            VrmxtMaterialsMtoonxt.ExtensionName,
-                            utf8,
-                        }
-                    );
-                }
-            }
         }
 
         private static void WriteRootStencilRelationships(
@@ -300,7 +194,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                     s_loggedMissingAddRootExtension = true;
                     Debug.LogWarning(
                         "UniVRMXT: Vrm10ExportExtensionContext.AddRootExtension is missing — "
-                            + "VRMXT_materials_mtoonxt stencilRelationships cannot be exported."
+                            + "VRMXT_materials_mtoonxt stencil cannot be exported."
                     );
                 }
 
@@ -351,122 +245,6 @@ namespace UniVRMXT.Editor.Mtoonxt
                 if (boxed is int index)
                 {
                     return index;
-                }
-            }
-
-            return null;
-        }
-
-        private static bool NeedsClipIndexRewrite(VrmxtMaterialsMtoonxtExtension xt)
-        {
-            return xt != null
-                && (
-                    (
-                        xt.Stencil != null
-                        && xt.Stencil.HasOp
-                        && VrmxtMaterialsMtoonxt.UsesMaterialsList(xt.Stencil.Op)
-                    )
-                    || (
-                        xt.OutlineStencil != null
-                        && xt.OutlineStencil.HasOp
-                        && VrmxtMaterialsMtoonxt.UsesMaterialsList(xt.OutlineStencil.Op)
-                    )
-                );
-        }
-
-        private static string RewriteClipIndices(
-            VrmxtMaterialsMtoonxtExtension xt,
-            GameObject root,
-            VrmxtMaterialsMtoonxtInstance store,
-            object contextObj,
-            Type type,
-            MethodInfo tryGetMaterialIndex
-        )
-        {
-            var body = RewriteStencil(
-                xt.Stencil,
-                root,
-                store,
-                contextObj,
-                type,
-                tryGetMaterialIndex
-            );
-            var outline = RewriteStencil(
-                xt.OutlineStencil,
-                root,
-                store,
-                contextObj,
-                type,
-                tryGetMaterialIndex
-            );
-            var next = new VrmxtMaterialsMtoonxtExtension(body, outline, xt.ZTest, xt.ZWrite);
-            return VrmxtMaterialsMtoonxt.ToJson(next);
-        }
-
-        private static VrmxtMaterialsMtoonxtStencil RewriteStencil(
-            VrmxtMaterialsMtoonxtStencil stencil,
-            GameObject root,
-            VrmxtMaterialsMtoonxtInstance store,
-            object contextObj,
-            Type type,
-            MethodInfo tryGetMaterialIndex
-        )
-        {
-            if (
-                stencil == null
-                || !stencil.HasOp
-                || !VrmxtMaterialsMtoonxt.UsesMaterialsList(stencil.Op)
-                || stencil.Materials == null
-            )
-            {
-                return stencil;
-            }
-
-            if (
-                !VrmxtMaterialsMtoonxt.TryMapClipMaterialIndices(
-                    stencil.Materials,
-                    source =>
-                        ResolveMaterialIndex(
-                            contextObj,
-                            type,
-                            tryGetMaterialIndex,
-                            FindMaterialForGltfIndex(root, store, source)
-                        ),
-                    out var mapped
-                )
-            )
-            {
-                return stencil;
-            }
-
-            return VrmxtMaterialsMtoonxtStencil.FromOp(stencil.Op, mapped);
-        }
-
-        private static Material FindMaterialForGltfIndex(
-            GameObject root,
-            VrmxtMaterialsMtoonxtInstance store,
-            int gltfIndex
-        )
-        {
-            for (var i = 0; i < store.Pairs.Count; i++)
-            {
-                var pair = store.Pairs[i];
-                if (pair == null || pair.GltfMaterialIndex != gltfIndex)
-                {
-                    continue;
-                }
-
-                foreach (
-                    var material in VrmxtMaterialsOverrideRuntime.FindMaterialsForStoreKey(
-                        root,
-                        pair.MaterialName
-                    )
-                )
-                {
-                    if (material != null)
-                    {
-                        return material;
-                    }
                 }
             }
 

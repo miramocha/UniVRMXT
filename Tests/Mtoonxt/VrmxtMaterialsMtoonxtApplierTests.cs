@@ -71,7 +71,7 @@ namespace UniVRMXT.Tests.Mtoonxt
               ""extensions"": {
                 ""VRMXT_materials_mtoonxt"": {
                   ""specVersion"": ""1.0"",
-                  ""stencilRelationships"": [{
+                  ""stencil"": [{
                     ""writers"": [0],
                     ""readers"": [1]
                   }]
@@ -93,7 +93,7 @@ namespace UniVRMXT.Tests.Mtoonxt
               ""extensions"": {
                 ""VRMXT_materials_mtoonxt"": {
                   ""specVersion"": ""1.0"",
-                  ""stencilRelationships"": [{
+                  ""stencil"": [{
                     ""writers"": [0],
                     ""readers"": [1],
                     ""showWritersThroughOccluders"": true,
@@ -283,9 +283,9 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
-        public void Apply_SwapsAndWritesStencil_WhenShaderResolves()
+        public void Apply_RetiredMaterialOperation_DoesNotEnableStencil()
         {
-            var fork = Shader.Find("Hidden/InternalErrorShader");
+            var fork = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             Assert.IsNotNull(fork);
 
             var root = new GameObject("root");
@@ -306,79 +306,12 @@ namespace UniVRMXT.Tests.Mtoonxt
                 Assert.AreEqual(fork, material.shader);
                 if (material.HasProperty(VrmxtMaterialsMtoonxt.StencilPropRef))
                 {
-                    Assert.AreEqual(32f, material.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
-                    Assert.AreEqual(1f, material.GetFloat(VrmxtMaterialsMtoonxt.StencilPropEnabled));
+                    Assert.AreEqual(0f, material.GetFloat(VrmxtMaterialsMtoonxt.StencilPropEnabled));
                 }
             }
             finally
             {
                 Object.DestroyImmediate(material);
-                Object.DestroyImmediate(root);
-            }
-        }
-
-        [Test]
-        public void Apply_OpInside_WritesEqualRef()
-        {
-            var fork = Shader.Find("Hidden/InternalErrorShader");
-            Assert.IsNotNull(fork);
-
-            const string gltf =
-                @"
-            {
-              ""materials"": [
-                { ""name"": ""Iris"", ""extensions"": {
-                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMXT_materials_mtoonxt"": {
-                      ""specVersion"": ""1.0"",
-                      ""stencil"": { ""op"": ""inside"", ""materials"": [1] }
-                    }
-                }},
-                { ""name"": ""White"", ""extensions"": {
-                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMXT_materials_mtoonxt"": {
-                      ""specVersion"": ""1.0"",
-                      ""stencil"": { ""op"": ""write"" }
-                    }
-                }}
-              ]
-            }";
-
-            var root = new GameObject("root");
-            var irisGo = new GameObject("iris");
-            var whiteGo = new GameObject("white");
-            irisGo.transform.SetParent(root.transform, false);
-            whiteGo.transform.SetParent(root.transform, false);
-            var iris = new Material(Shader.Find("Standard")) { name = "Iris" };
-            var white = new Material(Shader.Find("Standard")) { name = "White" };
-            irisGo.AddComponent<MeshRenderer>().sharedMaterial = iris;
-            whiteGo.AddComponent<MeshRenderer>().sharedMaterial = white;
-
-            try
-            {
-                var applied = VrmxtMaterialsMtoonxtApplier.Apply(
-                    root,
-                    gltf,
-                    name => IsMtoonxtForkName(name) ? fork : null
-                );
-
-                Assert.AreEqual(2, applied);
-                if (iris.HasProperty(VrmxtMaterialsMtoonxt.StencilPropRef))
-                {
-                    Assert.AreEqual(1f, white.GetFloat(VrmxtMaterialsMtoonxt.StencilPropEnabled));
-                    Assert.AreEqual(32f, white.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
-                    Assert.AreEqual(8f, white.GetFloat(VrmxtMaterialsMtoonxt.StencilPropComp));
-                    Assert.AreEqual(2f, white.GetFloat(VrmxtMaterialsMtoonxt.StencilPropPass));
-                    Assert.AreEqual(1f, iris.GetFloat(VrmxtMaterialsMtoonxt.StencilPropEnabled));
-                    Assert.AreEqual(32f, iris.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
-                    Assert.AreEqual(3f, iris.GetFloat(VrmxtMaterialsMtoonxt.StencilPropComp));
-                    Assert.AreEqual(0f, iris.GetFloat(VrmxtMaterialsMtoonxt.StencilPropPass));
-                }
-            }
-            finally
-            {
-                Object.DestroyImmediate(iris);
-                Object.DestroyImmediate(white);
                 Object.DestroyImmediate(root);
             }
         }
@@ -410,179 +343,6 @@ namespace UniVRMXT.Tests.Mtoonxt
             );
             Assert.IsFalse(VrmxtMaterialsMtoonxtApplier.UsesOverlayDepth(xt));
             Assert.IsTrue(VrmxtMaterialsMtoonxtApplier.UsesOutlineOverlayDepth(xt));
-        }
-
-        [Test]
-        public void Apply_OpInsideOverlay_WritesEqualRefAndZTestAlways()
-        {
-            var fork = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
-            if (fork == null)
-            {
-                fork = Shader.Find("Hidden/InternalErrorShader");
-            }
-
-            Assert.IsNotNull(fork);
-
-            const string gltf =
-                @"
-            {
-              ""materials"": [
-                { ""name"": ""Swimsuit"", ""extensions"": {
-                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMXT_materials_mtoonxt"": {
-                      ""specVersion"": ""1.0"",
-                      ""stencil"": { ""op"": ""write"" }
-                    }
-                }},
-                { ""name"": ""Skeleton"", ""extensions"": {
-                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMXT_materials_mtoonxt"": {
-                      ""specVersion"": ""1.0"",
-                      ""stencil"": { ""op"": ""insideOverlay"", ""materials"": [0] },
-                      ""outlineStencil"": { ""op"": ""same"" }
-                    }
-                }}
-              ]
-            }";
-
-            var root = new GameObject("root");
-            var suitGo = new GameObject("suit");
-            var boneGo = new GameObject("bone");
-            suitGo.transform.SetParent(root.transform, false);
-            boneGo.transform.SetParent(root.transform, false);
-            var suit = new Material(fork) { name = "Swimsuit" };
-            var bone = new Material(fork) { name = "Skeleton" };
-            suitGo.AddComponent<MeshRenderer>().sharedMaterial = suit;
-            boneGo.AddComponent<MeshRenderer>().sharedMaterial = bone;
-
-            try
-            {
-                var applied = VrmxtMaterialsMtoonxtApplier.Apply(
-                    root,
-                    gltf,
-                    name => IsMtoonxtForkName(name) ? fork : null
-                );
-
-                Assert.AreEqual(2, applied);
-                if (bone.HasProperty(VrmxtMaterialsMtoonxt.StencilPropRef))
-                {
-                    Assert.AreEqual(1f, bone.GetFloat(VrmxtMaterialsMtoonxt.StencilPropEnabled));
-                    Assert.AreEqual(3f, bone.GetFloat(VrmxtMaterialsMtoonxt.StencilPropComp));
-                    Assert.AreEqual(0f, bone.GetFloat(VrmxtMaterialsMtoonxt.StencilPropPass));
-                }
-
-                if (bone.HasProperty(VrmxtMaterialsMtoonxt.ZTestProp))
-                {
-                    Assert.AreEqual(8f, bone.GetFloat(VrmxtMaterialsMtoonxt.ZTestProp));
-                    Assert.AreEqual(4f, suit.GetFloat(VrmxtMaterialsMtoonxt.ZTestProp));
-                }
-
-                if (bone.HasProperty("_M_ZWrite"))
-                {
-                    Assert.AreEqual(0f, bone.GetFloat("_M_ZWrite"));
-                    Assert.AreEqual(1f, suit.GetFloat("_M_ZWrite"));
-                }
-
-                Assert.IsTrue(bone.IsKeywordEnabled(VrmxtMaterialsMtoonxt.OverlayDepthKeyword));
-                Assert.IsTrue(
-                    bone.IsKeywordEnabled(VrmxtMaterialsMtoonxt.OutlineOverlayDepthKeyword)
-                );
-                Assert.IsFalse(suit.IsKeywordEnabled(VrmxtMaterialsMtoonxt.OverlayDepthKeyword));
-                Assert.IsFalse(
-                    suit.IsKeywordEnabled(VrmxtMaterialsMtoonxt.OutlineOverlayDepthKeyword)
-                );
-
-                Assert.AreEqual(suit.renderQueue + 3, bone.renderQueue);
-
-                if (
-                    string.Equals(
-                        fork.name,
-                        VrmxtMaterialsMtoonxt.BuiltinShaderName,
-                        StringComparison.Ordinal
-                    )
-                )
-                {
-                    Assert.IsFalse(bone.GetShaderPassEnabled(VrmxtMaterialsMtoonxt.PassForwardBase));
-                    Assert.IsTrue(
-                        bone.GetShaderPassEnabled(VrmxtMaterialsMtoonxt.PassForwardBaseOverlay)
-                    );
-                    Assert.IsTrue(suit.GetShaderPassEnabled(VrmxtMaterialsMtoonxt.PassForwardBase));
-                    Assert.IsFalse(
-                        suit.GetShaderPassEnabled(VrmxtMaterialsMtoonxt.PassForwardBaseOverlay)
-                    );
-                }
-            }
-            finally
-            {
-                Object.DestroyImmediate(suit);
-                Object.DestroyImmediate(bone);
-                Object.DestroyImmediate(root);
-            }
-        }
-
-        [Test]
-        public void Apply_OutlineInsideOverlay_LeavesBodyZTest()
-        {
-            var fork = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
-            if (fork == null)
-            {
-                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
-            }
-
-            const string gltf =
-                @"
-            {
-              ""materials"": [
-                { ""name"": ""Body"", ""extensions"": {
-                    ""VRMC_materials_mtoon"": { ""specVersion"": ""1.0"" },
-                    ""VRMXT_materials_mtoonxt"": {
-                      ""specVersion"": ""1.0"",
-                      ""stencil"": { ""op"": ""write"" },
-                      ""outlineStencil"": { ""op"": ""insideOverlay"", ""materials"": [0] }
-                    }
-                }}
-              ]
-            }";
-
-            var root = new GameObject("root");
-            var mesh = new GameObject("mesh");
-            mesh.transform.SetParent(root.transform, false);
-            var material = new Material(fork) { name = "Body" };
-            mesh.AddComponent<MeshRenderer>().sharedMaterial = material;
-
-            try
-            {
-                var applied = VrmxtMaterialsMtoonxtApplier.Apply(
-                    root,
-                    gltf,
-                    name => IsMtoonxtForkName(name) ? fork : null
-                );
-
-                Assert.AreEqual(1, applied);
-                Assert.AreEqual(4f, material.GetFloat(VrmxtMaterialsMtoonxt.ZTestProp));
-                Assert.AreEqual(1f, material.GetFloat("_M_ZWrite"));
-                Assert.IsFalse(material.IsKeywordEnabled(VrmxtMaterialsMtoonxt.OverlayDepthKeyword));
-                Assert.IsTrue(
-                    material.IsKeywordEnabled(VrmxtMaterialsMtoonxt.OutlineOverlayDepthKeyword)
-                );
-                Assert.IsTrue(material.GetShaderPassEnabled(VrmxtMaterialsMtoonxt.PassForwardBase));
-                Assert.IsFalse(
-                    material.GetShaderPassEnabled(VrmxtMaterialsMtoonxt.PassForwardBaseOverlay)
-                );
-                Assert.IsFalse(
-                    material.GetShaderPassEnabled(VrmxtMaterialsMtoonxt.PassForwardBaseOutline)
-                );
-                Assert.IsTrue(
-                    material.GetShaderPassEnabled(
-                        VrmxtMaterialsMtoonxt.PassForwardBaseOutlineOverlay
-                    )
-                );
-            }
-            finally
-            {
-                Object.DestroyImmediate(material);
-                Object.DestroyImmediate(root);
-            }
         }
 
         [Test]
@@ -1026,118 +786,6 @@ namespace UniVRMXT.Tests.Mtoonxt
             finally
             {
                 Object.DestroyImmediate(material);
-            }
-        }
-
-        [Test]
-        public void Apply_TwoRoots_UseDistinctRefs()
-        {
-            var fork = Shader.Find("Hidden/InternalErrorShader");
-            Assert.IsNotNull(fork);
-
-            var rootA = new GameObject("rootA");
-            var meshA = new GameObject("meshA");
-            meshA.transform.SetParent(rootA.transform, false);
-            var matA = new Material(Shader.Find("Standard")) { name = "Face" };
-            meshA.AddComponent<MeshRenderer>().sharedMaterial = matA;
-
-            var rootB = new GameObject("rootB");
-            var meshB = new GameObject("meshB");
-            meshB.transform.SetParent(rootB.transform, false);
-            var matB = new Material(Shader.Find("Standard")) { name = "Face" };
-            meshB.AddComponent<MeshRenderer>().sharedMaterial = matB;
-
-            try
-            {
-                Assert.AreEqual(
-                    1,
-                    VrmxtMaterialsMtoonxtApplier.Apply(
-                        rootA,
-                        GltfMtoonxt,
-                        name => IsMtoonxtForkName(name) ? fork : null
-                    )
-                );
-                Assert.AreEqual(
-                    1,
-                    VrmxtMaterialsMtoonxtApplier.Apply(
-                        rootB,
-                        GltfMtoonxt,
-                        name => IsMtoonxtForkName(name) ? fork : null
-                    )
-                );
-
-                if (matA.HasProperty(VrmxtMaterialsMtoonxt.StencilPropRef))
-                {
-                    Assert.AreEqual(32f, matA.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
-                    Assert.AreEqual(33f, matB.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
-                }
-            }
-            finally
-            {
-                Object.DestroyImmediate(matA);
-                Object.DestroyImmediate(matB);
-                Object.DestroyImmediate(rootA);
-                Object.DestroyImmediate(rootB);
-            }
-        }
-
-        [Test]
-        public void Apply_DestroyFirst_ThirdRootReusesBand()
-        {
-            var fork = Shader.Find("Hidden/InternalErrorShader");
-            Assert.IsNotNull(fork);
-
-            Shader Resolve(string name)
-            {
-                return IsMtoonxtForkName(name) ? fork : null;
-            }
-
-            var rootA = new GameObject("rootA");
-            var meshA = new GameObject("meshA");
-            meshA.transform.SetParent(rootA.transform, false);
-            var matA = new Material(Shader.Find("Standard")) { name = "Face" };
-            meshA.AddComponent<MeshRenderer>().sharedMaterial = matA;
-
-            var rootB = new GameObject("rootB");
-            var meshB = new GameObject("meshB");
-            meshB.transform.SetParent(rootB.transform, false);
-            var matB = new Material(Shader.Find("Standard")) { name = "Face" };
-            meshB.AddComponent<MeshRenderer>().sharedMaterial = matB;
-
-            var rootC = new GameObject("rootC");
-            var meshC = new GameObject("meshC");
-            meshC.transform.SetParent(rootC.transform, false);
-            var matC = new Material(Shader.Find("Standard")) { name = "Face" };
-            meshC.AddComponent<MeshRenderer>().sharedMaterial = matC;
-
-            try
-            {
-                Assert.AreEqual(1, VrmxtMaterialsMtoonxtApplier.Apply(rootA, GltfMtoonxt, Resolve));
-                Assert.AreEqual(1, VrmxtMaterialsMtoonxtApplier.Apply(rootB, GltfMtoonxt, Resolve));
-                Object.DestroyImmediate(rootA);
-                rootA = null;
-                Assert.AreEqual(1, VrmxtMaterialsMtoonxtApplier.Apply(rootC, GltfMtoonxt, Resolve));
-
-                if (matC.HasProperty(VrmxtMaterialsMtoonxt.StencilPropRef))
-                {
-                    Assert.AreEqual(32f, matC.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
-                    Assert.AreEqual(33f, matB.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
-                }
-
-                Assert.AreEqual(34, VrmxtMaterialsMtoonxtStencilRefs.Acquire(999, 1));
-            }
-            finally
-            {
-                Object.DestroyImmediate(matA);
-                Object.DestroyImmediate(matB);
-                Object.DestroyImmediate(matC);
-                if (rootA != null)
-                {
-                    Object.DestroyImmediate(rootA);
-                }
-
-                Object.DestroyImmediate(rootB);
-                Object.DestroyImmediate(rootC);
             }
         }
 

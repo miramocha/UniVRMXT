@@ -9,7 +9,7 @@ Version `0.1.0` provides foundation parsers and VFX runtime hooks for:
 - `VRMXT_materials_mtoonxt` — legacy per-material stencil extras plus portable root-level stencil relationships; package ships `VRMXT/MToonXT10` (Built-in) and `VRMXT/Universal Render Pipeline/MToonXT10`
 
 See [docs/architecture.md](docs/architecture.md) for runtime attach + AssetDatabase dual path,
-[docs/mtoonxt-stencil-relationships.md](docs/mtoonxt-stencil-relationships.md) for the
+[docs/mtoonxt-stencil.md](docs/mtoonxt-stencil.md) for the
 portable relationship graph and Unity pass compiler,
 (Extended-UniVRM import hooks gated by Project Settings/VRM10 vs stock companion prefab),
 [docs/vfx-particle-mapping.md](docs/vfx-particle-mapping.md) for the ParticleSystem field table, and

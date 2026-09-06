@@ -7,8 +7,8 @@ using VRM10.MToon10.Editor;
 namespace UniVRMXT.Editor.Mtoonxt
 {
     /// <summary>
-    /// Reuses UniVRM <see cref="MToonInspector"/>. Stencil ops match the Blender panel
-    /// and write into <see cref="VrmxtMaterialsMtoonxtInstance"/> pair JSON.
+    /// Reuses UniVRM <see cref="MToonInspector"/>. Stencil is authored once on the avatar's
+    /// <see cref="VrmxtMaterialsMtoonxtInstance"/> root graph.
     /// </summary>
     public sealed class MtoonxtInspector : ShaderGUI
     {
@@ -64,12 +64,11 @@ namespace UniVRMXT.Editor.Mtoonxt
                 }
 
                 var so = new SerializedObject(instance);
-                var pairIndex = VrmxtMaterialsMtoonxtStencilGui.IndexOfPair(instance, pair);
-                VrmxtMaterialsMtoonxtStencilGui.DrawPair(
-                    so,
-                    instance,
-                    pair,
-                    pairIndex);
+                so.Update();
+                EditorGUILayout.PropertyField(
+                    so.FindProperty("stencilRelationships"), new GUIContent("Stencil"),
+                    includeChildren: true);
+                so.ApplyModifiedProperties();
             }
 
             if (drewAny)
@@ -81,7 +80,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 VrmxtMaterialsMtoonxtStencilGui.TryFindAvatarRoot(firstMissing, out _))
             {
                 EditorGUILayout.HelpBox(
-                    "No stencil settings on this avatar yet. Click Add MToonXT extras, then set Write or clip.",
+                    "No stencil graph on this avatar yet. Add MToonXT extras, then configure writer and reader materials.",
                     MessageType.Info);
                 if (GUILayout.Button("Add MToonXT extras"))
                 {

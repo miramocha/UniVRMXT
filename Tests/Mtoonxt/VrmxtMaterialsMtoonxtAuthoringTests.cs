@@ -9,7 +9,7 @@ namespace UniVRMXT.Tests.Mtoonxt
     public sealed class VrmxtMaterialsMtoonxtAuthoringTests
     {
         [Test]
-        public void ToExtension_ClipListAuthoredAsset_MatchesThrowawayStockCopy()
+        public void ToExtension_RetiredClipList_DoesNotExport()
         {
             var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
@@ -38,10 +38,8 @@ namespace UniVRMXT.Tests.Mtoonxt
 
                 var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, clipper);
                 Assert.IsNotNull(xt);
-                Assert.IsNotNull(xt.Stencil);
-                Assert.AreEqual("outside", xt.Stencil.Op);
-                Assert.AreEqual(1, xt.Stencil.Materials.Count);
-                Assert.AreEqual(1, xt.Stencil.Materials[0]);
+                Assert.IsNull(xt.Stencil);
+                Assert.IsNull(xt.OutlineStencil);
             }
             finally
             {
@@ -53,7 +51,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
-        public void ToExtension_DuplicateStoreKeys_DoesNotStealFirstHairIndex()
+        public void ToExtension_RetiredPairs_DoNotExportStencil()
         {
             var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
@@ -86,10 +84,8 @@ namespace UniVRMXT.Tests.Mtoonxt
 
                 var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, pair2);
                 Assert.IsNotNull(xt);
-                Assert.IsNotNull(xt.Stencil);
-                Assert.AreEqual("outside", xt.Stencil.Op);
-                Assert.AreEqual(1, xt.Stencil.Materials.Count);
-                Assert.AreEqual(1, xt.Stencil.Materials[0]);
+                Assert.IsNull(xt.Stencil);
+                Assert.IsNull(xt.OutlineStencil);
             }
             finally
             {

@@ -12,7 +12,7 @@ namespace UniVRMXT.Tests.Format
           ""extensions"": {
             ""VRMXT_materials_mtoonxt"": {
               ""specVersion"": ""1.0"",
-              ""stencilRelationships"": [{
+              ""stencil"": [{
                 ""writers"": [1],
                 ""readers"": [0, 2],
                 ""comparison"": ""inside"",
@@ -25,6 +25,15 @@ namespace UniVRMXT.Tests.Format
             }
           }
         }";
+
+        [Test]
+        public void Parse_RetiredRootName_IsNotAnAlias()
+        {
+            var old = RootJson.Replace("\"stencil\"", "\"stencilRelationships\"");
+            Assert.IsTrue(VrmxtMaterialsMtoonxtRelationships.TryParseRoot(
+                JToken.Parse(old), 3, out var relationships));
+            Assert.AreEqual(0, relationships.Count);
+        }
 
         [Test]
         public void ParseAndSerialize_RoundTripsPortableRelationship()
@@ -46,7 +55,7 @@ namespace UniVRMXT.Tests.Format
             Assert.AreEqual("always", relationship.ReaderDepthTest);
 
             var serialized = VrmxtMaterialsMtoonxtRelationships.ToJson(relationships);
-            Assert.That(serialized, Does.Contain("stencilRelationships"));
+            Assert.That(serialized, Does.Contain("stencil"));
             Assert.That(serialized, Does.Contain("showWritersThroughOccluders"));
             Assert.That(serialized, Does.Contain("writersWriteColor"));
             Assert.That(serialized, Does.Not.Contain("readersWriteDepth"));
@@ -60,7 +69,7 @@ namespace UniVRMXT.Tests.Format
               ""extensions"": {
                 ""VRMXT_materials_mtoonxt"": {
                   ""specVersion"": ""1.0"",
-                  ""stencilRelationships"": [
+                  ""stencil"": [
                     {""writers"": [0], ""readers"": [0]},
                     {""writers"": [0], ""readers"": [1]}
                   ]

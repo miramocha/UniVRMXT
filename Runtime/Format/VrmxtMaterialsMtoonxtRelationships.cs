@@ -11,7 +11,7 @@ namespace UniVRMXT.Format
     /// </summary>
     public static class VrmxtMaterialsMtoonxtRelationships
     {
-        public const string PropertyName = "stencilRelationships";
+        public const string PropertyName = "stencil";
         public const string ComparisonInside = "inside";
         public const string ComparisonOutside = "outside";
 

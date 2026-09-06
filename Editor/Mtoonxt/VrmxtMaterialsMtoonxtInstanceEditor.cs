@@ -5,7 +5,7 @@ using UnityEngine;
 namespace UniVRMXT.Editor.Mtoonxt
 {
     /// <summary>
-    /// Author stencil <c>op</c> and clip target materials; writes glTF indices into pair JSON.
+    /// Author the portable root stencil graph and its material targets.
     /// </summary>
     [CustomEditor(typeof(VrmxtMaterialsMtoonxtInstance))]
     public sealed class VrmxtMaterialsMtoonxtInstanceEditor : UnityEditor.Editor
@@ -14,59 +14,21 @@ namespace UniVRMXT.Editor.Mtoonxt
         {
             var instance = (VrmxtMaterialsMtoonxtInstance)target;
 
-            serializedObject.Update();
-
-            EditorGUILayout.HelpBox(
-                "Clip inside and Clip outside list materials on this avatar. Export writes them into the VRM. "
-                    + "Switch mesh materials to VRMXT/MToonXT10, then click Add extras from MToonXT materials.",
-                MessageType.Info);
-
-            if (GUILayout.Button("Add extras from MToonXT materials"))
+            if (GUILayout.Button("Register MToonXT materials"))
             {
                 VrmxtMaterialsMtoonxtStencilGui.AddExtrasFromRenderers(instance);
-                GUIUtility.ExitGUI();
             }
 
-            if (instance == null || instance.Pairs.Count == 0)
-            {
-                EditorGUILayout.LabelField("No stencil settings attached.");
-            }
-            else
-            {
-                for (var i = 0; i < instance.Pairs.Count; i++)
-                {
-                    var pair = instance.Pairs[i];
-                    if (pair == null)
-                    {
-                        continue;
-                    }
+            serializedObject.Update();
 
-                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                    EditorGUILayout.LabelField(
-                        string.IsNullOrEmpty(pair.MaterialName)
-                            ? "[" + i + "]"
-                            : pair.MaterialName,
-                        EditorStyles.boldLabel
-                    );
-                    VrmxtMaterialsMtoonxtStencilGui.DrawPair(
-                        serializedObject,
-                        instance,
-                        pair,
-                        i
-                    );
-                    EditorGUILayout.EndVertical();
-                }
-            }
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Stencil Relationships", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Stencil", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "Portable root-level writer/reader presentation. These settings round-trip "
                     + "with Blender VRMXT and compile to Unity stencil, depth, cull, and retained auxiliary passes.",
                 MessageType.Info
             );
             EditorGUILayout.PropertyField(
-                serializedObject.FindProperty("stencilRelationships"),
+                serializedObject.FindProperty("stencilRelationships"), new GUIContent("Stencil"),
                 includeChildren: true
             );
             serializedObject.ApplyModifiedProperties();

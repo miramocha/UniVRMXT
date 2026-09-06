@@ -197,7 +197,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
-        public void PopulateFromExtensionJson_InsideOverlay_SetsEnum()
+        public void PopulateFromExtensionJson_RetiredInsideOverlay_IsIgnored()
         {
             var root = new GameObject("AuthoringRoot");
             try
@@ -208,7 +208,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var pair = new VrmxtMaterialsMtoonxtPair("Skeleton", json, 1);
                 store.SetPairs(new[] { pair });
                 VrmxtMaterialsMtoonxtAuthoring.PopulateFromExtensionJson(root, store, pair);
-                Assert.AreEqual(VrmxtMtoonxtBodyStencilOp.ClipInsideOverlay, pair.BodyOp);
+                Assert.AreEqual(VrmxtMtoonxtBodyStencilOp.Off, pair.BodyOp);
             }
             finally
             {

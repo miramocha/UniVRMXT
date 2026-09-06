@@ -263,8 +263,8 @@ namespace UniVRMXT.Mtoonxt
             }
 
             return new VrmxtMaterialsMtoonxtExtension(
-                BodyToStencil(root, store, pair.BodyOp, pair.StencilTargets),
-                OutlineToStencil(root, store, pair.OutlineOp, pair.OutlineStencilTargets),
+                null,
+                null,
                 zTest,
                 zWrite
             );

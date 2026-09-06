@@ -1,7 +1,7 @@
-# MToonXT stencil relationships
+# MToonXT stencil
 
 UniVRMXT owns the portable root-level relationship graph used to reproduce the
-confirmed Blender and Unity stencil modes without depending on BVT at import or export
+Blender and Unity stencil modes without depending on BVT at import or export
 time.
 
 ## JSON shape
@@ -9,7 +9,7 @@ time.
 Relationships live at:
 
 ```text
-extensions.VRMXT_materials_mtoonxt.stencilRelationships[]
+extensions.VRMXT_materials_mtoonxt.stencil[]
 ```
 
 Each entry contains non-empty, disjoint glTF material-index arrays named `writers` and
@@ -127,15 +127,11 @@ differ, so these examples do not establish arbitrary-camera culling parity.
 M05/M06 use one textured writer; general multi-writer interaction is a separate constraint.
 Compound URP modes require equivalent coverage phases.
 
-## Legacy compatibility
+## Single-format contract
 
-The root graph is additive. Existing per-material MToonXT stencil operations remain
-supported:
-
-- `write`
-- `inside`
-- `insideOverlay`
-- `outside`
-- outline `same`
-
-Files without `stencilRelationships` continue through the legacy compiler unchanged.
+The root `stencil` array replaces the previous draft formats. Per-material
+`stencil` / `outlineStencil` operations and root `stencilRelationships` are not
+read as aliases or emitted as fallback data. Re-export authored graphs or explicitly
+migrate older draft assets before importing them. Body and outline use the same
+graph. Existing Unity component field names are retained for scene serialization;
+they do not introduce another JSON format.
