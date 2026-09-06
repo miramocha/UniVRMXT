@@ -812,8 +812,12 @@ namespace UniVRMXT.Tests.Mtoonxt
             var writer = new GameObject("writer");
             var writerMesh = new GameObject("writerMesh");
             writerMesh.transform.SetParent(writer.transform, false);
-            var writerMat = new Material(shader) { name = "Face" };
+            var writerMat = new Material(shader) { name = "Writer" };
             writerMesh.AddComponent<MeshRenderer>().sharedMaterial = writerMat;
+            var readerMesh = new GameObject("readerMesh");
+            readerMesh.transform.SetParent(writer.transform, false);
+            var readerMat = new Material(shader) { name = "Reader" };
+            readerMesh.AddComponent<MeshRenderer>().sharedMaterial = readerMat;
 
             try
             {
@@ -821,7 +825,8 @@ namespace UniVRMXT.Tests.Mtoonxt
                     1,
                     VrmxtMaterialsMtoonxtApplier.Apply(idle, GltfMtoonxtNoStencil, Resolve)
                 );
-                Assert.AreEqual(1, VrmxtMaterialsMtoonxtApplier.Apply(writer, GltfMtoonxt, Resolve));
+                Assert.AreEqual(0f, idleMat.GetFloat(VrmxtMaterialsMtoonxt.StencilPropEnabled));
+                Assert.AreEqual(2, VrmxtMaterialsMtoonxtApplier.Apply(writer, GltfRelationshipBaseline, Resolve));
                 Assert.AreEqual(32f, writerMat.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
                 Assert.AreEqual(33, VrmxtMaterialsMtoonxtStencilRefs.Acquire(999, 1));
             }
@@ -829,6 +834,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             {
                 Object.DestroyImmediate(idleMat);
                 Object.DestroyImmediate(writerMat);
+                Object.DestroyImmediate(readerMat);
                 Object.DestroyImmediate(idle);
                 Object.DestroyImmediate(writer);
             }
