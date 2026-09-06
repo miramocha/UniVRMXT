@@ -5,17 +5,17 @@ using UnityEngine;
 
 namespace UniVRMXT.Mtoonxt
 {
-    public static class VrmxtMaterialsMtoonxtRelationshipApplier
+    public static class VrmxtMaterialsMtoonxtStencilApplier
     {
         private const string CoverageShaderName = "Hidden/UniVRMXT/StencilCoverageMask";
-        private const int RelationshipMaskQueue = 2451;
-        private const int RelationshipSubjectQueue = 2452;
-        private const int RelationshipOverlayQueue = 2453;
+        private const int StencilMaskQueue = 2451;
+        private const int StencilSubjectQueue = 2452;
+        private const int StencilOverlayQueue = 2453;
 
         public static int Apply(
             GameObject root,
             VrmxtMaterialsMtoonxtInstance store,
-            IReadOnlyList<VrmxtMtoonxtRelationshipPlan> plans,
+            IReadOnlyList<VrmxtMtoonxtStencilPlan> plans,
             int gpuBase
         )
         {
@@ -46,11 +46,11 @@ namespace UniVRMXT.Mtoonxt
                 }
 
                 var writerQueue = plan.WritersStampMask
-                    ? RelationshipMaskQueue
-                    : RelationshipSubjectQueue;
+                    ? StencilMaskQueue
+                    : StencilSubjectQueue;
                 var readerQueue = plan.ReadersStampMask
-                    ? RelationshipMaskQueue
-                    : RelationshipSubjectQueue;
+                    ? StencilMaskQueue
+                    : StencilSubjectQueue;
                 ApplyPass(writerSlots, plan.WriterPrimary, plan.LocalRef, gpuBase, writerQueue);
                 if (plan.Reader != null)
                 {
@@ -63,7 +63,7 @@ namespace UniVRMXT.Mtoonxt
                         writerSlots,
                         plan,
                         gpuBase,
-                        RelationshipOverlayQueue,
+                        StencilOverlayQueue,
                         draws,
                         owned
                     );
@@ -191,7 +191,7 @@ namespace UniVRMXT.Mtoonxt
 
         private static void ApplyPass(
             IReadOnlyList<MaterialSlot> slots,
-            VrmxtMtoonxtRelationshipPass pass,
+            VrmxtMtoonxtStencilPass pass,
             int localRef,
             int gpuBase,
             int queue
@@ -211,7 +211,7 @@ namespace UniVRMXT.Mtoonxt
                     continue;
                 }
 
-                VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(
+                VrmxtMaterialsMtoonxtApplier.ApplyStencilPass(
                     material,
                     pass,
                     localRef,
@@ -223,7 +223,7 @@ namespace UniVRMXT.Mtoonxt
 
         private static void AddSecondaryDraws(
             IReadOnlyList<MaterialSlot> writerSlots,
-            VrmxtMtoonxtRelationshipPlan plan,
+            VrmxtMtoonxtStencilPlan plan,
             int gpuBase,
             int queue,
             ICollection<VrmxtMtoonxtAuxiliaryDraw> draws,
@@ -238,11 +238,11 @@ namespace UniVRMXT.Mtoonxt
                 {
                     clone = new Material(slot.Material)
                     {
-                        name = slot.Material.name + " (VRMXT relationship overlay)",
+                        name = slot.Material.name + " (VRMXT stencil overlay)",
                         hideFlags = HideFlags.HideAndDontSave,
                         renderQueue = queue,
                     };
-                    VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(
+                    VrmxtMaterialsMtoonxtApplier.ApplyStencilPass(
                         clone,
                         plan.WriterSecondary,
                         plan.LocalRef,
@@ -274,7 +274,7 @@ namespace UniVRMXT.Mtoonxt
         }
 
         private static void AddCoverageDraws(
-            VrmxtMtoonxtRelationshipPlan plan,
+            VrmxtMtoonxtStencilPlan plan,
             int gpuBase,
             IReadOnlyList<MaterialSlot> writerSlots,
             IReadOnlyList<MaterialSlot> readerSlots,
@@ -285,13 +285,13 @@ namespace UniVRMXT.Mtoonxt
             var shader = Shader.Find(CoverageShaderName);
             if (shader == null)
             {
-                Debug.LogWarning("UniVRMXT: stencil relationship coverage shader is missing.");
+                Debug.LogWarning("UniVRMXT: stencil coverage shader is missing.");
                 return;
             }
 
             var material = new Material(shader)
             {
-                name = "UniVRMXT relationship coverage " + plan.LocalRef,
+                name = "UniVRMXT stencil coverage " + plan.LocalRef,
                 hideFlags = HideFlags.HideAndDontSave,
             };
             var gpuRef = VrmxtMaterialsMtoonxtStencilRefs.GpuRef(plan.LocalRef, gpuBase);

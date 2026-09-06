@@ -9,7 +9,7 @@ UniVRMXT is an optional consumer package for [Extended VRM](https://github.com/m
 | Format | `Runtime/Format/` | `Newtonsoft.Json` only |
 | VFX runtime | `Runtime/Vfx/` | Format, UnityEngine |
 | Materials override | `Runtime/MaterialsOverride/` | Format, UnityEngine |
-| MToonXT relationships | `Runtime/Mtoonxt/` | Format, UnityEngine |
+| MToonXT stencil | `Runtime/Mtoonxt/` | Format, UnityEngine |
 | Editor integration | `Editor/` | Runtime |
 | Tests | `Tests/Format/`, `Tests/Vfx/`, `Tests/MaterialsOverride/` | Runtime (Editor, NUnit) |
 
@@ -65,12 +65,12 @@ VrmxtVfxRuntime.TryAttach(
 ### VRMXT_materials_mtoonxt
 
 - Per-material extension: `materials[i].extensions.VRMXT_materials_mtoonxt`
-- Root relationship graph: `extensions.VRMXT_materials_mtoonxt.stencil[]`
+- Root stencil graph: `extensions.VRMXT_materials_mtoonxt.stencil[]`
 - Spec: [vrmxt-materials-mtoonxt](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmxt-materials-mtoonxt/README.md)
-- `VrmxtMaterialsMtoonxtRelationships.TryParseRoot` parses the sole root `stencil` graph with `specVersion` `1.0`. Retired material `stencil`/`outlineStencil` operations and root `stencilRelationships` are ignored. Experimental per-material `zTest` / `zWrite` remain separate; `renderQueueOffset` is ignored.
+- `VrmxtMaterialsMtoonxtStencils.TryParseRoot` parses the sole root `stencil` graph with `specVersion` `1.0`. Retired material `stencil`/`outlineStencil` operations and root `stencilRelationships` are ignored. Experimental per-material `zTest` / `zWrite` remain separate; `renderQueueOffset` is ignored.
 - `VrmxtMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmxtMaterialsMtoonxtApplier.Apply` — swap to packaged `VRMXT/MToonXT10` or `VRMXT/Universal Render Pipeline/MToonXT10` from the active RP; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply. ShaderLab lives in `Runtime/Shaders/MToonxt/`. Apply offsets compiled stencil Refs per loaded root (`VrmxtMaterialsMtoonxtStencilRefs`, band 32, skip 0/1/51/255).
-- `VrmxtMaterialsMtoonxtRelationships` parses and serializes the portable root graph. Invalid relationships are skipped individually so one bad entry does not discard valid siblings.
-- `VrmxtMaterialsMtoonxtRelationshipCompiler` maps each relationship to retained Unity passes. `VrmxtMaterialsMtoonxtRelationshipApplier` applies primary passes to imported materials and creates auxiliary draws only for compound modes that cannot be expressed by one ShaderLab pass. The Built-in helper submits lit overlays through native material layers on the original renderer and reserves per-camera command buffers for colorless coverage. Targeted index-only mesh copies support writers on non-final submeshes. Import persists the portable graph and original slots; activation rebuilds derived layers, and export strips them from the temporary copy. See [stencil](mtoonxt-stencil.md) for the M02 configuration and limitations.
+- `VrmxtMaterialsMtoonxtStencils` parses and serializes the portable root graph. Invalid stencils are skipped individually so one bad entry does not discard valid siblings.
+- `VrmxtMaterialsMtoonxtStencilCompiler` maps each stencil to retained Unity passes. `VrmxtMaterialsMtoonxtStencilApplier` applies primary passes to imported materials and creates auxiliary draws only for compound modes that cannot be expressed by one ShaderLab pass. The Built-in helper submits lit overlays through native material layers on the original renderer and reserves per-camera command buffers for colorless coverage. Targeted index-only mesh copies support writers on non-final submeshes. Import persists the portable graph and original slots; activation rebuilds derived layers, and export strips them from the temporary copy. See [stencil](mtoonxt-stencil.md) for the M02 configuration and limitations.
 - Import maps glTF material indices back to live renderer slots. Export remaps authored Unity materials through Extended-UniVRM's final material index table and writes the root extension with `AddRootExtension`; BVT is not required.
 - `MtoonxtInspector` wraps UniVRM `MToonInspector`, then edits the same root graph as the avatar component inspector. **Add MToonXT extras** / **Register MToonXT materials** establish material bindings for new authoring. Export writes one root `stencil` array, not per-material operations.
 

@@ -159,7 +159,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 modifiers: null
             );
 
-            WriteRootStencilRelationships(
+            WriteRootStencils(
                 contextObj,
                 type,
                 store,
@@ -168,14 +168,14 @@ namespace UniVRMXT.Editor.Mtoonxt
 
         }
 
-        private static void WriteRootStencilRelationships(
+        private static void WriteRootStencils(
             object contextObj,
             Type type,
             VrmxtMaterialsMtoonxtInstance store,
             MethodInfo tryGetMaterialIndex
         )
         {
-            if (store.StencilRelationships.Count == 0 || tryGetMaterialIndex == null)
+            if (store.Stencils.Count == 0 || tryGetMaterialIndex == null)
             {
                 return;
             }
@@ -201,7 +201,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 return;
             }
 
-            var relationships = VrmxtMaterialsMtoonxtAuthoring.ToExportRelationships(
+            var stencils = VrmxtMaterialsMtoonxtAuthoring.ToExportStencils(
                 store,
                 material => ResolveMaterialIndex(
                     contextObj,
@@ -210,7 +210,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                     material
                 )
             );
-            if (relationships.Count == 0)
+            if (stencils.Count == 0)
             {
                 return;
             }
@@ -220,9 +220,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 new object[]
                 {
                     VrmxtMaterialsMtoonxt.ExtensionName,
-                    Encoding.UTF8.GetBytes(
-                        VrmxtMaterialsMtoonxtRelationships.ToJson(relationships)
-                    ),
+                    Encoding.UTF8.GetBytes(VrmxtMaterialsMtoonxtStencils.ToJson(stencils)),
                 }
             );
         }

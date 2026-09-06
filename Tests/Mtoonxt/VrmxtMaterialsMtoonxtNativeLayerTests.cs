@@ -134,7 +134,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             Assert.AreEqual(bounds, renderer.localBounds);
             for (var i = 0; i < 3; i++)
             {
-                VrmxtMaterialsMtoonxtApplier.ReapplyRelationships(root, root.GetComponent<VrmxtMaterialsMtoonxtInstance>());
+                VrmxtMaterialsMtoonxtApplier.ReapplyStencils(root, root.GetComponent<VrmxtMaterialsMtoonxtInstance>());
                 Assert.AreEqual(3, renderer.sharedMaterials.Length);
                 Assert.AreEqual(3, renderer.sharedMesh.subMeshCount);
             }

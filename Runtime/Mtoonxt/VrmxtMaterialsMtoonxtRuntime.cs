@@ -25,19 +25,19 @@ namespace UniVRMXT.Mtoonxt
             }
 
             var found = new List<VrmxtMaterialsMtoonxtPair>();
-            var parsedRelationships = new List<VrmxtMaterialsMtoonxtRelationship>();
+            var parsedStencils = new List<VrmxtMaterialsMtoonxtStencil>();
             if (
                 !string.IsNullOrWhiteSpace(gltfJson)
                 && TryGetRoot(gltfJson, out var gltfRoot)
                 && TryGetMaterialsArray(gltfRoot, out var materials)
             )
             {
-                VrmxtMaterialsMtoonxtRelationships.TryParseRoot(
+                VrmxtMaterialsMtoonxtStencils.TryParseRoot(
                     gltfRoot,
                     materials.Count,
-                    out parsedRelationships
+                    out parsedStencils
                 );
-                var referenced = ReferencedMaterialIndices(parsedRelationships);
+                var referenced = ReferencedMaterialIndices(parsedStencils);
                 for (var i = 0; i < materials.Count; i++)
                 {
                     var materialObject = materials[i] as JObject;
@@ -80,14 +80,10 @@ namespace UniVRMXT.Mtoonxt
                 VrmxtMaterialsMtoonxtAuthoring.PopulateFromExtensionJson(root, store);
             }
 
-            store.SetStencilRelationships(null);
-            if (parsedRelationships.Count > 0)
+            store.SetStencils(null);
+            if (parsedStencils.Count > 0)
             {
-                VrmxtMaterialsMtoonxtAuthoring.PopulateRelationships(
-                    root,
-                    store,
-                    parsedRelationships
-                );
+                VrmxtMaterialsMtoonxtAuthoring.PopulateStencils(root, store, parsedStencils);
             }
 
             return true;
@@ -118,25 +114,25 @@ namespace UniVRMXT.Mtoonxt
         }
 
         private static HashSet<int> ReferencedMaterialIndices(
-            IReadOnlyList<VrmxtMaterialsMtoonxtRelationship> relationships
+            IReadOnlyList<VrmxtMaterialsMtoonxtStencil> stencils
         )
         {
             var result = new HashSet<int>();
-            if (relationships == null)
+            if (stencils == null)
             {
                 return result;
             }
 
-            for (var i = 0; i < relationships.Count; i++)
+            for (var i = 0; i < stencils.Count; i++)
             {
-                var relationship = relationships[i];
-                if (relationship == null)
+                var stencil = stencils[i];
+                if (stencil == null)
                 {
                     continue;
                 }
 
-                AddIndices(result, relationship.Writers);
-                AddIndices(result, relationship.Readers);
+                AddIndices(result, stencil.Writers);
+                AddIndices(result, stencil.Readers);
             }
 
             return result;

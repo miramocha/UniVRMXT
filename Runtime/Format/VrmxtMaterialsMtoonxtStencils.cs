@@ -6,10 +6,10 @@ using Newtonsoft.Json.Linq;
 namespace UniVRMXT.Format
 {
     /// <summary>
-    /// Portable root-level stencil relationship graph for
+    /// Portable root-level stencil graph for
     /// <c>VRMXT_materials_mtoonxt</c>.
     /// </summary>
-    public static class VrmxtMaterialsMtoonxtRelationships
+    public static class VrmxtMaterialsMtoonxtStencils
     {
         public const string PropertyName = "stencil";
         public const string ComparisonInside = "inside";
@@ -18,10 +18,10 @@ namespace UniVRMXT.Format
         public static bool TryParseRoot(
             JToken gltfRoot,
             int materialCount,
-            out List<VrmxtMaterialsMtoonxtRelationship> relationships
+            out List<VrmxtMaterialsMtoonxtStencil> stencils
         )
         {
-            relationships = new List<VrmxtMaterialsMtoonxtRelationship>();
+            stencils = new List<VrmxtMaterialsMtoonxtStencil>();
             if (!(gltfRoot is JObject root))
             {
                 return false;
@@ -55,9 +55,9 @@ namespace UniVRMXT.Format
 
             for (var i = 0; i < array.Count; i++)
             {
-                if (TryParse(array[i], materialCount, out var relationship))
+                if (TryParse(array[i], materialCount, out var stencil))
                 {
-                    relationships.Add(relationship);
+                    stencils.Add(stencil);
                 }
             }
 
@@ -67,10 +67,10 @@ namespace UniVRMXT.Format
         public static bool TryParse(
             JToken token,
             int materialCount,
-            out VrmxtMaterialsMtoonxtRelationship relationship
+            out VrmxtMaterialsMtoonxtStencil stencil
         )
         {
-            relationship = null;
+            stencil = null;
             if (!(token is JObject obj))
             {
                 return false;
@@ -120,7 +120,7 @@ namespace UniVRMXT.Format
                 return false;
             }
 
-            relationship = new VrmxtMaterialsMtoonxtRelationship(
+            stencil = new VrmxtMaterialsMtoonxtStencil(
                 writers,
                 readers,
                 comparison,
@@ -139,7 +139,7 @@ namespace UniVRMXT.Format
         }
 
         public static JObject BuildRootExtension(
-            IReadOnlyList<VrmxtMaterialsMtoonxtRelationship> relationships
+            IReadOnlyList<VrmxtMaterialsMtoonxtStencil> stencils
         )
         {
             var extension = new JObject
@@ -147,14 +147,14 @@ namespace UniVRMXT.Format
                 ["specVersion"] = VrmxtMaterialsMtoonxt.SpecVersionValue,
             };
             var array = new JArray();
-            if (relationships != null)
+            if (stencils != null)
             {
-                for (var i = 0; i < relationships.Count; i++)
+                for (var i = 0; i < stencils.Count; i++)
                 {
-                    var relationship = relationships[i];
-                    if (relationship != null)
+                    var stencil = stencils[i];
+                    if (stencil != null)
                     {
-                        array.Add(Build(relationship));
+                        array.Add(Build(stencil));
                     }
                 }
             }
@@ -164,80 +164,80 @@ namespace UniVRMXT.Format
         }
 
         public static string ToJson(
-            IReadOnlyList<VrmxtMaterialsMtoonxtRelationship> relationships
+            IReadOnlyList<VrmxtMaterialsMtoonxtStencil> stencils
         )
         {
-            return BuildRootExtension(relationships).ToString(Formatting.None);
+            return BuildRootExtension(stencils).ToString(Formatting.None);
         }
 
         public static bool TryRemap(
-            VrmxtMaterialsMtoonxtRelationship relationship,
+            VrmxtMaterialsMtoonxtStencil stencil,
             Func<int, int?> resolve,
-            out VrmxtMaterialsMtoonxtRelationship remapped
+            out VrmxtMaterialsMtoonxtStencil remapped
         )
         {
             remapped = null;
             if (
-                relationship == null
+                stencil == null
                 || resolve == null
-                || !TryRemapList(relationship.Writers, resolve, out var writers)
-                || !TryRemapList(relationship.Readers, resolve, out var readers)
+                || !TryRemapList(stencil.Writers, resolve, out var writers)
+                || !TryRemapList(stencil.Readers, resolve, out var readers)
                 || Intersects(writers, readers)
             )
             {
                 return false;
             }
 
-            remapped = relationship.WithMaterialIndices(writers, readers);
+            remapped = stencil.WithMaterialIndices(writers, readers);
             return true;
         }
 
-        private static JObject Build(VrmxtMaterialsMtoonxtRelationship relationship)
+        private static JObject Build(VrmxtMaterialsMtoonxtStencil stencil)
         {
             var obj = new JObject
             {
-                ["writers"] = new JArray(relationship.Writers),
-                ["readers"] = new JArray(relationship.Readers),
+                ["writers"] = new JArray(stencil.Writers),
+                ["readers"] = new JArray(stencil.Readers),
             };
-            AddIfDifferent(obj, "comparison", relationship.Comparison, ComparisonOutside);
+            AddIfDifferent(obj, "comparison", stencil.Comparison, ComparisonOutside);
             AddIfDifferent(
                 obj,
                 "showWritersThroughOccluders",
-                relationship.ShowWritersThroughOccluders,
+                stencil.ShowWritersThroughOccluders,
                 false
             );
             AddIfDifferent(
                 obj,
                 "writersOnlyInsideReaders",
-                relationship.WritersOnlyInsideReaders,
+                stencil.WritersOnlyInsideReaders,
                 false
             );
             AddIfDifferent(
                 obj,
                 "writersOnlyOutsideReaders",
-                relationship.WritersOnlyOutsideReaders,
+                stencil.WritersOnlyOutsideReaders,
                 false
             );
-            AddIfDifferent(obj, "writersSelfOcclude", relationship.WritersSelfOcclude, true);
+            AddIfDifferent(obj, "writersSelfOcclude", stencil.WritersSelfOcclude, true);
             AddIfDifferent(
                 obj,
                 "ignoreOccludedReaderAreas",
-                relationship.IgnoreOccludedReaderAreas,
+                stencil.IgnoreOccludedReaderAreas,
                 true
             );
-            AddIfDifferent(obj, "writersWriteColor", relationship.WritersWriteColor, true);
-            AddIfDifferent(obj, "writersWriteDepth", relationship.WritersWriteDepth, true);
-            AddIfDifferent(obj, "readersWriteDepth", relationship.ReadersWriteDepth, true);
+            AddIfDifferent(obj, "writersWriteColor", stencil.WritersWriteColor, true);
+            AddIfDifferent(obj, "writersWriteDepth", stencil.WritersWriteDepth, true);
+            AddIfDifferent(obj, "readersWriteDepth", stencil.ReadersWriteDepth, true);
             AddIfDifferent(
                 obj,
                 "writerDepthTest",
-                relationship.WriterDepthTest,
+                stencil.WriterDepthTest,
                 VrmxtMaterialsMtoonxt.ZTestDefault
             );
             AddIfDifferent(
                 obj,
                 "readerDepthTest",
-                relationship.ReaderDepthTest,
+                stencil.ReaderDepthTest,
                 VrmxtMaterialsMtoonxt.ZTestDefault
             );
             return obj;
@@ -409,12 +409,12 @@ namespace UniVRMXT.Format
         }
     }
 
-    public sealed class VrmxtMaterialsMtoonxtRelationship
+    public sealed class VrmxtMaterialsMtoonxtStencil
     {
-        public VrmxtMaterialsMtoonxtRelationship(
+        public VrmxtMaterialsMtoonxtStencil(
             IReadOnlyList<int> writers,
             IReadOnlyList<int> readers,
-            string comparison = VrmxtMaterialsMtoonxtRelationships.ComparisonOutside,
+            string comparison = VrmxtMaterialsMtoonxtStencils.ComparisonOutside,
             bool showWritersThroughOccluders = false,
             bool writersOnlyInsideReaders = false,
             bool writersOnlyOutsideReaders = false,
@@ -456,12 +456,12 @@ namespace UniVRMXT.Format
         public string WriterDepthTest { get; }
         public string ReaderDepthTest { get; }
 
-        public VrmxtMaterialsMtoonxtRelationship WithMaterialIndices(
+        public VrmxtMaterialsMtoonxtStencil WithMaterialIndices(
             IReadOnlyList<int> writers,
             IReadOnlyList<int> readers
         )
         {
-            return new VrmxtMaterialsMtoonxtRelationship(
+            return new VrmxtMaterialsMtoonxtStencil(
                 writers,
                 readers,
                 Comparison,

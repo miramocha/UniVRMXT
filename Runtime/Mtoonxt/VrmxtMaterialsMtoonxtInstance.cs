@@ -5,40 +5,7 @@ using UniVRMXT.Format;
 
 namespace UniVRMXT.Mtoonxt
 {
-    public enum VrmxtMtoonxtBodyStencilOp
-    {
-        Off = 0,
-        Write = 1,
-
-        [InspectorName("Clip inside")]
-        ClipInside = 2,
-
-        [InspectorName("Clip outside")]
-        ClipOutside = 3,
-
-        [InspectorName("Clip inside overlay")]
-        ClipInsideOverlay = 4,
-    }
-
-    public enum VrmxtMtoonxtOutlineStencilOp
-    {
-        Off = 0,
-
-        [InspectorName("Same as body")]
-        Same = 1,
-        Write = 2,
-
-        [InspectorName("Clip inside")]
-        ClipInside = 3,
-
-        [InspectorName("Clip outside")]
-        ClipOutside = 4,
-
-        [InspectorName("Clip inside overlay")]
-        ClipInsideOverlay = 5,
-    }
-
-    public enum VrmxtMtoonxtRelationshipComparison
+    public enum VrmxtMtoonxtStencilComparison
     {
         Outside = 0,
         Inside = 1,
@@ -68,22 +35,21 @@ namespace UniVRMXT.Mtoonxt
         private List<VrmxtMaterialsMtoonxtPair> pairs = new List<VrmxtMaterialsMtoonxtPair>();
 
         [SerializeField]
-        private List<VrmxtMaterialsMtoonxtRelationshipAuthoring> stencilRelationships =
-            new List<VrmxtMaterialsMtoonxtRelationshipAuthoring>();
+        private List<VrmxtMaterialsMtoonxtStencilAuthoring> stencils =
+            new List<VrmxtMaterialsMtoonxtStencilAuthoring>();
 
         public IReadOnlyList<VrmxtMaterialsMtoonxtPair> Pairs => pairs;
 
-        public IReadOnlyList<VrmxtMaterialsMtoonxtRelationshipAuthoring> StencilRelationships =>
-            stencilRelationships;
+        public IReadOnlyList<VrmxtMaterialsMtoonxtStencilAuthoring> Stencils => stencils;
 
         private void OnEnable()
         {
             // Native material layers and coverage buffers are derived runtime state.
             // Rebuild them from the portable graph after a domain reload, scene
             // reopen, or object re-enable from the serialized authoring graph on this store.
-            // The initial import path may invoke this before SetPairs/SetStencilRelationships;
+            // The initial import path may invoke this before SetPairs/SetStencils;
             // that empty reapply is harmless and the importer performs the complete Apply next.
-            VrmxtMaterialsMtoonxtApplier.ReapplyRelationships(gameObject, this);
+            VrmxtMaterialsMtoonxtApplier.ReapplyStencils(gameObject, this);
         }
 
         private void OnDestroy()
@@ -102,14 +68,12 @@ namespace UniVRMXT.Mtoonxt
             pairs.AddRange(values);
         }
 
-        public void SetStencilRelationships(
-            IEnumerable<VrmxtMaterialsMtoonxtRelationshipAuthoring> values
-        )
+        public void SetStencils(IEnumerable<VrmxtMaterialsMtoonxtStencilAuthoring> values)
         {
-            stencilRelationships.Clear();
+            stencils.Clear();
             if (values != null)
             {
-                stencilRelationships.AddRange(values);
+                stencils.AddRange(values);
             }
         }
     }
@@ -119,10 +83,6 @@ namespace UniVRMXT.Mtoonxt
     {
         public string MaterialName;
         public int GltfMaterialIndex = -1;
-        public VrmxtMtoonxtBodyStencilOp BodyOp;
-        public VrmxtMtoonxtOutlineStencilOp OutlineOp;
-        public List<Material> StencilTargets = new List<Material>();
-        public List<Material> OutlineStencilTargets = new List<Material>();
 
         /// <summary>
         /// Import leftover (research <c>zTest</c> / <c>zWrite</c>). Not an authoring field.
@@ -144,12 +104,11 @@ namespace UniVRMXT.Mtoonxt
     }
 
     [Serializable]
-    public sealed class VrmxtMaterialsMtoonxtRelationshipAuthoring
+    public sealed class VrmxtMaterialsMtoonxtStencilAuthoring
     {
         public List<Material> Writers = new List<Material>();
         public List<Material> Readers = new List<Material>();
-        public VrmxtMtoonxtRelationshipComparison Comparison =
-            VrmxtMtoonxtRelationshipComparison.Outside;
+        public VrmxtMtoonxtStencilComparison Comparison = VrmxtMtoonxtStencilComparison.Outside;
         public bool ShowWritersThroughOccluders;
         public bool WritersOnlyInsideReaders;
         public bool WritersOnlyOutsideReaders;
@@ -161,9 +120,9 @@ namespace UniVRMXT.Mtoonxt
         public VrmxtMtoonxtDepthTest WriterDepthTest = VrmxtMtoonxtDepthTest.LessEqual;
         public VrmxtMtoonxtDepthTest ReaderDepthTest = VrmxtMtoonxtDepthTest.LessEqual;
 
-        public VrmxtMaterialsMtoonxtRelationshipAuthoring() { }
+        public VrmxtMaterialsMtoonxtStencilAuthoring() { }
 
-        public VrmxtMaterialsMtoonxtRelationshipAuthoring(
+        public VrmxtMaterialsMtoonxtStencilAuthoring(
             IEnumerable<Material> writers,
             IEnumerable<Material> readers
         )

@@ -5,7 +5,7 @@ using UniVRMXT.Mtoonxt;
 
 namespace UniVRMXT.Tests.Mtoonxt
 {
-    public sealed class VrmxtMaterialsMtoonxtRelationshipCompilerTests
+    public sealed class VrmxtMaterialsMtoonxtStencilCompilerTests
     {
         [TestCase("M01", false, false, false, true, true, true, true, "outside", "lessEqual", "lessEqual", "W=always/replace/lessEqual/1/0;S=-;R=notEqual/keep/lessEqual/1/0;WS=1;RS=0;C=None")]
         [TestCase("M02", true, false, false, true, true, true, true, "outside", "lessEqual", "lessEqual", "W=notEqual/keep/lessEqual/1/1;S=equal/keep/always/1/1;R=always/replace/lessEqual/1/0;WS=0;RS=1;C=None")]
@@ -35,7 +35,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             string expected
         )
         {
-            var relationship = new VrmxtMaterialsMtoonxtRelationship(
+            var stencil = new VrmxtMaterialsMtoonxtStencil(
                 new[] { 0 },
                 new[] { 1 },
                 comparison,
@@ -50,8 +50,8 @@ namespace UniVRMXT.Tests.Mtoonxt
                 readerDepth
             );
 
-            var plans = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
-                new List<VrmxtMaterialsMtoonxtRelationship> { relationship },
+            var plans = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                new List<VrmxtMaterialsMtoonxtStencil> { stencil },
                 1
             );
 
@@ -62,12 +62,12 @@ namespace UniVRMXT.Tests.Mtoonxt
         [Test]
         public void Compile_SameReadersAndPresentation_CoalescesWriters()
         {
-            var first = Relationship(new[] { 0 }, new[] { 4, 5 });
-            var second = Relationship(new[] { 1 }, new[] { 4, 5 });
-            var third = Relationship(new[] { 2, 3 }, new[] { 4, 5 });
+            var first = Stencil(new[] { 0 }, new[] { 4, 5 });
+            var second = Stencil(new[] { 1 }, new[] { 4, 5 });
+            var third = Stencil(new[] { 2, 3 }, new[] { 4, 5 });
 
-            var plans = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
-                new List<VrmxtMaterialsMtoonxtRelationship> { first, second, third },
+            var plans = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                new List<VrmxtMaterialsMtoonxtStencil> { first, second, third },
                 1
             );
 
@@ -76,12 +76,12 @@ namespace UniVRMXT.Tests.Mtoonxt
             CollectionAssert.AreEquivalent(new[] { 4, 5 }, plans[0].Source.Readers);
         }
 
-        private static VrmxtMaterialsMtoonxtRelationship Relationship(
+        private static VrmxtMaterialsMtoonxtStencil Stencil(
             IReadOnlyList<int> writers,
             IReadOnlyList<int> readers
         )
         {
-            return new VrmxtMaterialsMtoonxtRelationship(
+            return new VrmxtMaterialsMtoonxtStencil(
                 writers,
                 readers,
                 "outside",
@@ -97,7 +97,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             );
         }
 
-        private static string Snapshot(VrmxtMtoonxtRelationshipPlan plan)
+        private static string Snapshot(VrmxtMtoonxtStencilPlan plan)
         {
             return "W=" + Pass(plan.WriterPrimary)
                 + ";S=" + Pass(plan.WriterSecondary)
@@ -107,7 +107,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                 + ";C=" + plan.CoverageMode;
         }
 
-        private static string Pass(VrmxtMtoonxtRelationshipPass pass)
+        private static string Pass(VrmxtMtoonxtStencilPass pass)
         {
             if (pass == null)
             {

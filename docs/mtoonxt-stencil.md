@@ -1,12 +1,12 @@
 # MToonXT stencil
 
-UniVRMXT owns the portable root-level relationship graph used to reproduce the
+UniVRMXT owns the portable root-level stencil graph used to reproduce the
 Blender and Unity stencil modes without depending on BVT at import or export
 time.
 
 ## JSON shape
 
-Relationships live at:
+Stencils live at:
 
 ```text
 extensions.VRMXT_materials_mtoonxt.stencil[]
@@ -36,12 +36,12 @@ writes and `writersWriteDepth` remain independently active.
 Depth-test values use the existing MToonXT comparison vocabulary: `never`, `less`,
 `equal`, `lessEqual`, `greater`, `notEqual`, `greaterEqual`, and `always`.
 
-Invalid entries are skipped individually. Valid sibling relationships continue to
+Invalid entries are skipped individually. Valid sibling stencils continue to
 import.
 
 ## Unity authoring and export
 
-`VrmxtMaterialsMtoonxtInstance.StencilRelationships` stores Unity `Material` references
+`VrmxtMaterialsMtoonxtInstance.Stencils` stores Unity `Material` references
 and presentation controls. On export, `VrmxtMaterialsMtoonxtAuthoring` resolves those
 materials through Extended-UniVRM's final export material-index map and
 `VrmxtMaterialsMtoonxtExportHookBootstrap` writes the root extension using
@@ -52,7 +52,7 @@ public authoring component, but UniVRMXT does not import or reference BVT code.
 
 ## Runtime compilation
 
-`VrmxtMaterialsMtoonxtRelationshipCompiler` turns each portable relationship into a
+`VrmxtMaterialsMtoonxtStencilCompiler` turns each portable stencil into a
 small pass plan. Primary writer and reader passes reuse imported renderer/material
 slots. Compound modes add retained auxiliary draws:
 
@@ -66,7 +66,7 @@ received shadows. `CommandBuffer.DrawRenderer` does not initialize this lighting
 and must not be used for these lit overlays. Only colorless coverage (including the
 reader coverage in M08) uses cached `BeforeForwardOpaque` command buffers.
 
-For a show-through relationship with the default self-occlusion/depth flags (M02),
+For a show-through stencil with the default self-occlusion/depth flags (M02),
 the imported configuration is:
 
 | Surface | Queue | Stencil comparison / operation | Depth test / write | Surface culling |
@@ -75,8 +75,8 @@ the imported configuration is:
 | Writer base | 2452 | NotEqual / Keep | LEqual / On | Source material |
 | Writer overlay | 2453 | Equal / Keep | Always / On | Back |
 
-Queues above are the first relationship's queues; later relationships receive their
-compiler-assigned offsets. Each pass shares its relationship's allocated stencil ref.
+Queues above are the first stencil's queues; later stencils receive their
+compiler-assigned offsets. Each pass shares its stencil's allocated stencil ref.
 Source double-sidedness remains unchanged. The overlay clones the source appearance
 but disables its `ShadowCaster` pass; the base surface remains the caster. The original
 renderer still controls shadow casting/receiving, skinning, bounds, and transforms.
@@ -84,7 +84,7 @@ No helper renderer, proxy mesh object, or bounds override is created.
 
 With `writersSelfOcclude=false`, the overlay instead keeps Cull Off. M07 also sets
 `writersWriteDepth=false`, giving ZWrite Off; these controls remain independent.
-Other stencil/depth/color settings still follow the compiled relationship plan.
+Other stencil/depth/color settings still follow the compiled stencil plan.
 Back-face culling is a closed-surface approximation, **not** a
 general nearest-writer-depth solution for concave/open double-sided geometry. Other supported lit rows use the same native-lighting path without inheriting this culling override.
 
@@ -133,5 +133,6 @@ The root `stencil` array replaces the previous draft formats. Per-material
 `stencil` / `outlineStencil` operations and root `stencilRelationships` are not
 read as aliases or emitted as fallback data. Re-export authored graphs or explicitly
 migrate older draft assets before importing them. Body and outline use the same
-graph. Existing Unity component field names are retained for scene serialization;
-they do not introduce another JSON format.
+graph. Serialized Unity fields (`stencils`, not `stencilRelationships`) match the
+graph; older scenes that stored per-material ops or the retired field name do not
+migrate.
