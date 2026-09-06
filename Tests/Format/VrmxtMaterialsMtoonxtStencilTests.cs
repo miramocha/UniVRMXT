@@ -5,7 +5,7 @@ using UniVRMXT.Mtoonxt;
 
 namespace UniVRMXT.Tests.Format
 {
-    public sealed class VrmxtMaterialsMtoonxtRelationshipTests
+    public sealed class VrmxtMaterialsMtoonxtStencilTests
     {
         private const string RootJson = @"{
           ""materials"": [{}, {}, {}],
@@ -30,31 +30,31 @@ namespace UniVRMXT.Tests.Format
         public void Parse_RetiredRootName_IsNotAnAlias()
         {
             var old = RootJson.Replace("\"stencil\"", "\"stencilRelationships\"");
-            Assert.IsTrue(VrmxtMaterialsMtoonxtRelationships.TryParseRoot(
-                JToken.Parse(old), 3, out var relationships));
-            Assert.AreEqual(0, relationships.Count);
+            Assert.IsTrue(VrmxtMaterialsMtoonxtStencils.TryParseRoot(
+                JToken.Parse(old), 3, out var stencils));
+            Assert.AreEqual(0, stencils.Count);
         }
 
         [Test]
-        public void ParseAndSerialize_RoundTripsPortableRelationship()
+        public void ParseAndSerialize_RoundTripsPortableStencil()
         {
             Assert.IsTrue(
-                VrmxtMaterialsMtoonxtRelationships.TryParseRoot(
+                VrmxtMaterialsMtoonxtStencils.TryParseRoot(
                     JToken.Parse(RootJson),
                     3,
-                    out var relationships
+                    out var stencils
                 )
             );
-            Assert.AreEqual(1, relationships.Count);
-            var relationship = relationships[0];
-            Assert.AreEqual("inside", relationship.Comparison);
-            Assert.IsTrue(relationship.ShowWritersThroughOccluders);
-            Assert.IsFalse(relationship.WritersSelfOcclude);
-            Assert.IsFalse(relationship.WritersWriteColor);
-            Assert.IsFalse(relationship.WritersWriteDepth);
-            Assert.AreEqual("always", relationship.ReaderDepthTest);
+            Assert.AreEqual(1, stencils.Count);
+            var stencil = stencils[0];
+            Assert.AreEqual("inside", stencil.Comparison);
+            Assert.IsTrue(stencil.ShowWritersThroughOccluders);
+            Assert.IsFalse(stencil.WritersSelfOcclude);
+            Assert.IsFalse(stencil.WritersWriteColor);
+            Assert.IsFalse(stencil.WritersWriteDepth);
+            Assert.AreEqual("always", stencil.ReaderDepthTest);
 
-            var serialized = VrmxtMaterialsMtoonxtRelationships.ToJson(relationships);
+            var serialized = VrmxtMaterialsMtoonxtStencils.ToJson(stencils);
             Assert.That(serialized, Does.Contain("stencil"));
             Assert.That(serialized, Does.Contain("showWritersThroughOccluders"));
             Assert.That(serialized, Does.Contain("writersWriteColor"));
@@ -78,21 +78,21 @@ namespace UniVRMXT.Tests.Format
             }";
 
             Assert.IsTrue(
-                VrmxtMaterialsMtoonxtRelationships.TryParseRoot(
+                VrmxtMaterialsMtoonxtStencils.TryParseRoot(
                     JToken.Parse(json),
                     2,
-                    out var relationships
+                    out var stencils
                 )
             );
-            Assert.AreEqual(1, relationships.Count);
+            Assert.AreEqual(1, stencils.Count);
         }
 
         [Test]
         public void Compile_M02_ProducesDualSubjectPasses()
         {
-            var relationship = Relationship(showThrough: true);
-            var plan = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
-                new[] { relationship },
+            var stencil = Stencil(showThrough: true);
+            var plan = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                new[] { stencil },
                 1
             )[0];
 
@@ -106,14 +106,14 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_M06_ProducesBackgroundCoveragePass()
         {
-            var relationship = new VrmxtMaterialsMtoonxtRelationship(
+            var stencil = new VrmxtMaterialsMtoonxtStencil(
                 new[] { 1 },
                 new[] { 0 },
                 showWritersThroughOccluders: true,
                 writersOnlyOutsideReaders: true
             );
-            var plan = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
-                new[] { relationship },
+            var plan = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                new[] { stencil },
                 1
             )[0];
 
@@ -129,14 +129,14 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_M08_ProducesFullReaderSilhouetteAndDualPasses()
         {
-            var relationship = new VrmxtMaterialsMtoonxtRelationship(
+            var stencil = new VrmxtMaterialsMtoonxtStencil(
                 new[] { 1 },
                 new[] { 0 },
                 showWritersThroughOccluders: true,
                 ignoreOccludedReaderAreas: false
             );
-            var plan = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
-                new[] { relationship },
+            var plan = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                new[] { stencil },
                 1
             )[0];
 
@@ -150,15 +150,15 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_M07_PreservesIndependentSelfOcclusionAndDepth()
         {
-            var relationship = new VrmxtMaterialsMtoonxtRelationship(
+            var stencil = new VrmxtMaterialsMtoonxtStencil(
                 new[] { 1 },
                 new[] { 0 },
                 showWritersThroughOccluders: true,
                 writersSelfOcclude: false,
                 writersWriteDepth: false
             );
-            var plan = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
-                new[] { relationship },
+            var plan = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                new[] { stencil },
                 1
             )[0];
 
@@ -171,13 +171,13 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_ColorlessWriter_PreservesStencilAndSuppressesWriterColor()
         {
-            var relationship = new VrmxtMaterialsMtoonxtRelationship(
+            var stencil = new VrmxtMaterialsMtoonxtStencil(
                 new[] { 1 },
                 new[] { 0 },
                 writersWriteColor: false
             );
-            var plan = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
-                new[] { relationship },
+            var plan = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
+                new[] { stencil },
                 1
             )[0];
 
@@ -189,15 +189,15 @@ namespace UniVRMXT.Tests.Format
         [Test]
         public void Compile_EquivalentWriters_CoalescesReaderMasks()
         {
-            var plans = VrmxtMaterialsMtoonxtRelationshipCompiler.Compile(
+            var plans = VrmxtMaterialsMtoonxtStencilCompiler.Compile(
                 new[]
                 {
-                    new VrmxtMaterialsMtoonxtRelationship(
+                    new VrmxtMaterialsMtoonxtStencil(
                         new[] { 0 },
                         new[] { 1 },
                         writersWriteColor: false
                     ),
-                    new VrmxtMaterialsMtoonxtRelationship(
+                    new VrmxtMaterialsMtoonxtStencil(
                         new[] { 0 },
                         new[] { 2 },
                         writersWriteColor: false
@@ -210,9 +210,9 @@ namespace UniVRMXT.Tests.Format
             CollectionAssert.AreEquivalent(new[] { 1, 2 }, plans[0].Source.Readers);
         }
 
-        private static VrmxtMaterialsMtoonxtRelationship Relationship(bool showThrough)
+        private static VrmxtMaterialsMtoonxtStencil Stencil(bool showThrough)
         {
-            return new VrmxtMaterialsMtoonxtRelationship(
+            return new VrmxtMaterialsMtoonxtStencil(
                 new[] { 1 },
                 new[] { 0 },
                 showWritersThroughOccluders: showThrough

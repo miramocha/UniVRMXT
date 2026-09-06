@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UniVRMXT.Format;
@@ -24,22 +23,15 @@ namespace UniVRMXT.Tests.Mtoonxt
             {
                 AddMesh(root, "HairMesh", copy);
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
-                var writer = new VrmxtMaterialsMtoonxtPair("Writer", null, 0)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
-                };
-                var clipper = new VrmxtMaterialsMtoonxtPair("HairStencil", null, 1)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
-                    StencilTargets = new List<Material> { authored },
-                };
+                var writer = new VrmxtMaterialsMtoonxtPair("Writer", null, 0);
+                var clipper = new VrmxtMaterialsMtoonxtPair("HairStencil", null, 1);
                 store.SetPairs(new[] { writer, clipper });
                 VrmxtMaterialsMtoonxtAuthoring.RegisterExportStockCopy(authored, copy);
 
                 var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, clipper);
                 Assert.IsNotNull(xt);
-                Assert.IsNull(xt.Stencil);
-                Assert.IsNull(xt.OutlineStencil);
+                Assert.That(VrmxtMaterialsMtoonxt.ToJson(xt), Does.Not.Contain("stencil"));
+                Assert.That(VrmxtMaterialsMtoonxt.ToJson(xt), Does.Not.Contain("outlineStencil"));
             }
             finally
             {
@@ -69,23 +61,16 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "HairMesh1", copy1);
                 AddMesh(root, "HairMesh2", copy2);
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
-                var pair1 = new VrmxtMaterialsMtoonxtPair("Hair#1", null, 0)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
-                };
-                var pair2 = new VrmxtMaterialsMtoonxtPair("Hair#2", null, 1)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
-                    StencilTargets = new List<Material> { hair2 },
-                };
+                var pair1 = new VrmxtMaterialsMtoonxtPair("Hair#1", null, 0);
+                var pair2 = new VrmxtMaterialsMtoonxtPair("Hair#2", null, 1);
                 store.SetPairs(new[] { pair1, pair2 });
                 VrmxtMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair1, copy1);
                 VrmxtMaterialsMtoonxtAuthoring.RegisterExportStockCopy(hair2, copy2);
 
                 var xt = VrmxtMaterialsMtoonxtAuthoring.ToExtension(root, store, pair2);
                 Assert.IsNotNull(xt);
-                Assert.IsNull(xt.Stencil);
-                Assert.IsNull(xt.OutlineStencil);
+                Assert.That(VrmxtMaterialsMtoonxt.ToJson(xt), Does.Not.Contain("stencil"));
+                Assert.That(VrmxtMaterialsMtoonxt.ToJson(xt), Does.Not.Contain("outlineStencil"));
             }
             finally
             {

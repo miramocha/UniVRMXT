@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UniVRMXT.Format;
@@ -63,16 +62,12 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "HairMesh", hair);
 
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
-                var browPair = new VrmxtMaterialsMtoonxtPair("Brow_Face-NoRim", null, 0)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
-                };
-                var hairPair = new VrmxtMaterialsMtoonxtPair("Hair-Highlight", null, 1)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
-                    StencilTargets = new List<Material> { brow },
-                };
+                var browPair = new VrmxtMaterialsMtoonxtPair("Brow_Face-NoRim", null, 0);
+                var hairPair = new VrmxtMaterialsMtoonxtPair("Hair-Highlight", null, 1);
                 store.SetPairs(new[] { browPair, hairPair });
+                store.SetStencils(
+                    new[] { new VrmxtMaterialsMtoonxtStencilAuthoring(new[] { brow }, new[] { hair }) }
+                );
 
                 var hairWarn = VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, hairPair);
                 Assert.AreEqual(1, hairWarn.Count);
@@ -124,16 +119,12 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "IrisMesh", iris);
 
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
-                var whitePair = new VrmxtMaterialsMtoonxtPair("White", null, 0)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
-                };
-                var irisPair = new VrmxtMaterialsMtoonxtPair("Iris", null, 1)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipInside,
-                    StencilTargets = new List<Material> { white },
-                };
+                var whitePair = new VrmxtMaterialsMtoonxtPair("White", null, 0);
+                var irisPair = new VrmxtMaterialsMtoonxtPair("Iris", null, 1);
                 store.SetPairs(new[] { whitePair, irisPair });
+                store.SetStencils(
+                    new[] { new VrmxtMaterialsMtoonxtStencilAuthoring(new[] { white }, new[] { iris }) }
+                );
 
                 Assert.AreEqual(
                     0,
@@ -172,16 +163,12 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "BoneMesh", bone);
 
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
-                var suitPair = new VrmxtMaterialsMtoonxtPair("Swimsuit", null, 0)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
-                };
-                var bonePair = new VrmxtMaterialsMtoonxtPair("Skeleton", null, 1)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipInsideOverlay,
-                    StencilTargets = new List<Material> { suit },
-                };
+                var suitPair = new VrmxtMaterialsMtoonxtPair("Swimsuit", null, 0);
+                var bonePair = new VrmxtMaterialsMtoonxtPair("Skeleton", null, 1);
                 store.SetPairs(new[] { suitPair, bonePair });
+                store.SetStencils(
+                    new[] { new VrmxtMaterialsMtoonxtStencilAuthoring(new[] { suit }, new[] { bone }) }
+                );
 
                 Assert.AreEqual(
                     0,
@@ -208,7 +195,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                 var pair = new VrmxtMaterialsMtoonxtPair("Skeleton", json, 1);
                 store.SetPairs(new[] { pair });
                 VrmxtMaterialsMtoonxtAuthoring.PopulateFromExtensionJson(root, store, pair);
-                Assert.AreEqual(VrmxtMtoonxtBodyStencilOp.Off, pair.BodyOp);
+                Assert.AreEqual(0, store.Stencils.Count);
             }
             finally
             {
@@ -236,16 +223,15 @@ namespace UniVRMXT.Tests.Mtoonxt
                 AddMesh(root, "BodyMesh", reader);
 
                 var store = root.AddComponent<VrmxtMaterialsMtoonxtInstance>();
-                var writePair = new VrmxtMaterialsMtoonxtPair("White", null, 0)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.Write,
-                };
-                var readPair = new VrmxtMaterialsMtoonxtPair("Body_Skin-Highlight", null, 1)
-                {
-                    BodyOp = VrmxtMtoonxtBodyStencilOp.ClipOutside,
-                    StencilTargets = new List<Material> { writer },
-                };
+                var writePair = new VrmxtMaterialsMtoonxtPair("White", null, 0);
+                var readPair = new VrmxtMaterialsMtoonxtPair("Body_Skin-Highlight", null, 1);
                 store.SetPairs(new[] { writePair, readPair });
+                store.SetStencils(
+                    new[]
+                    {
+                        new VrmxtMaterialsMtoonxtStencilAuthoring(new[] { writer }, new[] { reader }),
+                    }
+                );
 
                 var readWarn = VrmxtMaterialsMtoonxtDrawOrder.CollectForPair(store, readPair);
                 Assert.AreEqual(1, readWarn.Count);

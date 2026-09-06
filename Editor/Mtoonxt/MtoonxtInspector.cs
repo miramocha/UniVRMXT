@@ -66,7 +66,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 var so = new SerializedObject(instance);
                 so.Update();
                 EditorGUILayout.PropertyField(
-                    so.FindProperty("stencilRelationships"), new GUIContent("Stencil"),
+                    so.FindProperty("stencils"), new GUIContent("Stencil"),
                     includeChildren: true);
                 so.ApplyModifiedProperties();
             }

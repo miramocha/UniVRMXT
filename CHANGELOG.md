@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Breaking (unreleased):** MToonXT stencil is the root `stencil[]` graph only.
+  Per-material `stencil` / `outlineStencil` ops and C# types (`FromOp`,
+  `VrmxtMtoonxtBodyStencilOp` / `OutlineStencilOp`, pair `BodyOp` / `StencilTargets`)
+  are removed. Graph types take the old names: `VrmxtMaterialsMtoonxtStencil`,
+  `VrmxtMaterialsMtoonxtStencils`, `VrmxtMaterialsMtoonxtStencilCompiler` /
+  `StencilApplier` / `StencilAuthoring`. Instance field `stencils` (was
+  `stencilRelationships`); no `FormerlySerializedAs` / `MovedFrom`. Apply compiles
+  the root graph only; material extras still supply `zTest` / `zWrite`.
 - Document the 2026-09-06 13-scenario stencil checkpoint and published comparison
   matrix: 24 configured/control transports verified, M04/M07 approvals recorded,
   and remaining topology, alpha-ordering, culling and pipeline limits explicit.
@@ -43,16 +51,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Portable `writersWriteColor` stencil relationships now round-trip through import,
+- Portable `writersWriteColor` stencil entries now round-trip through import,
   authoring, export, and Built-in/URP MToonXT passes, allowing invisible avatar masks
   without disabling their stencil or depth effects.
 
-- Root `VRMXT_materials_mtoonxt.stencilRelationships[]` import, authoring, export,
+- Root `VRMXT_materials_mtoonxt.stencil[]` import, authoring, export,
   and Built-in runtime pass compilation for the confirmed M01-M10/A01-A03 stencil
-  parity modes. Relationship metadata is owned entirely by UniVRMXT; host tools may
+  parity modes. Stencil metadata is owned entirely by UniVRMXT; host tools may
   populate `VrmxtMaterialsMtoonxtInstance` without becoming exporter dependencies.
 - Retained per-camera auxiliary stencil draws for compound inside/outside/background
-  coverage modes. Simple relationships remain single-pass material state.
+  coverage modes. Simple stencils remain single-pass material state.
 - MToonXT stencil `insideOverlay` (`Clip inside overlay`): same clip as `inside`; Apply writes `_M_ZTest` Always, `_M_ZWrite` off, and `_MTOONXT_OVERLAY_DEPTH`; queue one slot after the mapped bucket
 - `VRMXT_materials_mtoonxt` — parse/attach/apply stencil extras onto packaged `VRMXT/MToonXT10` / `VRMXT/Universal Render Pipeline/MToonXT10`; skip when `VRMXT_materials_override` would apply
 - MToonXT stencil **Enable stencil** / **Enable outline stencil** (`_M_StencilEnabled`, `_M_OutlineStencilEnabled`), default off
@@ -68,7 +76,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- Preserve an imported material's `doubleSided` state when stencil relationship
+- Preserve an imported material's `doubleSided` state when stencil
   passes apply writer self-occlusion, and rebuild retained auxiliary
   show-through draws when an imported avatar instance enables in Edit Mode.
 - Unity 2022.3 material inspector compatibility: use the built-in

@@ -28,7 +28,7 @@ namespace UniVRMXT.Editor.Mtoonxt
                 MessageType.Info
             );
             EditorGUILayout.PropertyField(
-                serializedObject.FindProperty("stencilRelationships"), new GUIContent("Stencil"),
+                serializedObject.FindProperty("stencils"), new GUIContent("Stencil"),
                 includeChildren: true
             );
             serializedObject.ApplyModifiedProperties();

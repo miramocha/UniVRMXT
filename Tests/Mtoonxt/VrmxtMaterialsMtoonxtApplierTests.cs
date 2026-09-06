@@ -65,7 +65,7 @@ namespace UniVRMXT.Tests.Mtoonxt
               ]
             }";
 
-        private const string GltfRelationshipBaseline =
+        private const string GltfStencilBaseline =
             @"
             {
               ""extensions"": {
@@ -87,7 +87,7 @@ namespace UniVRMXT.Tests.Mtoonxt
               ]
             }";
 
-        private const string GltfRelationshipShowThrough =
+        private const string GltfStencilShowThrough =
             @"
             {
               ""extensions"": {
@@ -112,7 +112,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             }";
 
         [Test]
-        public void Apply_RelationshipBaseline_UsesConfirmedWriterThenReaderQueues()
+        public void Apply_StencilBaseline_UsesConfirmedWriterThenReaderQueues()
         {
             var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
@@ -136,7 +136,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     2,
                     VrmxtMaterialsMtoonxtApplier.Apply(
                         root,
-                        GltfRelationshipBaseline,
+                        GltfStencilBaseline,
                         name => IsMtoonxtForkName(name) ? shader : null
                     )
                 );
@@ -153,7 +153,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
-        public void ReapplyRelationships_RestoresShowThroughAuxiliaryDrawAfterReload()
+        public void ReapplyStencils_RestoresShowThroughAuxiliaryDrawAfterReload()
         {
             var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
@@ -177,7 +177,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     2,
                     VrmxtMaterialsMtoonxtApplier.Apply(
                         root,
-                        GltfRelationshipShowThrough,
+                        GltfStencilShowThrough,
                         name => IsMtoonxtForkName(name) ? shader : null
                     )
                 );
@@ -205,7 +205,7 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
-        public void ApplyRelationshipPass_PreservesDoubleSidedCulling()
+        public void ApplyStencilPass_PreservesDoubleSidedCulling()
         {
             var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
             if (shader == null)
@@ -214,7 +214,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             }
 
             var material = new Material(shader);
-            var pass = new VrmxtMtoonxtRelationshipPass(
+            var pass = new VrmxtMtoonxtStencilPass(
                 "notEqual",
                 "keep",
                 "lessEqual",
@@ -226,11 +226,11 @@ namespace UniVRMXT.Tests.Mtoonxt
             try
             {
                 material.SetInt("_DoubleSided", 1);
-                VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(material, pass, 1, 0);
+                VrmxtMaterialsMtoonxtApplier.ApplyStencilPass(material, pass, 1, 0);
                 Assert.AreEqual(0f, material.GetFloat("_M_CullMode"));
 
                 material.SetInt("_DoubleSided", 0);
-                VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(material, pass, 1, 0);
+                VrmxtMaterialsMtoonxtApplier.ApplyStencilPass(material, pass, 1, 0);
                 Assert.AreEqual(2f, material.GetFloat("_M_CullMode"));
             }
             finally
@@ -314,35 +314,6 @@ namespace UniVRMXT.Tests.Mtoonxt
                 Object.DestroyImmediate(material);
                 Object.DestroyImmediate(root);
             }
-        }
-
-        [Test]
-        public void UsesOverlayDepth_InsideOverlayAndSame()
-        {
-            var overlay = new VrmxtMaterialsMtoonxtExtension(
-                VrmxtMaterialsMtoonxtStencil.FromOp("insideOverlay", new[] { 0 }),
-                VrmxtMaterialsMtoonxtStencil.FromOp("same", null)
-            );
-            Assert.IsTrue(VrmxtMaterialsMtoonxtApplier.UsesOverlayDepth(overlay));
-            Assert.IsTrue(VrmxtMaterialsMtoonxtApplier.UsesOutlineOverlayDepth(overlay));
-
-            var inside = new VrmxtMaterialsMtoonxtExtension(
-                VrmxtMaterialsMtoonxtStencil.FromOp("inside", new[] { 0 }),
-                VrmxtMaterialsMtoonxtStencil.FromOp("same", null)
-            );
-            Assert.IsFalse(VrmxtMaterialsMtoonxtApplier.UsesOverlayDepth(inside));
-            Assert.IsFalse(VrmxtMaterialsMtoonxtApplier.UsesOutlineOverlayDepth(inside));
-        }
-
-        [Test]
-        public void UsesOverlayDepth_OutlineOnly_DoesNotForceBody()
-        {
-            var xt = new VrmxtMaterialsMtoonxtExtension(
-                VrmxtMaterialsMtoonxtStencil.FromOp("write", null),
-                VrmxtMaterialsMtoonxtStencil.FromOp("insideOverlay", new[] { 0 })
-            );
-            Assert.IsFalse(VrmxtMaterialsMtoonxtApplier.UsesOverlayDepth(xt));
-            Assert.IsTrue(VrmxtMaterialsMtoonxtApplier.UsesOutlineOverlayDepth(xt));
         }
 
         [Test]
@@ -672,102 +643,6 @@ namespace UniVRMXT.Tests.Mtoonxt
         }
 
         [Test]
-        public void ApplyStencilDrawOrder_Write_SubtractsTwo()
-        {
-            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
-            if (shader == null)
-            {
-                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
-            }
-
-            var material = new Material(shader);
-            try
-            {
-                material.renderQueue = 2450;
-                var compiled = VrmxtMaterialsMtoonxtStencil.Compiled(1, "always", "replace");
-                VrmxtMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
-                Assert.AreEqual(2448, material.renderQueue);
-            }
-            finally
-            {
-                Object.DestroyImmediate(material);
-            }
-        }
-
-        [Test]
-        public void ApplyStencilDrawOrder_Inside_SubtractsOne()
-        {
-            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
-            if (shader == null)
-            {
-                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
-            }
-
-            var material = new Material(shader);
-            try
-            {
-                material.renderQueue = 2450;
-                var compiled = VrmxtMaterialsMtoonxtStencil.Compiled(1, "equal", "keep");
-                VrmxtMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
-                Assert.AreEqual(2449, material.renderQueue);
-            }
-            finally
-            {
-                Object.DestroyImmediate(material);
-            }
-        }
-
-        [Test]
-        public void ApplyStencilDrawOrder_InsideOverlay_AddsOne()
-        {
-            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
-            if (shader == null)
-            {
-                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
-            }
-
-            var material = new Material(shader);
-            try
-            {
-                material.renderQueue = 2450;
-                var compiled = VrmxtMaterialsMtoonxtStencil.Compiled(1, "equal", "keep");
-                VrmxtMaterialsMtoonxtApplier.ApplyStencilDrawOrder(
-                    material,
-                    compiled,
-                    overlay: true
-                );
-                Assert.AreEqual(2451, material.renderQueue);
-            }
-            finally
-            {
-                Object.DestroyImmediate(material);
-            }
-        }
-
-        [Test]
-        public void ApplyStencilDrawOrder_Outside_LeavesQueue()
-        {
-            var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
-            if (shader == null)
-            {
-                Assert.Ignore("VRMXT/MToonXT10 not imported yet.");
-            }
-
-            var material = new Material(shader);
-            try
-            {
-                material.renderQueue = 2450;
-                var compiled = VrmxtMaterialsMtoonxtStencil.Compiled(1, "notEqual", "keep");
-                VrmxtMaterialsMtoonxtApplier.ApplyStencilDrawOrder(material, compiled);
-                Assert.AreEqual(2450, material.renderQueue);
-            }
-            finally
-            {
-                Object.DestroyImmediate(material);
-            }
-        }
-
-        [Test]
         public void ApplyZWrite_False_ClearsUnityZWrite()
         {
             var shader = Shader.Find(VrmxtMaterialsMtoonxt.BuiltinShaderName);
@@ -826,7 +701,7 @@ namespace UniVRMXT.Tests.Mtoonxt
                     VrmxtMaterialsMtoonxtApplier.Apply(idle, GltfMtoonxtNoStencil, Resolve)
                 );
                 Assert.AreEqual(0f, idleMat.GetFloat(VrmxtMaterialsMtoonxt.StencilPropEnabled));
-                Assert.AreEqual(2, VrmxtMaterialsMtoonxtApplier.Apply(writer, GltfRelationshipBaseline, Resolve));
+                Assert.AreEqual(2, VrmxtMaterialsMtoonxtApplier.Apply(writer, GltfStencilBaseline, Resolve));
                 Assert.AreEqual(32f, writerMat.GetFloat(VrmxtMaterialsMtoonxt.StencilPropRef));
                 Assert.AreEqual(33, VrmxtMaterialsMtoonxtStencilRefs.Acquire(999, 1));
             }
