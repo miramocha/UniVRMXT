@@ -85,10 +85,8 @@ No helper renderer, proxy mesh object, or bounds override is created.
 With `writersSelfOcclude=false`, the overlay instead keeps Cull Off. M07 also sets
 `writersWriteDepth=false`, giving ZWrite Off; these controls remain independent.
 Other stencil/depth/color settings still follow the compiled relationship plan.
-Back-face culling is the user-confirmed closed-box self-occlusion setup, **not** a
-general nearest-writer-depth solution for concave/open double-sided geometry. M04,
-M08, and other compound rows inherit native lighting, but still require their own
-visual confirmation; this change does not mark the entire parity matrix validated.
+Back-face culling is a closed-surface approximation, **not** a
+general nearest-writer-depth solution for concave/open double-sided geometry. Other supported lit rows use the same native-lighting path without inheriting this culling override.
 
 Appending a material alone repeats only the last submesh. For a writer on an earlier
 submesh, the helper clones the mesh and appends the targeted index ranges, preserving
@@ -109,82 +107,25 @@ that require an extra render phase need an equivalent URP renderer feature; the
 Built-in command-buffer helper deliberately stays inactive under SRP instead of
 injecting at an unsafe phase.
 
-## Matrix checkpoint — 2026-09-06
+## Scenario matrix
 
-[Watch the published Blender / Unity matrix](https://tdw46.github.io/BVT-Stencil-Matrix/).
-The canonical [13-scenario settings and evidence profile](https://github.com/tdw46/Extended-VRM-Specs/blob/codex/mtoonxt-stencil-parity/examples/stencil-parity-matrix.md)
-now covers M01–M10 and A01–A03 with explicit control variants and limitations.
-This is a recorded review checkpoint, **not full-matrix conformance sign-off**.
+[Compare the 13 Blender / Unity examples](https://tdw46.github.io/BVT-Stencil-Matrix/).
+The [scenario specification](https://github.com/tdw46/Extended-VRM-Specs/blob/codex/mtoonxt-stencil-parity/examples/stencil-parity-matrix.md)
+provides each row's exact flags, control variant and Unity pass mapping.
 
-| Rows | Current progress |
-| --- | --- |
-| M01–M03 | Fresh matched-camera/light configured/control round trips recorded 2026-09-06. Old Blender approvals remain scoped to historical recordings; fresh pairs await individual review. |
-| M02 supplemental | User-approved Mira Bunny closed-box native-shadow/self-occlusion setup remains supported. |
-| M04 | Animated stationary-visor lens-clipped HUD and comparison recordings approved; replaces the earlier unfinished visor/shadow concept. |
-| M05–M06 | Recorded spirit-ribbon / background-only controls; broad positive batch feedback, not exhaustive conformance sign-off. |
-| M07 | Transparent aura blend and replacement surrounding magical aura explicitly approved. |
-| M08 | Through-cover anatomical X-ray versus M02 visible-body X-ray recorded for review. |
-| M09–M10 | Flight-crest writer-depth and crystal-iris reader-depth visor tests recorded for review. |
-| A01–A03 | Detailed character recolor, amber familiar and violet shuttered projection recorded for review. |
+- M01: colorless mask; M02: reader-qualified show-through; M03/M04: inside-only clipping.
+- M05/M06: reader exclusion versus all-scene background-only coverage.
+- M07: translucent show-through with self-occlusion and writer depth disabled.
+- M08: complete hidden-reader coverage, without revealing reader color.
+- M09/M10: independent writer/reader depth writes, demonstrated with late HUD surfaces.
+- A01: Inside/Outside comparison; A02/A03: explicit writer/reader Always depth tests.
 
-All 24 configured/control graph transports (the 12-row extended batch excluding
-the separately approved M04) matched exported fields/material targets to actual
-Unity authoring read-back. The batch contains 48 real 96-frame capture streams and
-38 validated MP4s. Camera/light/clip/pose/timeline inputs match; pixel identity is
-not claimed. A separate timeline drives animation; VRM does not carry that timing.
-
-### Preserve these runtime boundaries
-
-- M07 must preserve source alpha and reader color underneath complementary writer
-  passes. Its Blender preview correction did not require a Unity importer change.
-- M09 disables writer depth only; M10 disables reader depth only. Their late HUDs
-  expose depth ownership, not alpha changes. Do not force opacity or turn off depth
-  tests to reproduce them.
-- M08 uses full hidden-reader coverage, not visible reader color through cover.
-  A02 instead bypasses writer depth globally; A03 bypasses reader color depth.
-- A02/A03 use camera-locked single-atlas, sorted-face projections. Exported
-  `doubleSided=false` versus active Unity stencil Cull Off is a documented limit,
-  not an all-angle culling-parity pass. The closed-box Cull Back recipe above is
-  not a general nearest-surface implementation for arbitrary writer topology.
-- M05/M06 use one textured writer; prior multi-material interference is not
-  claimed fixed. New ornament surface captures do not newly validate outlines or
-  cast shadows. Keep the original native-renderer shadow ownership intact.
-- Compound URP coverage and spring-bone subasset identity/reimport stability remain
-  outside this checkpoint. Existing collider-identifier warnings remain open.
-
-No renderer, shader or importer code changed for these new recordings. Capture
-helpers are test tooling, not additional runtime dependencies.
-
-## Historical validation of the native-layer importer change (2026-09-04)
-
-**Checkpoint, not full-matrix sign-off.** Full Blender-to-Unity visual validation is
-underway. Compiler coverage is not a substitute for row-by-row visual acceptance.
-
-| Matrix rows | Progress at this checkpoint |
-|---|---|
-| M01 | Blender reveal approved; Unity capture exists, user review pending. |
-| M02 | Supplemental Mira Bunny closed-box live Unity result approved; automated fresh import and reload checked. Original facial-feature comparison videos still need review. |
-| M03 | Blender face-only shadow approved; Unity capture exists, user review pending. |
-| M04 | At this earlier checkpoint, visor/shadow redesign was pending. Superseded by the approved animated HUD above. |
-| M05-M10, A01-A03 | Visual acceptance pending. Related native-lighting behavior is documented, not claimed fully validated. |
-
-The then-pending M04 gate is now complete with the animated HUD. Do not label older
-videos as validating newer fixtures, or infer general double-sided self-depth
-support from M02. Preserve the dated evidence below as history.
-
-Validated in Unity 2022.3.22f1 / Built-in on 2026-09-04:
-
-- 58 MToonXT NUnit test cases passed through direct in-editor invocation with
-  setup/teardown. The standard runner was canceled at its unsaved-scene prompt;
-  no scene was saved or discarded for testing.
-- A fresh Mira Bunny VRM asset import persisted the original writer slot and graph.
-  Instantiation rebuilt the reader/base/overlay configuration above, with 16 original
-  renderers still totaling 16 (no proxy renderer) and the overlay caster disabled.
-- Script reload retained exactly two writer slots. Bounds and placement in the
-  approved scene were unchanged. Visual acceptance remains the user's earlier
-  confirmation of this setup, not an automated visual comparison of other rows.
-- Existing UniVRM spring-bone subasset identifier-uniqueness errors were also emitted
-  on import; they are separate from these stencil/material changes.
+Preserve source alpha and reader color for M07; use complementary writer coverage.
+M09/M10 disable depth writes, not depth testing. A02/A03 use camera-locked sorted-face
+projections: their exported double-sided setting and active Cull Off stencil variants
+differ, so these examples do not establish arbitrary-camera culling parity.
+M05/M06 use one textured writer; general multi-writer interaction is a separate constraint.
+Compound URP modes require equivalent coverage phases.
 
 ## Legacy compatibility
 
