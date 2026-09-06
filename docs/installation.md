@@ -24,7 +24,7 @@ Fork README: [Extended-UniVRM](https://github.com/miramocha/Extended-UniVRM).
 Then add:
 
 ```
-https://github.com/tdw46/UniVRMXT.git
+https://github.com/miramocha/UniVRMXT.git
 ```
 
 `Packages/manifest.json`:
@@ -34,7 +34,7 @@ https://github.com/tdw46/UniVRMXT.git
   "dependencies": {
     "com.vrmc.gltf": "https://github.com/miramocha/Extended-UniVRM.git?path=/Packages/UniGLTF",
     "com.vrmc.vrm": "https://github.com/miramocha/Extended-UniVRM.git?path=/Packages/VRM10",
-    "com.vrmxt.univrmxt": "https://github.com/tdw46/UniVRMXT.git"
+    "com.vrmxt.univrmxt": "https://github.com/miramocha/UniVRMXT.git"
   }
 }
 ```

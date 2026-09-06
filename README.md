@@ -6,7 +6,7 @@ Version `0.1.0` provides foundation parsers and VFX runtime hooks for:
 
 - `VRMXT_sprite_particle` — parse flat emitters, resolve glTF nodes after UniVRM load, store on `VrmxtVfxInstance`, optional `ParticleSystem` mapping
 - `VRMXT_materials_override` — per-material engine override metadata
-- `VRMXT_materials_mtoonxt` — legacy per-material stencil extras plus portable root-level stencil relationships; package ships `VRMXT/MToonXT10` (Built-in) and `VRMXT/Universal Render Pipeline/MToonXT10`
+- `VRMXT_materials_mtoonxt` — a portable root-level stencil graph replacing the retired per-material stencil format; package ships `VRMXT/MToonXT10` (Built-in) and `VRMXT/Universal Render Pipeline/MToonXT10`
 
 See [docs/architecture.md](docs/architecture.md) for runtime attach + AssetDatabase dual path,
 [docs/mtoonxt-stencil.md](docs/mtoonxt-stencil.md) for the
@@ -25,7 +25,7 @@ portable relationship graph and Unity pass compiler,
 See [docs/installation.md](docs/installation.md). Git UPM, Unity 2022.3 LTS or later:
 
 1. Extended UniVRM (`?path=/Packages/UniGLTF` then `?path=/Packages/VRM10`).
-2. This fork of UniVRMXT `https://github.com/tdw46/UniVRMXT.git`.
+2. UniVRMXT `https://github.com/miramocha/UniVRMXT.git`.
 
 ## Architecture
 
