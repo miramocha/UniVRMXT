@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve shared-reader and dual-role stencil materials in complex baseline graphs
+  through per-reader coverage unions in the Built-in mono-camera path. Cyclic writer
+  groups retain nearest-surface ordering; native lighting, shadows, and alpha remain
+  on the normal renderer. Add graph and rendered-pixel regression coverage.
+
 ### Changed
 
 - Document the 2026-09-06 13-scenario stencil checkpoint and published comparison

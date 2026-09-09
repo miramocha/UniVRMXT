@@ -26,7 +26,40 @@ namespace UniVRMXT.Mtoonxt
             }
 
             root.GetComponent<VrmxtMaterialsMtoonxtAuxiliaryRenderer>()?.RestoreNativeMaterials();
+            root.GetComponent<VrmxtStencilGraphRenderer>()?.Configure(null);
             var slots = BuildSlots(root, store);
+            if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null
+                && VrmxtStencilGraph.NeedsCoverage(plans))
+            {
+                ClearAuxiliary(root);
+                var rules = new List<VrmxtStencilReaderCoverage>();
+                var depthPeers = VrmxtStencilGraph.DepthPeers(plans);
+                var neutral = new VrmxtMtoonxtRelationshipPass("always", "keep", "lessEqual", true, false, true);
+                var configured = new HashSet<Material>();
+                foreach (var plan in plans)
+                foreach (var id in new List<int>(plan.Source.Writers))
+                foreach (var slot in FindSlots(slots, new[] { id }))
+                    if (configured.Add(slot.Material))
+                    {
+                        VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(slot.Material, neutral, 1, gpuBase);
+                        slot.Material.renderQueue = RelationshipSubjectQueue;
+                    }
+                foreach (var entry in VrmxtStencilGraph.Readers(plans))
+                foreach (var reader in FindSlots(slots, new[] { entry.Key }))
+                {
+                    if (rules.Exists(rule => rule.Reader == reader.Material)) continue;
+                    var rule = new VrmxtStencilReaderCoverage
+                    { Reader = reader.Material, RespectReaderDepth = depthPeers.Contains(entry.Key) };
+                    foreach (var writer in FindSlots(slots, new List<int>(entry.Value)))
+                        if (!rule.Writers.Contains(writer.Material)) rule.Writers.Add(writer.Material);
+                    rules.Add(rule);
+                    VrmxtMaterialsMtoonxtApplier.ApplyRelationshipPass(reader.Material, neutral, 1, gpuBase);
+                    reader.Material.renderQueue = RelationshipSubjectQueue;
+                }
+                var graph = root.GetComponent<VrmxtStencilGraphRenderer>() ?? root.AddComponent<VrmxtStencilGraphRenderer>();
+                graph.Configure(rules);
+                return plans.Count;
+            }
             var draws = new List<VrmxtMtoonxtAuxiliaryDraw>();
             var owned = new List<Material>();
             var applied = 0;
@@ -409,6 +442,7 @@ namespace UniVRMXT.Mtoonxt
         private static void ClearAuxiliary(GameObject root)
         {
             root?.GetComponent<VrmxtMaterialsMtoonxtAuxiliaryRenderer>()?.Configure(null, null);
+            root?.GetComponent<VrmxtStencilGraphRenderer>()?.Configure(null);
         }
 
         private readonly struct MaterialSlot

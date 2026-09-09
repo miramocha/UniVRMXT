@@ -152,6 +152,7 @@ namespace UniVRMXT.Editor.MaterialsOverride
             // Generated native layers are DontSave resources; the store's OnEnable
             // reconstructs them on an instantiated avatar, including player builds.
             root.GetComponent<VrmxtMaterialsMtoonxtAuxiliaryRenderer>()?.Configure(null, null);
+            root.GetComponent<VrmxtStencilGraphRenderer>()?.Configure(null);
 
             if (!VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson(root, json, out var store))
             {

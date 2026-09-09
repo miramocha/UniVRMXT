@@ -3,6 +3,10 @@ Shader "VRMXT/MToonXT10"
     Properties
     {
         // Rendering
+        [HideInInspector] _VRMXTGraphMask ("Graph coverage", 2D) = "black" {}
+        [HideInInspector] _VRMXTGraphEnabled ("Graph coverage enabled", Float) = 0
+        [HideInInspector] _VRMXTGraphValue ("Graph mask value", Float) = 0
+        [HideInInspector] _VRMXTGraphColorMask ("Graph color mask", Float) = 15
         _AlphaMode ("alphaMode", Int) = 0
         _TransparentWithZWrite ("mtoon.transparentWithZWrite", Int) = 0
         _Cutoff ("alphaCutoff", Range(0, 1)) = 0.5 // Unity specified name
@@ -90,6 +94,43 @@ Shader "VRMXT/MToonXT10"
     SubShader
     {
         Tags { "RenderType" = "Opaque"  "Queue" = "Geometry" }
+
+        // Explicit, colorless-in-the-scene coverage submission only. No lighting or
+        // shadow data is read by this pass; native forward/caster passes remain intact.
+        Pass
+        {
+            Name "VRMXT_GRAPH_COVERAGE"
+            Tags { "LightMode" = "VRMXTGraphCoverage" }
+            Cull [_M_CullMode]
+            ZTest LEqual
+            ZWrite On
+            Blend Off
+            ColorMask [_VRMXTGraphColorMask]
+            HLSLPROGRAM
+            #pragma target 3.0
+            #pragma vertex GraphVertex
+            #pragma fragment GraphFragment
+            #pragma multi_compile_instancing
+            #pragma multi_compile __ _ALPHATEST_ON _ALPHABLEND_ON
+            #include "./vrmc_materials_mtoon_forward_vertex.hlsl"
+            #include "./vrmc_materials_mtoon_geometry_uv.hlsl"
+            #include "./vrmc_materials_mtoon_geometry_alpha.hlsl"
+            float4x4 _VRMXTGraphVP;
+            float _VRMXTGraphValue;
+            Varyings GraphVertex(Attributes v)
+            {
+                Varyings o = MToonVertex(v);
+                o.pos = mul(_VRMXTGraphVP, float4(o.positionWS, 1));
+                return o;
+            }
+            half4 GraphFragment(FragmentInput f) : SV_Target
+            {
+                float2 uv = GetMToonGeometry_Uv(f.varyings.uv);
+                GetMToonGeometry_Alpha(MTOON_SAMPLE_TEXTURE2D(_MainTex, uv) * _Color);
+                return _VRMXTGraphValue.xxxx;
+            }
+            ENDHLSL
+        }
 
         // Built-in Forward Base Pass
         Pass
