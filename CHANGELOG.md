@@ -163,7 +163,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   after preview ParticleSystems are cleared or only materials were persisted
 - `VrmxtVfxAssetPostprocessor` — companion `*.vrmxt.prefab` fallback for stock UniVRM or when import extensions are disabled
 - Field mapping doc: `docs/vfx-particle-mapping.md`
-- Upstream hook notes: [Extended-VRM-Specs univrm-upstream-hooks](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)
+- Upstream hook notes: [Extended-VRM-Specs univrm-upstream-hooks](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)
 - VFX importer / attach / ParticleSystem / node-resolver / exporter NUnit tests under `Tests/Vfx/` and `Tests/Format/`
 
 ### Changed

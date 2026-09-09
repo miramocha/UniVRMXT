@@ -5,12 +5,12 @@
   "description": "Optional Extended VRM extensions for Unity (VFX, materials override, MToonXT).",
   "unity": "2022.3",
   "license": "MIT",
-  "licensesUrl": "https://github.com/miramocha/UniVRMXT/blob/main/LICENSE.txt",
-  "changelogUrl": "https://github.com/miramocha/UniVRMXT/blob/main/CHANGELOG.md",
-  "documentationUrl": "https://github.com/miramocha/UniVRMXT/blob/main/docs/installation.md",
+  "licensesUrl": "https://github.com/vrmxt/UniVRMXT/blob/main/LICENSE.txt",
+  "changelogUrl": "https://github.com/vrmxt/UniVRMXT/blob/main/CHANGELOG.md",
+  "documentationUrl": "https://github.com/vrmxt/UniVRMXT/blob/main/docs/installation.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/miramocha/UniVRMXT.git"
+    "url": "https://github.com/vrmxt/UniVRMXT.git"
   },
   "keywords": [
     "vrm",

@@ -1,6 +1,6 @@
 # Architecture
 
-UniVRMXT is an optional consumer package for [Extended VRM](https://github.com/miramocha/Extended-VRM-Specs) glTF extensions. Normative behavior is defined in that repository; this package implements Unity-side parsing and integration hooks.
+UniVRMXT is an optional consumer package for [Extended VRM](https://github.com/vrmxt/Extended-VRM-Specs) glTF extensions. Normative behavior is defined in that repository; this package implements Unity-side parsing and integration hooks.
 
 ## Layering
 
@@ -48,7 +48,7 @@ VrmxtVfxRuntime.TryAttach(
 ### VRMXT_materials_override
 
 - Per-material extension: `materials[i].extensions.VRMXT_materials_override`
-- Spec: [vrmxt-materials-override.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/vrmxt-materials-override.md)
+- Spec: [vrmxt-materials-override.md](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/specs/vrmxt-materials-override.md)
 - `VrmxtMaterialsOverride.TryParse` / `ToJson` / `ToUtf8Json` — full round-trip: selection-key uniqueness (`engine`, or `engine` + `material.variant` for Unity/Unreal), Unity `idType: shaderName` with multi-slot `builtin`/`urp`/`hdrp` siblings, Unreal `idType: resourcePath`, `properties[]` (`scalar` / `vector` / `texture` / `shaderFeature`), `bindings[]` sourced from a sibling `VRMC_materials_mtoon`.
 - `UnityOverrideSelector` picks among `engine: unity` entries by active render pipeline: exact `variant` match, else exactly one empty/omitted variant, else stock import.
 - `VrmxtInstance` — avatar-root facade with `Vfx` + `MaterialsOverride` component props; attach/export prefer facade then fall back to direct feature lookup.
@@ -58,15 +58,15 @@ VrmxtVfxRuntime.TryAttach(
 - `VrmxtMaterialsOverrideApplier.Apply` — shared logic for runtime / Warudo-style hosts: resolves the selected `unity` override per material, sets `shader`, then writes that slot's `properties` and `bindings` (bindings win on overlap, per base-spec rule 23). `TryWritePairOverrideOntoMaterial` / `TryWriteUnityOverrideOntoMaterial` are the shared write path (also used by Editor Materialize). Bindings apply only when a sibling `VRMC_materials_mtoon` extension exists; an unresolved shader or a missing/mismatched variant leaves that material on stock import untouched.
 - `VrmxtMaterialsOverrideMaterialize` (Editor) — create/update durable `.mat` assets from override JSON, assign `OverrideMaterial`, swap that asset onto matching renderer slots; Show Override Materials toggles Source vs Override on renderers.
 - `VrmxtMaterialsOverrideExporter` — `BuildPending` clones each stored entry for export; `PrepareTextures` re-registers textures for every unity slot (selector-chosen slot prefers live OverrideMaterial / mesh textures; all slots fall back to `VrmxtMaterialsOverrideInstance.ImportedTextures` decoded on import — never write-through stale glTF indices); `TryBuildUtf8Extension` / `BuildAllUtf8Extensions` produce per-material UTF-8 JSON for the `WriteExtensions` phase, written via `Vrm10ExportExtensionContext.AddMaterialExtension` (material index resolved with `TryGetMaterialIndex`). `ResolveUnityVariant` implements variant survival: an existing `material.variant` always wins; only a brand-new `unity` entry without one is filled from the active pipeline.
-- Host integration uses the same soft-detected `Vrm10Import/ExportExtensionRegistry` design as `VRMXT_sprite_particle` (Editor + Extended-UniVRM) or a direct post-load JSON re-read for hosts without generator inject (e.g. Warudo Character load): [Warudo Materials Override](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/warudo-materials-override.md). Per-material `AddMaterialExtension` / `TryGetMaterialIndex` design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
+- Host integration uses the same soft-detected `Vrm10Import/ExportExtensionRegistry` design as `VRMXT_sprite_particle` (Editor + Extended-UniVRM) or a direct post-load JSON re-read for hosts without generator inject (e.g. Warudo Character load): [Warudo Materials Override](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/warudo-materials-override.md). Per-material `AddMaterialExtension` / `TryGetMaterialIndex` design notes: [univrm-upstream-hooks.md](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
 - Full `IMaterialDescriptorGenerator` wrapping (Editor import-time shader swap ahead of first render) still requires UniVRM at consumption time; see `VrmxtMaterialsOverrideGenerator` and `Editor/MaterialsOverride/VrmxtMaterialDescriptorGeneratorFactory.cs`.
-- Unity↔Blender uses the current `idType` / `id` schema. Remaining Blender gap: Unreal `idType: "resourcePath"` + per-entry `variant` format/UI — see [Blender Materials Override](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/blender-materials-override.md).
+- Unity↔Blender uses the current `idType` / `id` schema. Remaining Blender gap: Unreal `idType: "resourcePath"` + per-entry `variant` format/UI — see [Blender Materials Override](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/blender-materials-override.md).
 
 ### VRMXT_materials_mtoonxt
 
 - Per-material extension: `materials[i].extensions.VRMXT_materials_mtoonxt`
 - Root relationship graph: `extensions.VRMXT_materials_mtoonxt.stencil[]`
-- Spec: [vrmxt-materials-mtoonxt](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmxt-materials-mtoonxt/README.md)
+- Spec: [vrmxt-materials-mtoonxt](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/specs/extensions/materials/vrmxt-materials-mtoonxt/README.md)
 - `VrmxtMaterialsMtoonxtRelationships.TryParseRoot` parses the sole root `stencil` graph with `specVersion` `1.0`. Retired material `stencil`/`outlineStencil` operations and root `stencilRelationships` are ignored. Experimental per-material `zTest` / `zWrite` remain separate; `renderQueueOffset` is ignored.
 - `VrmxtMaterialsMtoonxtRuntime.TryAttachFromGltfJson` / `VrmxtMaterialsMtoonxtApplier.Apply` — swap to packaged `VRMXT/MToonXT10` or `VRMXT/Universal Render Pipeline/MToonXT10` from the active RP; skip if sibling MToon missing, shader missing, or `VRMXT_materials_override` would apply. ShaderLab lives in `Runtime/Shaders/MToonxt/`. Apply offsets compiled stencil Refs per loaded root (`VrmxtMaterialsMtoonxtStencilRefs`, band 32, skip 0/1/51/255).
 - `VrmxtMaterialsMtoonxtRelationships` parses and serializes the portable root graph. Invalid relationships are skipped individually so one bad entry does not discard valid siblings.
@@ -91,8 +91,8 @@ pass choreography, and render-pipeline notes.
     `Vrm10ExportExtensionRegistry` and writes `VRMXT_sprite_particle` from `VrmxtVfxInstance`
     (Project Settings → Enable VRM Export Extensions).
   - Runtime hosts (Warudo, viewers): stock load, then `TryAttachFromGlb` (unchanged).
-  - Design notes: [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
-- **Materials:** `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` attaches the Instance from post-load `.vrm` JSON (Editor or Warudo-style runtime), same soft-detect pattern as VFX. Editor import hook second-reads the GLB (via `VrmxtVfxGlbTextures`) to persist `ImportedTextures` as sub-assets and leaves stock MToon until Materialize. The same hook runs `VrmxtMaterialsMtoonxtApplier.Apply` (`Shader.Find` on packaged forks). Runtime hosts (Player / Warudo) call `VrmxtMaterialsOverrideApplier.Apply` then MToonXT Apply after attach. Export: `VrmxtMaterialsOverrideExporter` feeds `Vrm10ExportExtensionContext.AddMaterialExtension` during `PrepareTextures` / `WriteExtensions` (per-material extension write; see [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)). Editor import-time `IMaterialDescriptorGenerator` wrapping (shader swap ahead of first render, via project settings factory) remains planned.
+  - Design notes: [univrm-upstream-hooks.md](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
+- **Materials:** `VrmxtMaterialsOverrideRuntime.TryAttachFromGltfJson` attaches the Instance from post-load `.vrm` JSON (Editor or Warudo-style runtime), same soft-detect pattern as VFX. Editor import hook second-reads the GLB (via `VrmxtVfxGlbTextures`) to persist `ImportedTextures` as sub-assets and leaves stock MToon until Materialize. The same hook runs `VrmxtMaterialsMtoonxtApplier.Apply` (`Shader.Find` on packaged forks). Runtime hosts (Player / Warudo) call `VrmxtMaterialsOverrideApplier.Apply` then MToonXT Apply after attach. Export: `VrmxtMaterialsOverrideExporter` feeds `Vrm10ExportExtensionContext.AddMaterialExtension` during `PrepareTextures` / `WriteExtensions` (per-material extension write; see [univrm-upstream-hooks.md](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md)). Editor import-time `IMaterialDescriptorGenerator` wrapping (shader swap ahead of first render, via project settings factory) remains planned.
 
 ## CI
 

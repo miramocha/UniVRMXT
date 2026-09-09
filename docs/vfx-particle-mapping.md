@@ -1,6 +1,6 @@
 # VRMXT_sprite_particle → Unity ParticleSystem mapping
 
-Portable fields from [VRMXT_sprite_particle](https://github.com/miramocha/Extended-VRM-Specs/blob/main/specs/extensions/vfx/vrmxt-sprite-particle.md)
+Portable fields from [VRMXT_sprite_particle](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/specs/extensions/vfx/vrmxt-sprite-particle.md)
 map onto Unity `ParticleSystem` via `VrmxtVfxParticleSystemMapper`. Spec defaults apply when
 JSON omits a property (`VrmxtVfx.Default*`).
 
@@ -64,4 +64,4 @@ nodes or structurally invalid texture indices skip that emitter only.
 
 ## AssetDatabase `.vrm` import
 
-Dual path unchanged — see [univrm-upstream-hooks.md](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
+Dual path unchanged — see [univrm-upstream-hooks.md](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).

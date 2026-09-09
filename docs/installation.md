@@ -24,7 +24,7 @@ Fork README: [Extended-UniVRM](https://github.com/miramocha/Extended-UniVRM).
 Then add:
 
 ```
-https://github.com/miramocha/UniVRMXT.git
+https://github.com/vrmxt/UniVRMXT.git
 ```
 
 `Packages/manifest.json`:
@@ -34,7 +34,7 @@ https://github.com/miramocha/UniVRMXT.git
   "dependencies": {
     "com.vrmc.gltf": "https://github.com/miramocha/Extended-UniVRM.git?path=/Packages/UniGLTF",
     "com.vrmc.vrm": "https://github.com/miramocha/Extended-UniVRM.git?path=/Packages/VRM10",
-    "com.vrmxt.univrmxt": "https://github.com/miramocha/UniVRMXT.git"
+    "com.vrmxt.univrmxt": "https://github.com/vrmxt/UniVRMXT.git"
   }
 }
 ```
@@ -72,5 +72,5 @@ Reimport `.vrm` after changing the Project Settings toggle. See [architecture.md
 
 ## Related documentation
 
-- [Extended VRM specifications](https://github.com/miramocha/Extended-VRM-Specs)
+- [Extended VRM specifications](https://github.com/vrmxt/Extended-VRM-Specs)
 - [Architecture](architecture.md)

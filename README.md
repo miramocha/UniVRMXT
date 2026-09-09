@@ -1,6 +1,6 @@
 # UniVRMXT
 
-Optional Unity package for [Extended VRM](https://github.com/miramocha/Extended-VRM-Specs) glTF extensions on top of [UniVRM](https://github.com/vrm-c/UniVRM).
+Optional Unity package for [Extended VRM](https://github.com/vrmxt/Extended-VRM-Specs) glTF extensions on top of [UniVRM](https://github.com/vrm-c/UniVRM).
 
 Version `0.1.0` provides foundation parsers and VFX runtime hooks for:
 
@@ -13,7 +13,7 @@ See [docs/architecture.md](docs/architecture.md) for runtime attach + AssetDatab
 portable relationship graph and Unity pass compiler,
 (Extended-UniVRM import hooks gated by Project Settings/VRM10 vs stock companion prefab),
 [docs/vfx-particle-mapping.md](docs/vfx-particle-mapping.md) for the ParticleSystem field table, and
-[Extended-VRM-Specs univrm-upstream-hooks](https://github.com/miramocha/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
+[Extended-VRM-Specs univrm-upstream-hooks](https://github.com/vrmxt/Extended-VRM-Specs/blob/main/implementations/univrm-upstream-hooks.md).
 
 ## Requirements
 
@@ -25,7 +25,7 @@ portable relationship graph and Unity pass compiler,
 See [docs/installation.md](docs/installation.md). Git UPM, Unity 2022.3 LTS or later:
 
 1. Extended UniVRM (`?path=/Packages/UniGLTF` then `?path=/Packages/VRM10`).
-2. UniVRMXT `https://github.com/miramocha/UniVRMXT.git`.
+2. UniVRMXT `https://github.com/vrmxt/UniVRMXT.git`.
 
 ## Architecture
 
