@@ -52,6 +52,33 @@ public authoring component, but UniVRMXT does not import or reference BVT code.
 
 ## Runtime compilation
 
+### Shared materials in baseline graphs
+
+In the Built-in mono-camera path, overlapping relationships with the default
+presentation fields use reader-specific GPU coverage unions. One numeric stencil
+reference cannot represent a material that reads several different writers, or acts
+as both reader and writer. Applying rows sequentially would overwrite that state.
+
+Coverage preserves explicit graph edges, not their transitive closure. Each writer's
+depth pass excludes its allowed readers; unrelated opaque geometry still occludes it.
+Connected writer groups containing a cycle use a shared nearest-surface depth stage,
+including writers feeding that cycle; reader-only materials retain mask behavior.
+Identical non-peer writer sets share a target. Targets are camera-owned, resized
+with the viewport, and released on disable; shared materials on another avatar do not
+create relationships between avatars.
+
+The native forward and outline passes sample coverage through per-renderer/submesh
+properties. Visible color, alpha, skinning, lights, and shadow reception still use
+Unity's native renderer. Shadow-caster passes do not sample camera-space coverage.
+Only the portable authoring graph is exported, never generated textures or passes.
+
+This graph path currently targets baseline Outside/LEqual relationships with color,
+depth writing and self-occlusion enabled. Mixed compound graph modes, SRP and stereo
+coverage require separate implementations/validation. The single-plan matrix paths
+below remain separate; their passing results are not proof of arbitrary graph support.
+
+### Individual relationship modes
+
 `VrmxtMaterialsMtoonxtRelationshipCompiler` turns each portable relationship into a
 small pass plan. Primary writer and reader passes reuse imported renderer/material
 slots. Compound modes add retained auxiliary draws:

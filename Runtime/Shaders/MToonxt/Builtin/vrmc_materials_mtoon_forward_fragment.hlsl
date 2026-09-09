@@ -11,6 +11,7 @@
 #include "./vrmc_materials_mtoon_geometry_normal.hlsl"
 #include "./vrmc_materials_mtoon_lighting_unity.hlsl"
 #include "./vrmc_materials_mtoon_lighting_mtoon.hlsl"
+#include "./vrmxt_graph_clip.hlsl"
 
 half4 MToonFragment(const FragmentInput fragmentInput) : SV_Target
 {
@@ -21,6 +22,7 @@ half4 MToonFragment(const FragmentInput fragmentInput) : SV_Target
 
     const Varyings input = fragmentInput.varyings;
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    VrmxtGraphClip(input.positionWS);
 
     // Get MToon UV (with UVAnimation)
     const float2 uv = GetMToonGeometry_Uv(input.uv);

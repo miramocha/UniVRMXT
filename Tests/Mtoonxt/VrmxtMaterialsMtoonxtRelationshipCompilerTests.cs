@@ -56,6 +56,7 @@ namespace UniVRMXT.Tests.Mtoonxt
             );
 
             Assert.AreEqual(1, plans.Count, row);
+            Assert.IsFalse(VrmxtStencilGraph.NeedsCoverage(plans), row);
             Assert.AreEqual(expected, Snapshot(plans[0]), row);
         }
 
