@@ -4,7 +4,7 @@ Thank you for contributing to UniVRMXT.
 
 ## Before you start
 
-- Read the normative specs in [Extended-VRM-Specs](https://github.com/miramocha/Extended-VRM-Specs).
+- Read the normative specs in [Extended-VRM-Specs](https://github.com/vrmxt/Extended-VRM-Specs).
 - Keep Runtime format code free of UniGLTF compile dependencies unless the change
   explicitly requires UniVRM integration.
 - Match Unity 2022.3 and the package versions declared in `package.json`.
@@ -32,7 +32,7 @@ git tag -a v0.1.0 -m "UniVRMXT 0.1.0"
 git push origin v0.1.0
 ```
 
-Install URL: `https://github.com/miramocha/UniVRMXT.git#v0.1.0`. Do not retag; bump
+Install URL: `https://github.com/vrmxt/UniVRMXT.git#v0.1.0`. Do not retag; bump
 `package.json` and cut `v0.1.1` (or similar) next.
 
 Extended-UniVRM already has `v0.131.2`. UPM uses
