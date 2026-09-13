@@ -16,7 +16,7 @@ UniVRMXT is an optional consumer package for [Extended VRM](https://github.com/v
 The Format layer parses extension JSON with Newtonsoft.Json (`com.unity.nuget.newtonsoft-json`)
 and does not reference UniGLTF types, so format tests stay free of UniVRM load APIs.
 
-## Extensions (v0.1.0)
+## Extensions
 
 ### VRMXT_sprite_particle
 

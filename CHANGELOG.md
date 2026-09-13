@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-13
+
 ### Fixed
 
 - Preserve shared-reader and dual-role stencil materials in complex baseline graphs
@@ -19,20 +21,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   matrix: 24 configured/control transports verified, M04/M07 approvals recorded,
   and remaining topology, alpha-ordering, culling and pipeline limits explicit.
   This documentation checkpoint makes no new runtime or full-conformance claim.
-- **Breaking (unreleased):** MToonXT glTF key `VRMC_materials_mtoonxt` →
+- **Breaking:** MToonXT glTF key `VRMC_materials_mtoonxt` →
   `VRMXT_materials_mtoonxt`. Parsers read the new name only. C# types
   `VrmcMaterialsMtoonxt*` → `VrmxtMaterialsMtoonxt*`; enums
   `VrmcMtoonxt*StencilOp` → `VrmxtMtoonxt*StencilOp`. Shader files
   `vrmc_materials_mtoonxt*` → `vrmxt_materials_mtoonxt*` (ShaderLab names
   `VRMXT/MToonXT10` unchanged). Overlay include guards
   `VRMXT_MATERIALS_MTOONXT_OVERLAY_DEPTH_INCLUDED`.
-- **Breaking (unreleased):** UPM package id `com.miramocha.univrmxt` →
+- **Breaking:** UPM package id `com.miramocha.univrmxt` →
   `com.vrmxt.univrmxt`. Update `Packages/manifest.json`. New materials-override
   `provider.id` matches; existing files with the old id still load (`provider` is
   advisory).
 - UniVRM pin `com.vrmc.gltf` / `com.vrmc.vrm` `0.131.1` → `0.131.2` (matches Extended-UniVRM and the MToonXT shader fork).
 - `package.json` `unity` `2021.3` → `2022.3` (matches UniVRM 0.131.2). Add `license` / repo URLs for Package Manager.
-- **Breaking (unreleased):** Root extension renamed to `VRMXT_sprite_particle` with flat
+- **Breaking:** Root extension renamed to `VRMXT_sprite_particle` with flat
   emitter fields (`texture`, `size`, `color`, …). Legacy `VRMXT_vfx` / `VRMXT_particle`
   are not read. Removed emitter `localPosition` / `localRotation`, nested `particle`, `type`,
   `startSize`, and `startColor`.
@@ -54,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   authoring, export, and Built-in/URP MToonXT passes, allowing invisible avatar masks
   without disabling their stencil or depth effects.
 
-- Root `VRMXT_materials_mtoonxt.stencilRelationships[]` import, authoring, export,
+- Root `VRMXT_materials_mtoonxt.stencil[]` import, authoring, export,
   and Built-in runtime pass compilation for the confirmed M01-M10/A01-A03 stencil
   parity modes. Relationship metadata is owned entirely by UniVRMXT; host tools may
   populate `VrmxtMaterialsMtoonxtInstance` without becoming exporter dependencies.

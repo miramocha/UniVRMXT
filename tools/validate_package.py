@@ -31,12 +31,15 @@ def check_package_json() -> None:
     data = json.loads(package_json_path.read_text(encoding="utf-8"))
     expected = {
         "name": "com.vrmxt.univrmxt",
-        "version": "0.1.0",
         "unity": "2022.3",
     }
     for key, value in expected.items():
         if data.get(key) != value:
             fail(f"package.json {key} expected {value!r}, got {data.get(key)!r}")
+
+    version = data.get("version")
+    if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        fail(f"package.json version must be semver X.Y.Z, got {version!r}")
 
     author = data.get("author", {})
     if author.get("name") != "Mira Luna":

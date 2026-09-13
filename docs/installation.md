@@ -24,8 +24,10 @@ Fork README: [Extended-UniVRM](https://github.com/miramocha/Extended-UniVRM).
 Then add:
 
 ```
-https://github.com/vrmxt/UniVRMXT.git
+https://github.com/vrmxt/UniVRMXT.git#v0.1.1
 ```
+
+Unpinned `https://github.com/vrmxt/UniVRMXT.git` tracks `main`.
 
 `Packages/manifest.json`:
 
@@ -34,7 +36,7 @@ https://github.com/vrmxt/UniVRMXT.git
   "dependencies": {
     "com.vrmc.gltf": "https://github.com/miramocha/Extended-UniVRM.git?path=/Packages/UniGLTF",
     "com.vrmc.vrm": "https://github.com/miramocha/Extended-UniVRM.git?path=/Packages/VRM10",
-    "com.vrmxt.univrmxt": "https://github.com/vrmxt/UniVRMXT.git"
+    "com.vrmxt.univrmxt": "https://github.com/vrmxt/UniVRMXT.git#v0.1.1"
   }
 }
 ```

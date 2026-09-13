@@ -22,18 +22,18 @@ Thank you for contributing to UniVRMXT.
 - Update `CHANGELOG.md` under `[Unreleased]` or the next version section.
 - Do not commit generated `*.g.cs` files; handwritten parsers belong under `Runtime/Format/`.
 
-## First UPM release
+## UPM release
 
-`package.json` version is `0.1.0`. After the id/pin/docs on `main` are what you want to
-ship:
+Move `[Unreleased]` notes in `CHANGELOG.md` into the new version, bump `package.json`
+`version`, then:
 
 ```bash
-git tag -a v0.1.0 -m "UniVRMXT 0.1.0"
-git push origin v0.1.0
+git tag -a v0.1.1 -m "UniVRMXT 0.1.1"
+git push origin v0.1.1
 ```
 
-Install URL: `https://github.com/vrmxt/UniVRMXT.git#v0.1.0`. Do not retag; bump
-`package.json` and cut `v0.1.1` (or similar) next.
+Install URL: `https://github.com/vrmxt/UniVRMXT.git#v0.1.1`. Do not retag; bump
+`package.json` and cut `v0.1.2` (or similar) next.
 
 Extended-UniVRM already has `v0.131.2`. UPM uses
 `?path=/Packages/UniGLTF#v0.131.2` and `?path=/Packages/VRM10#v0.131.2` on

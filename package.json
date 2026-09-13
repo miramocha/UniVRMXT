@@ -1,6 +1,6 @@
 {
   "name": "com.vrmxt.univrmxt",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "UniVRMXT",
   "description": "Optional Extended VRM extensions for Unity (VFX, materials override, MToonXT).",
   "unity": "2022.3",
